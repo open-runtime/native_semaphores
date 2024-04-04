@@ -6,20 +6,7 @@ import 'dart:typed_data' show Uint8List;
 import 'package:ffi/ffi.dart' show Utf16, Utf8Pointer, Utf8, malloc;
 import 'package:path/path.dart' show join;
 import "package:runtime_native_semaphores/ffi/unix.dart"
-    show
-        MODE_T_PERMISSIONS,
-        SemOpenError,
-        SemOpenUnixMacros,
-        errno,
-        sem_close,
-        sem_open,
-        sem_openPtr,
-        sem_openPtr_2,
-        sem_open_2,
-        sem_unlink,
-        unverified_sem_open_2,
-        verified_sem_open;
-import 'package:runtime_native_semaphores/generated_bindings.dart';
+    show MODE_T_PERMISSIONS, SemOpenError, SemOpenUnixMacros, errno, sem_close, sem_t, sem_unlink, x86_64_sem_open;
 // import 'package:runtime_native_semaphores/generated_bindings.dart' show HelloWorld;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 // import 'package:runtime_native_semaphores/generated_bindings.dart' show HelloWorld;
@@ -79,14 +66,14 @@ extension StringUtf16Pointer on String {
 
 main() {
   // Open the dynamic library
-  var libraryPath = join(Directory.current.path, 'hello_library', 'libhello.so');
+  var libraryPath = join(Directory.current.path, 'hello_library_x86_64', 'libhello.so');
 
   if (Platform.isMacOS) {
-    libraryPath = join(Directory.current.path, 'hello_library', 'libhello.dylib');
+    libraryPath = join(Directory.current.path, 'hello_library_x86_64', 'libhello.dylib');
   }
 
   if (Platform.isWindows) {
-    libraryPath = join(Directory.current.path, 'hello_library', 'Debug', 'hello.dll');
+    libraryPath = join(Directory.current.path, 'hello_library_x86_64', 'Debug', 'hello.dll');
   }
 
   final dylib = DynamicLibrary.open(libraryPath);
@@ -129,7 +116,7 @@ main() {
 
   // Pointer<sem_t> sem = how_is_this_possible(name, 512, MODE_T_PERMISSIONS.RECOMMENDED, 1);
 
-  Pointer<sem_t> sem = sem_open(name, 512, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+  Pointer<sem_t> sem = x86_64_sem_open(name, 512, MODE_T_PERMISSIONS.RECOMMENDED, 1);
   // Pointer<sem_t> sem_2 = unverified_sem_open_2(name, 512, MODE_T_PERMISSIONS.RECOMMENDED);
   // Pointer<sem_t> sem = HelloWorld(DynamicLibrary.process()).sem_open(name, 512);
   // Pointer<sem_t> sem = HelloWorld(dylib).hello_world(name, 512, MODE_T_PERMISSIONS.RECOMMENDED, 1);

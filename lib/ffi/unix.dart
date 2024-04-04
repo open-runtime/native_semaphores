@@ -15,6 +15,7 @@ import 'dart:ffi'
         Uint64,
         Uint8,
         UnsignedInt,
+        UnsignedLong,
         UnsignedShort,
         VarArgs;
 import 'dart:io' show Platform;
@@ -38,11 +39,9 @@ import 'dart:io' show Platform;
 /// files of the system you're working on. If you're interfacing with functions
 /// that require [mode_t], you would declare them in Dart using [Uint16] for those parameters.
 
-typedef mode_t = UnsignedShort;
+/// On [x86_64], [mode_t] is a [UnsignedShort] and on [arm64], [mode_t] is an [UnsignedLong]
+typedef mode_t<T> = T;
 typedef sem_t = Int;
-
-typedef x86_64_sem_open_function_type = Pointer<sem_t> Function(Pointer<Char>, Int, VarArgs<(mode_t, UnsignedInt)>);
-typedef dart_sem_open_function_type = Pointer<sem_t> Function(Pointer<Char> name, int oflag, int mode, int value);
 
 class MODE_T_PERMISSIONS {
   static int x = 1;
@@ -57,7 +56,7 @@ class MODE_T_PERMISSIONS {
       ((u | user) << 6) | ((g | group) << 3) | (o | others);
 
   // Most common for named semaphores
-  static int RECOMMENDED = MODE_T_PERMISSIONS.OWNER_READ_WRITE_GROUP_READ;
+  static int RECOMMENDED = MODE_T_PERMISSIONS.ALL_READ_WRITE_EXECUTE;
 
   // 0644 - Owner can read and write; the group can read; others can read.
   // static int OWNER_READ_WRITE_GROUP_READ = toOctal(0, 6, 4, 4);
@@ -114,13 +113,50 @@ class MODE_T_PERMISSIONS {
 // @Native<Pointer<sem_t> Function(Pointer<Char>, Int, VarArgs<(mode_t, UnsignedInt)>)>()
 // external Pointer<sem_t> sem_open(Pointer<Char> name, int oflag);
 
-Pointer<sem_t> sem_open(Pointer<Char> name, int oflags, [int? mode, int? value]) =>
-    sem_open_callable(name, oflags, mode ?? MODE_T_PERMISSIONS.RECOMMENDED, value ?? 1);
+// typedef NativeHelloWorldFunction = Pointer<sem_t> Function(
+//     Pointer<Char> name,
+//     Int oflag,
+//     VarArgs<
+//         (
+//         // UnsignedLong x2,
+//         // UnsignedLong x3,
+//         // UnsignedLong x4,
+//         // UnsignedLong x5,
+//         // UnsignedLong x6,
+//         // UnsignedLong x7,
+//         mode_t mode,
+//         UnsignedInt value
+//         )>);
+
+// arm64
+typedef arm64_sem_open_function_type = Pointer<sem_t> Function(
+    Pointer<Char>, Int, VarArgs<(mode_t<UnsignedLong>, UnsignedInt)>);
+typedef dart_arm64_sem_open_function_type = Pointer<sem_t> Function(Pointer<Char> name, int oflag, int mode, int value);
+
+Pointer<sem_t> arm64_sem_open(Pointer<Char> name, int oflags, [int? mode, int? value]) =>
+    arm64_sem_open_callable(name, oflags, mode ?? MODE_T_PERMISSIONS.RECOMMENDED, value ?? 1);
+
+final arm64_sem_open_pointer =
+    DynamicLibrary.process().lookup<NativeFunction<arm64_sem_open_function_type>>('sem_open');
+
+final dart_arm64_sem_open_function_type arm64_sem_open_callable =
+    arm64_sem_open_pointer.cast<NativeFunction<arm64_sem_open_function_type>>().asFunction();
+
+// x86_64
+typedef x86_64_sem_open_function_type = Pointer<sem_t> Function(
+    Pointer<Char>, Int, VarArgs<(mode_t<UnsignedShort>, UnsignedInt)>);
+typedef dart_x86_64_sem_open_function_type = Pointer<sem_t> Function(
+    Pointer<Char> name, int oflag, int mode, int value);
+
+// TODO - route with oflag i.e. if O_CREAT is set, then mode and value are required
+// TODO - if O_CREAT is not set then we shouldn't pass mode and value and we should probably look up the function again
+Pointer<sem_t> x86_64_sem_open(Pointer<Char> name, int oflags, [int? mode, int? value]) =>
+    x86_64_sem_open_callable(name, oflags, mode ?? MODE_T_PERMISSIONS.RECOMMENDED, value ?? 1);
 
 final x86_64_sem_open_pointer =
     DynamicLibrary.process().lookup<NativeFunction<x86_64_sem_open_function_type>>('sem_open');
 
-final dart_sem_open_function_type sem_open_callable =
+final dart_x86_64_sem_open_function_type x86_64_sem_open_callable =
     x86_64_sem_open_pointer.cast<NativeFunction<x86_64_sem_open_function_type>>().asFunction();
 
 // final sem_openPtr_2 = DynamicLibrary.process()
