@@ -1,0 +1,4 @@
+/Users/tsavo/Development/Runtime/aot_monorepo/packages/libraries/dart/native_semaphores/hello_library/CMakeFiles/hello_library.dir
+/Users/tsavo/Development/Runtime/aot_monorepo/packages/libraries/dart/native_semaphores/hello_library/CMakeFiles/hello_test.dir
+/Users/tsavo/Development/Runtime/aot_monorepo/packages/libraries/dart/native_semaphores/hello_library/CMakeFiles/edit_cache.dir
+/Users/tsavo/Development/Runtime/aot_monorepo/packages/libraries/dart/native_semaphores/hello_library/CMakeFiles/rebuild_cache.dir
