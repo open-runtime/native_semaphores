@@ -1,5 +1,6 @@
 import 'dart:ffi'
     show
+        Abi,
         Char,
         DynamicLibrary,
         Int,
@@ -158,6 +159,22 @@ final x86_64_sem_open_pointer =
 
 final dart_x86_64_sem_open_function_type x86_64_sem_open_callable =
     x86_64_sem_open_pointer.cast<NativeFunction<x86_64_sem_open_function_type>>().asFunction();
+
+// unified
+typedef sem_open_function_type<M> = Pointer<sem_t> Function(Pointer<Char>, Int, VarArgs<(mode_t<M>, UnsignedInt)>);
+typedef dart_sem_open_function_type = Pointer<sem_t> Function(Pointer<Char> name, int oflag, int mode, int value);
+
+Pointer<sem_t> sem_open(Pointer<Char> name, int oflags, [int? mode, int? value]) =>
+    sem_open_callable(name, oflags, mode ?? MODE_T_PERMISSIONS.RECOMMENDED, value ?? 1);
+
+// if we are on MacOS Arm64, then our mode_t is UnsignedLong otherwise it is UnsignedShort
+final sem_open_pointer = Abi.current() == Abi.macosArm64
+    ? DynamicLibrary.process().lookup<NativeFunction<sem_open_function_type<UnsignedLong>>>('sem_open')
+    : DynamicLibrary.process().lookup<NativeFunction<sem_open_function_type<UnsignedShort>>>('sem_open');
+
+final dart_sem_open_function_type sem_open_callable = Abi.current() == Abi.macosArm64
+    ? sem_open_pointer.cast<NativeFunction<sem_open_function_type<UnsignedLong>>>().asFunction()
+    : sem_open_pointer.cast<NativeFunction<sem_open_function_type<UnsignedShort>>>().asFunction();
 
 // final sem_openPtr_2 = DynamicLibrary.process()
 //     .lookup<NativeFunction<Pointer<sem_t> Function(Pointer<Char>, Int, VarArgs<(mode_t,)>)>>('sem_open');

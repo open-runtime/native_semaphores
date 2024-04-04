@@ -6,7 +6,7 @@ import 'dart:typed_data' show Uint8List;
 import 'package:ffi/ffi.dart' show Utf16, Utf8Pointer, Utf8, malloc;
 import 'package:path/path.dart' show join;
 import "package:runtime_native_semaphores/ffi/unix.dart"
-    show MODE_T_PERMISSIONS, SemOpenError, SemOpenUnixMacros, errno, sem_close, sem_t, sem_unlink, x86_64_sem_open;
+    show MODE_T_PERMISSIONS, SemOpenError, SemOpenUnixMacros, errno, sem_close, sem_open, sem_t, sem_unlink;
 // import 'package:runtime_native_semaphores/generated_bindings.dart' show HelloWorld;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 // import 'package:runtime_native_semaphores/generated_bindings.dart' show HelloWorld;
@@ -116,7 +116,7 @@ main() {
 
   // Pointer<sem_t> sem = how_is_this_possible(name, 512, MODE_T_PERMISSIONS.RECOMMENDED, 1);
 
-  Pointer<sem_t> sem = x86_64_sem_open(name, 512, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+  Pointer<sem_t> sem = sem_open(name, 512, MODE_T_PERMISSIONS.RECOMMENDED, 1);
   // Pointer<sem_t> sem_2 = unverified_sem_open_2(name, 512, MODE_T_PERMISSIONS.RECOMMENDED);
   // Pointer<sem_t> sem = HelloWorld(DynamicLibrary.process()).sem_open(name, 512);
   // Pointer<sem_t> sem = HelloWorld(dylib).hello_world(name, 512, MODE_T_PERMISSIONS.RECOMMENDED, 1);
