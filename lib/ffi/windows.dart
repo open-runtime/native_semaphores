@@ -183,6 +183,8 @@ class WindowsCreateSemaphoreWMacros {
   /// tab (`\t`), etc.
   static const int ERROR_INVALID_NAME = 123;
 
+  static const int ERROR_SUCCESS = 0;
+
   // ERROR_ACCESS_DENIED: The caller does not have the required access rights to create or open the semaphore object.
   static const int ERROR_ACCESS_DENIED = 5;
 
@@ -209,9 +211,8 @@ class WindowsCreateSemaphoreWMacros {
 
   static String LOCAL_NAME_PREFIX = 'Local\\';
 
-  // Maximum length of a path for a named semaphore
-  // static int MAX_PATH = 32767 - min(GLOBAL_NAME_PREFIX.length, LOCAL_NAME_PREFIX.length);
-  static int MAX_PATH = 32768;
+  // Maximum length of a path for a named semaphore, in some cases on windows 10 it can be up to 32,767
+  static int MAX_PATH = 260 - min(GLOBAL_NAME_PREFIX.length, LOCAL_NAME_PREFIX.length);
 }
 
 class WindowsCreateSemaphoreWError extends Error {
@@ -254,6 +255,10 @@ class WindowsCreateSemaphoreWError extends Error {
     if (code == WindowsCreateSemaphoreWMacros.ERROR_INVALID_NAME)
       return WindowsCreateSemaphoreWError(code,
           "The specified name is invalid. It is either too long or contains invalid characters.", 'ERROR_INVALID_NAME');
+
+    if (code == WindowsCreateSemaphoreWMacros.ERROR_SUCCESS)
+      return WindowsCreateSemaphoreWError(
+          code, "The operation completed successfully and there is no 'last error'.", 'ERROR_SUCCESS');
 
     // Default case if none of the specific error codes match
     return WindowsCreateSemaphoreWError(code, "Unknown error.", 'UNKNOWN');
