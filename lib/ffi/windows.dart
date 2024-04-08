@@ -210,7 +210,8 @@ class WindowsCreateSemaphoreWMacros {
   static String LOCAL_NAME_PREFIX = 'Local\\';
 
   // Maximum length of a path for a named semaphore
-  static int MAX_PATH = 260 - min(GLOBAL_NAME_PREFIX.length, LOCAL_NAME_PREFIX.length);
+  // static int MAX_PATH = 32767 - min(GLOBAL_NAME_PREFIX.length, LOCAL_NAME_PREFIX.length);
+  static int MAX_PATH = 32768;
 }
 
 class WindowsCreateSemaphoreWError extends Error {

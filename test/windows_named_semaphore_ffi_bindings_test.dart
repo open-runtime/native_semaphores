@@ -54,7 +54,7 @@ void main() {
 
     test('Single Thread: Throw Semaphore Name Too Long ', () {
       // Anything over 250 chars including the leading Global\ will be too long to fit into a 255 int which is NAME_MAX
-      LPCWSTR name = ('Global\\${'x' * WindowsCreateSemaphoreWMacros.MAX_PATH * 10000}'.toNativeUtf16());
+      LPCWSTR name = ('Global\\${'x' * WindowsCreateSemaphoreWMacros.MAX_PATH}'.toNativeUtf16());
 
       print(name.toDartString().length);
       print(WindowsCreateSemaphoreWMacros.MAX_PATH);
