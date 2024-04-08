@@ -30,7 +30,7 @@ void main() {
     test('Single Thread: Open, Close, Unlink Semaphore', () {
       LPCWSTR name = ('Global\\${safeIntId.getId()}-named-sem'.toNativeUtf16());
 
-      int address = CreateSemaphoreW(NULL.address, 0, 1, name);
+      int address = CreateSemaphoreW(WindowsCreateSemaphoreWMacros.NULL.address, 0, 1, name);
       final sem = Pointer.fromAddress(address);
 
       print("Semaphore address on windows $address");
@@ -59,7 +59,7 @@ void main() {
       print(name.toDartString().length);
       print(WindowsCreateSemaphoreWMacros.MAX_PATH);
 
-      int address = CreateSemaphoreW(NULL.address, 0, 1, name);
+      int address = CreateSemaphoreW(WindowsCreateSemaphoreWMacros.NULL.address, 0, 1, name);
       final sem = Pointer.fromAddress(address);
 
       print("Semaphore address on windows $address");
@@ -81,6 +81,18 @@ void main() {
       //     () => throw SemOpenError.fromErrno(error_number),
       //     throwsA(isA<SemOpenError>()
       //         .having((e) => e.message, 'message', contains(SemOpenError.fromErrno(error_number).message))));
+
+      final int released = ReleaseSemaphore(
+        sem.address,
+        WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
+        WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
+      );
+      print("Released: $released");
+      expect(released, isNonZero); // 0 indicates failure
+
+      final int closed = CloseHandle(sem.address);
+      print("Closed: $closed");
+      expect(closed, isNonZero); // 0 indicates failure
 
       malloc.free(name);
     });

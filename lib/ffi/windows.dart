@@ -1,5 +1,5 @@
 import 'dart:ffi' show Int32, IntPtr, Native, Pointer, Struct, Uint16, Uint32, Uint8;
-import 'dart:io';
+import 'dart:math' show min;
 import 'package:ffi/ffi.dart' show Utf16;
 
 typedef HANDLE = IntPtr;
@@ -7,14 +7,6 @@ typedef LONG = Int32;
 typedef BOOL = Uint32;
 typedef DWORD = Uint32;
 typedef LPCWSTR = Pointer<Utf16>;
-
-final Pointer<Never> NULL = Pointer.fromAddress(0);
-
-/// Return only when the object is signaled.
-const INFINITE = 0xFFFFFFFF;
-final WAIT_ABANDONED = 0x00000080;
-final WAIT_OBJECT_0 = 0x00000000;
-final WAIT_TIMEOUT = 0x00000102;
 
 /// The SECURITY_ATTRIBUTES structure contains the security descriptor for
 /// an object and specifies whether the handle retrieved by specifying this
@@ -140,6 +132,8 @@ external int CloseHandle(int hObject);
 external int GetLastError();
 
 class WindowsCreateSemaphoreWMacros {
+  static Pointer<Never> NULL = Pointer.fromAddress(0);
+
   static Pointer<Never> SEM_FAILED = NULL;
 
   /// ERROR_INVALID_NAME: The specified name is invalid. It is either too long or contains invalid characters.
@@ -182,8 +176,12 @@ class WindowsCreateSemaphoreWMacros {
 
   static int MAXIMUM_VALUE_RECOMMENDED = 1;
 
+  static String GLOBAL_NAME_PREFIX = 'Global\\';
+
+  static String LOCAL_NAME_PREFIX = 'Local\\';
+
   // Maximum length of a path for a named semaphore
-  static int MAX_PATH = 260;
+  static int MAX_PATH = 260 - min(GLOBAL_NAME_PREFIX.length, LOCAL_NAME_PREFIX.length);
 }
 
 class WindowsCreateSemaphoreWError extends Error {
@@ -232,8 +230,21 @@ class WindowsCreateSemaphoreWError extends Error {
   }
 }
 
+class WindowsWaitForSingleObjectMacros {
+  /// Return only when the object is signaled.
+  static const int INFINITE = 0xFFFFFFFF;
+
+  static const int WAIT_ABANDONED = 0x00000080;
+
+  static const int WAIT_OBJECT_0 = 0x00000000;
+
+  static const int WAIT_TIMEOUT = 0x00000102;
+}
+
 class WindowsReleaseSemaphoreMacros {
   static const int RELEASE_COUNT_RECOMMENDED = 1;
 
-  static Pointer<Never> PREVIOUS_RELEASE_COUNT_RECOMMENDED = NULL;
+  static late Pointer<Never> PREVIOUS_RELEASE_COUNT_RECOMMENDED = NULL;
+
+  static Pointer<Never> NULL = Pointer.fromAddress(0);
 }
