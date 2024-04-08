@@ -235,7 +235,7 @@ class SemUnixLimits {
   static int NAME_MAX = 255;
 }
 
-class SemOpenUnixMacros {
+class UnixSemOpenMacros {
   // https://man7.org/linux/man-pages/man3/sem_open.3.html
   // https://pubs.opengroup.org/onlinepubs/009695399/functions/sem_open.html
 
@@ -321,56 +321,59 @@ class SemOpenUnixMacros {
   static int VALUE_RECOMMENDED = 1;
 }
 
-class SemOpenError extends Error {
+class UnixSemOpenError extends Error {
   final int code;
   final String message;
   final String? identifier;
   late final String? description = toString();
 
-  SemOpenError(this.code, this.message, this.identifier);
+  UnixSemOpenError(this.code, this.message, this.identifier);
 
   @override
   String toString() => 'SemOpenError: [Error: $identifier Code: $code]: $message';
 
-  static SemOpenError fromErrno(int errno) {
-    if (errno == SemOpenUnixMacros.EACCES)
-      return SemOpenError(errno, "The semaphore exists, but the caller does not have permission to open it.", 'EACCES');
-    if (errno == SemOpenUnixMacros.EINTR)
-      return SemOpenError(errno, "The sem_open() operation was interrupted by a signal.", 'EINTR');
-    if (errno == SemOpenUnixMacros.EEXIST)
-      return SemOpenError(errno,
+  static UnixSemOpenError fromErrno(int errno) {
+    if (errno == UnixSemOpenMacros.EACCES)
+      return UnixSemOpenError(
+          errno, "The semaphore exists, but the caller does not have permission to open it.", 'EACCES');
+    if (errno == UnixSemOpenMacros.EINTR)
+      return UnixSemOpenError(errno, "The sem_open() operation was interrupted by a signal.", 'EINTR');
+    if (errno == UnixSemOpenMacros.EEXIST)
+      return UnixSemOpenError(errno,
           "Both O_CREAT and O_EXCL were specified in oflag, but a semaphore with this name already exists.", 'EEXIST');
-    if (errno == SemOpenUnixMacros.EINVAL)
-      return SemOpenError(
+    if (errno == UnixSemOpenMacros.EINVAL)
+      return UnixSemOpenError(
           errno,
           "Invalid argument. The name was just '/' or the value was greater than SEM_VALUE_MAX, or the operation is not supported for the given name.",
           'EINVAL');
-    if (errno == SemOpenUnixMacros.EMFILE)
-      return SemOpenError(
+    if (errno == UnixSemOpenMacros.EMFILE)
+      return UnixSemOpenError(
           errno, "The per-process limit on the number of open file descriptors has been reached.", 'EMFILE');
-    if (errno == SemOpenUnixMacros.ENAMETOOLONG)
-      return SemOpenError(
+    if (errno == UnixSemOpenMacros.ENAMETOOLONG)
+      return UnixSemOpenError(
           errno,
           "The name was too long, or a pathname component is longer than NAME_MAX i.e. 30 character dart String including the leading slash.",
           'ENAMETOOLONG');
-    if (errno == SemOpenUnixMacros.ENFILE)
-      return SemOpenError(errno, "The system-wide limit on the total number of open files has been reached.", 'ENFILE');
-    if (errno == SemOpenUnixMacros.ENOENT)
-      return SemOpenError(errno, "No semaphore with this name exists; or, name wasn't well formed.", 'ENOENT');
-    if (errno == SemOpenUnixMacros.ENOMEM) return SemOpenError(errno, "Insufficient memory.", 'ENOMEM');
-    if (errno == SemOpenUnixMacros.ENOSPC)
-      return SemOpenError(errno, "There is insufficient space for the creation of the new named semaphore.", 'ENOSPC');
-    if (errno == SemOpenUnixMacros.EFAULT)
-      return SemOpenError(
+    if (errno == UnixSemOpenMacros.ENFILE)
+      return UnixSemOpenError(
+          errno, "The system-wide limit on the total number of open files has been reached.", 'ENFILE');
+    if (errno == UnixSemOpenMacros.ENOENT)
+      return UnixSemOpenError(errno, "No semaphore with this name exists; or, name wasn't well formed.", 'ENOENT');
+    if (errno == UnixSemOpenMacros.ENOMEM) return UnixSemOpenError(errno, "Insufficient memory.", 'ENOMEM');
+    if (errno == UnixSemOpenMacros.ENOSPC)
+      return UnixSemOpenError(
+          errno, "There is insufficient space for the creation of the new named semaphore.", 'ENOSPC');
+    if (errno == UnixSemOpenMacros.EFAULT)
+      return UnixSemOpenError(
           errno,
           "Invalid memory address encountered. Please ensure all pointers and addresses are correctly set and accessible.",
           'EFAULT');
     else
-      return SemOpenError(errno, "Unknown error.", 'UNKNOWN');
+      return UnixSemOpenError(errno, "Unknown error.", 'UNKNOWN');
   }
 }
 
-class SemWaitOrTryWaitUnixMacros {
+class UnixSemWaitOrTryWaitMacros {
   // https://man7.org/linux/man-pages/man3/sem_wait.3.html
   // https://pubs.opengroup.org/onlinepubs/009695399/functions/sem_wait.html
 
@@ -394,14 +397,14 @@ class SemWaitOrTryWaitUnixMacros {
   static int EINVAL = isBSD ? 22 : 22;
 }
 
-class SemCloseUnixMacros {
+class UnixSemCloseMacros {
   static bool isBSD = Platform.isMacOS;
 
   /// [sem_t] is not a valid semaphore.
   static int EINVAL = isBSD ? 22 : 22;
 }
 
-class SemUnlinkUnixMacros {
+class UnixSemUnlinkMacros {
   static bool isBSD = Platform.isMacOS;
 
   /// The named semaphore referred to by [name] does not exist.
@@ -416,7 +419,7 @@ class SemUnlinkUnixMacros {
   static int ENAMETOOLONG = isBSD ? 63 : 36;
 }
 
-class SemPostUnixMacros {
+class UnixSemPostMacros {
   static bool isBSD = Platform.isMacOS;
 
   /// The semaphore referred to by [sem] is not a valid semaphore.

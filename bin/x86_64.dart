@@ -6,7 +6,7 @@ import 'dart:typed_data' show Uint8List;
 import 'package:ffi/ffi.dart' show Utf16, Utf8Pointer, Utf8, malloc;
 import 'package:path/path.dart' show join;
 import "package:runtime_native_semaphores/ffi/unix.dart"
-    show MODE_T_PERMISSIONS, SemOpenError, SemOpenUnixMacros, errno, sem_close, sem_open, sem_t, sem_unlink;
+    show MODE_T_PERMISSIONS, UnixSemOpenError, UnixSemOpenMacros, errno, sem_close, sem_open, sem_t, sem_unlink;
 // import 'package:runtime_native_semaphores/generated_bindings.dart' show HelloWorld;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 // import 'package:runtime_native_semaphores/generated_bindings.dart' show HelloWorld;
@@ -127,8 +127,8 @@ main() {
   // sleep(Duration(seconds: 5));
 
   try {
-    (sem.address != SemOpenUnixMacros.SEM_FAILED.address) ||
-        (throw "${SemOpenError.fromErrno(errno.value).toString()}");
+    (sem.address != UnixSemOpenMacros.SEM_FAILED.address) ||
+        (throw "${UnixSemOpenError.fromErrno(errno.value).toString()}");
   } catch (e) {
     print(e);
   }

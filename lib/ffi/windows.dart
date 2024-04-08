@@ -1,4 +1,5 @@
 import 'dart:ffi' show Int32, IntPtr, Native, Pointer, Struct, Uint16, Uint32, Uint8;
+import 'dart:io';
 import 'package:ffi/ffi.dart' show Utf16;
 
 typedef HANDLE = IntPtr;
@@ -120,3 +121,8 @@ external int CloseHandle(int hObject);
 
 @Native<Uint32 Function()>()
 external int GetLastError();
+
+class WindowsCreateSemaphoreWMacros {
+  static int INITIAL_VALUE_RECOMMENDED = 1;
+  static int MAXIMUM_VALUE_RECOMMENDED = 1;
+}

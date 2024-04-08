@@ -9,8 +9,8 @@ import 'package:ffi/ffi.dart' show malloc, StringUtf8Pointer;
 import "package:runtime_native_semaphores/ffi/unix.dart"
     show
         MODE_T_PERMISSIONS,
-        SemOpenError,
-        SemOpenUnixMacros,
+        UnixSemOpenError,
+        UnixSemOpenMacros,
         errno,
         sem_close,
         sem_open,
@@ -30,17 +30,21 @@ void main() {
       Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
 
       Pointer<sem_t> sem =
-          sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
+          sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
 
       // expect sem_open to not be SemOpenUnixMacros.SEM_FAILED
-      expect(sem.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
+      expect(sem.address != UnixSemOpenMacros.SEM_FAILED.address, isTrue);
 
       try {
-        (sem.address != SemOpenUnixMacros.SEM_FAILED.address) ||
-            (throw "${SemOpenError.fromErrno(errno.value).toString()}");
+        int error_number = errno.value;
+        (sem.address != UnixSemOpenMacros.SEM_FAILED.address) ||
+            (throw "${UnixSemOpenError.fromErrno(error_number).toString()}");
       } catch (e) {
         print(e);
       }
+
+      // reset errno
+      errno.value = -1;
 
       final int closed = sem_close(sem);
       expect(closed, equals(0)); // 0 indicates success
@@ -56,18 +60,21 @@ void main() {
       Pointer<Char> name = ('/${'x' * 30}'.toNativeUtf8()).cast();
 
       Pointer<sem_t> sem =
-          sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
+          sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
 
-      expect(sem.address == SemOpenUnixMacros.SEM_FAILED.address, isTrue);
+      expect(sem.address == UnixSemOpenMacros.SEM_FAILED.address, isTrue);
 
       final int error_number = errno.value;
 
-      expect(error_number, equals(SemOpenUnixMacros.ENAMETOOLONG));
+      expect(error_number, equals(UnixSemOpenMacros.ENAMETOOLONG));
 
       expect(
-          () => throw SemOpenError.fromErrno(error_number),
-          throwsA(isA<SemOpenError>()
-              .having((e) => e.message, 'message', contains(SemOpenError.fromErrno(error_number).message))));
+          () => throw UnixSemOpenError.fromErrno(error_number),
+          throwsA(isA<UnixSemOpenError>()
+              .having((e) => e.message, 'message', contains(UnixSemOpenError.fromErrno(error_number).message))));
+
+      // reset errno
+      errno.value = -1;
 
       malloc.free(name);
     });
@@ -77,28 +84,30 @@ void main() {
       Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
 
       Pointer<sem_t> sem_one =
-          sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
+          sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
 
-      print(sem_one.address);
+      print("Sem ${sem_one}");
+      print("Sem address is ${sem_one.address}");
+      print("Sem failed address is ${UnixSemOpenMacros.SEM_FAILED.address}");
 
-      expect(sem_one.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
+      expect(sem_one.address != UnixSemOpenMacros.SEM_FAILED.address, isTrue);
 
       Pointer<sem_t> sem_two = sem_open(
           /*Passing in same name */ name,
-          /*Passing in O_EXCL Flag */ SemOpenUnixMacros.O_EXCL,
+          /*Passing in O_EXCL Flag */ UnixSemOpenMacros.O_EXCL,
           MODE_T_PERMISSIONS.RECOMMENDED,
-          SemOpenUnixMacros.VALUE_RECOMMENDED);
+          UnixSemOpenMacros.VALUE_RECOMMENDED);
 
-      expect(sem_two.address == SemOpenUnixMacros.SEM_FAILED.address, isTrue);
+      expect(sem_two.address == UnixSemOpenMacros.SEM_FAILED.address, isTrue);
 
       final int error_number = errno.value;
 
-      expect(error_number, equals(SemOpenUnixMacros.EEXIST));
+      expect(error_number, equals(UnixSemOpenMacros.EEXIST));
 
       expect(
-          () => throw SemOpenError.fromErrno(error_number),
-          throwsA(isA<SemOpenError>()
-              .having((e) => e.message, 'message', contains(SemOpenError.fromErrno(error_number).message))));
+          () => throw UnixSemOpenError.fromErrno(error_number),
+          throwsA(isA<UnixSemOpenError>()
+              .having((e) => e.message, 'message', contains(UnixSemOpenError.fromErrno(error_number).message))));
 
       // Only need to close sem_one here because sem_two was never opened
       final int closed = sem_close(sem_one);
@@ -119,9 +128,9 @@ void main() {
       /// semaphore. This semaphore is identified by its [name], not by its memory address in your process.
       /// The function returns a semaphore descriptor (a pointer) that refers to the semaphore object.
       Pointer<sem_t> sem_one = sem_open(
-          name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
+          name, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
 
-      expect(sem_one.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
+      expect(sem_one.address != UnixSemOpenMacros.SEM_FAILED.address, isTrue);
 
       // Second [sem_open] Call: When you call [sem_open] again with the same name and the [O_CREAT] flag, the system
       // finds that a semaphore with that name already exists. Since you're not using the [O_EXCL] flag
@@ -132,11 +141,11 @@ void main() {
       // the same underlying semaphore object.
       Pointer<sem_t> sem_two = sem_open(
           /*Passing in same name */ name,
-          /*Passing in O_CREAT Flag */ SemOpenUnixMacros.O_CREAT,
+          /*Passing in O_CREAT Flag */ UnixSemOpenMacros.O_CREAT,
           MODE_T_PERMISSIONS.RECOMMENDED,
-          SemOpenUnixMacros.VALUE_RECOMMENDED);
+          UnixSemOpenMacros.VALUE_RECOMMENDED);
 
-      expect(sem_two.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
+      expect(sem_two.address != UnixSemOpenMacros.SEM_FAILED.address, isTrue);
 
       // Note that the error number here could be incorrectly reported as it is persisted still from other tests
 
@@ -161,9 +170,9 @@ void main() {
       Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
 
       Pointer<sem_t> sem =
-          sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
+          sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
 
-      expect(sem.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
+      expect(sem.address != UnixSemOpenMacros.SEM_FAILED.address, isTrue);
 
       int locked = sem_wait(sem);
       expect(locked, equals(0));
@@ -194,12 +203,17 @@ void main() {
         void primary_isolate_entrypoint(SendPort sender) {
           Pointer<Char> _name = (name.toNativeUtf8()).cast();
 
-          Pointer<sem_t> sem = sem_open(_name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED,
+          Pointer<sem_t> sem = sem_open(_name, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED,
               /*Passing in 0 to lock immediately */ 0);
 
-          sem.address != SemOpenUnixMacros.SEM_FAILED.address ||
+          int error_number = errno.value;
+
+          sem.address != UnixSemOpenMacros.SEM_FAILED.address ||
               (throw Exception(
-                  "sem_open in primary isolate should have succeeded, got ${SemOpenError.fromErrno(errno.value)}"));
+                  "sem_open in primary isolate should have succeeded, got ${UnixSemOpenError.fromErrno(error_number)}"));
+
+          // reset errno
+          errno.value = -1;
 
           sleep(Duration(seconds: 1));
 
@@ -232,18 +246,23 @@ void main() {
         void secondary_isolate_entrypoint(SendPort sender) {
           Pointer<Char> _name = (name.toNativeUtf8()).cast();
           Pointer<sem_t> sem = sem_open(
-              _name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
+              _name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
+
+          print("secondary_isolate_entrypoint: Sem ${sem}");
+          print("secondary_isolate_entrypoint: Sem address is ${sem.address}");
+          print("secondary_isolate_entrypoint: Sem failed address is ${UnixSemOpenMacros.SEM_FAILED.address}");
 
           final int error_number = errno.value;
 
-          print(sem.address);
-
-          sem.address == SemOpenUnixMacros.SEM_FAILED.address ||
+          sem.address == UnixSemOpenMacros.SEM_FAILED.address ||
               (throw Exception(
-                  "sem_open in secondary isolate should have failed, got ${SemOpenError.fromErrno(error_number)}"));
+                  "sem_open in secondary isolate should have failed, got ${UnixSemOpenError.fromErrno(error_number)}"));
 
-          error_number == SemOpenUnixMacros.EEXIST ||
+          error_number == UnixSemOpenMacros.EEXIST ||
               (throw Exception("Should have expected EEXIST, got something else $error_number"));
+
+          // reset errno
+          errno.value = -1;
 
           int closed = sem_close(sem);
           (closed.isNegative && closed.isOdd) ||
@@ -290,12 +309,17 @@ void main() {
         void primary_isolate_entrypoint(SendPort sender) {
           Pointer<Char> _name = (name.toNativeUtf8()).cast();
 
-          Pointer<sem_t> sem = sem_open(_name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED,
+          Pointer<sem_t> sem = sem_open(_name, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED,
               /*Passing in 0 to lock immediately */ 0);
 
-          sem.address != SemOpenUnixMacros.SEM_FAILED.address ||
+          final int error_number = errno.value;
+
+          sem.address != UnixSemOpenMacros.SEM_FAILED.address ||
               (throw Exception(
-                  "sem_open in primary isolate should have succeeded, got ${SemOpenError.fromErrno(errno.value)}"));
+                  "sem_open in primary isolate should have succeeded, got ${UnixSemOpenError.fromErrno(error_number)}"));
+
+          // reset errno
+          errno.value = -1;
 
           // Waiting in primary isolate for 3 seconds.
           sleep(Duration(seconds: 3));
@@ -328,7 +352,7 @@ void main() {
         void secondary_isolate_entrypoint(SendPort sender) {
           Pointer<Char> _name = (name.toNativeUtf8()).cast();
           Pointer<sem_t> sem = sem_open(
-              _name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
+              _name, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
 
           int waited = sem_wait(sem);
           waited.isEven || (throw Exception("sem_wait in secondary isolate should have expected 0, got $waited"));
@@ -376,11 +400,16 @@ void main() {
           Pointer<Char> _name = (name.toNativeUtf8()).cast();
 
           Pointer<sem_t> sem = sem_open(
-              _name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
+              _name, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
 
-          sem.address != SemOpenUnixMacros.SEM_FAILED.address ||
+          int error_number = errno.value;
+
+          sem.address != UnixSemOpenMacros.SEM_FAILED.address ||
               (throw Exception(
-                  "sem_open in primary isolate should have succeeded, got ${SemOpenError.fromErrno(errno.value)}"));
+                  "sem_open in primary isolate should have succeeded, got ${UnixSemOpenError.fromErrno(error_number)}"));
+
+          // reset errno
+          errno.value = -1;
 
           final int locked = sem_wait(sem);
           locked.isEven || (throw Exception("sem_wait in primary isolate should have expected 0, got $locked"));
@@ -415,7 +444,7 @@ void main() {
         void secondary_isolate_entrypoint(SendPort sender) {
           Pointer<Char> _name = (name.toNativeUtf8()).cast();
           Pointer<sem_t> sem = sem_open(
-              _name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
+              _name, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
 
           int waited = sem_trywait(sem);
 
@@ -471,11 +500,15 @@ void main() {
         void isolate_entrypoint(SendPort sender) {
           Pointer<Char> _name = (name.toNativeUtf8()).cast();
           Pointer<sem_t> sem =
-              sem_open(_name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, sem_open_value);
+              sem_open(_name, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, sem_open_value);
 
-          sem.address != SemOpenUnixMacros.SEM_FAILED.address ||
+          int error_number = errno.value;
+          sem.address != UnixSemOpenMacros.SEM_FAILED.address ||
               (throw Exception(
-                  "sem_open in primary isolate should have succeeded, got ${SemOpenError.fromErrno(errno.value)}"));
+                  "sem_open in primary isolate should have succeeded, got ${UnixSemOpenError.fromErrno(error_number)}"));
+
+          // reset errno
+          errno.value = -1;
 
           int waited = sem_wait(sem);
 

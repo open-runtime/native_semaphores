@@ -9,8 +9,8 @@ import 'package:ffi/ffi.dart' show StringUtf16Pointer, StringUtf8Pointer, Utf8, 
 import "package:runtime_native_semaphores/ffi/unix.dart"
     show
         MODE_T_PERMISSIONS,
-        SemOpenError,
-        SemOpenUnixMacros,
+        UnixSemOpenError,
+        UnixSemOpenMacros,
         errno,
         sem_close,
         sem_open,
