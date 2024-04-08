@@ -145,7 +145,8 @@ void main() {
       expect(closed, isNonZero); // 0 indicates failure
 
       final int closed_twice = CloseHandle(sem.address);
-      print("Closed: $closed_twice");
+      print("Closed Twice: $closed_twice");
+      print(getRestrictedErrorDescription(GetLastError()));
       expect(closed_twice, isNonZero); // 0 indicates failure
 
       malloc.free(name);

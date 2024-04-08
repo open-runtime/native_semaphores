@@ -288,11 +288,20 @@ class WindowsWaitForSingleObjectMacros {
   /// Return immediately if the object is not signaled.
   static const int TIMEOUT_ZERO = 0;
 
+  // The specified object is a mutex object that was not released by the thread that owned the mutex object before
+  // the owning thread terminated. Ownership of the mutex object is granted to the calling thread and the
+  // mutex state is set to nonsignaled. If the mutex was protecting persistent state information,
+  // you should check it for consistency.
   static const int WAIT_ABANDONED = 0x00000080;
 
+  // The state of the specified object is signaled.
   static const int WAIT_OBJECT_0 = 0x00000000;
 
+  // The time-out interval elapsed, and the object's state is nonsignaled.
   static const int WAIT_TIMEOUT = 0x00000102;
+
+  // The function has failed. To get extended error information, call GetLastError. (DWORD)0xFFFFFFFF
+  static const int WAIT_FAILED = 0xFFFFFFFF;
 }
 
 class WindowsReleaseSemaphoreMacros {
