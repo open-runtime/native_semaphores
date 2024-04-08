@@ -86,10 +86,6 @@ void main() {
       Pointer<sem_t> sem_one =
           sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
 
-      print("sem_one ${sem_one}");
-      print("sem_one address is ${sem_one.address}");
-      print("sem_one failed address is ${UnixSemOpenMacros.SEM_FAILED.address}");
-
       expect(sem_one.address != UnixSemOpenMacros.SEM_FAILED.address, isTrue);
 
       Pointer<sem_t> sem_two = sem_open(
@@ -97,10 +93,6 @@ void main() {
           /*Passing in O_EXCL Flag */ UnixSemOpenMacros.O_EXCL,
           MODE_T_PERMISSIONS.RECOMMENDED,
           UnixSemOpenMacros.VALUE_RECOMMENDED);
-
-      print("sem_two ${sem_two}");
-      print("sem_two address is ${sem_two.address}");
-      print("sem_two failed address is ${UnixSemOpenMacros.SEM_FAILED.address}");
 
       expect(sem_two.address == UnixSemOpenMacros.SEM_FAILED.address, isTrue);
 
@@ -251,10 +243,6 @@ void main() {
           Pointer<Char> _name = (name.toNativeUtf8()).cast();
           Pointer<sem_t> sem = sem_open(
               _name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
-
-          print("secondary_isolate_entrypoint: Sem ${sem}");
-          print("secondary_isolate_entrypoint: Sem address is ${sem.address}");
-          print("secondary_isolate_entrypoint: Sem failed address is ${UnixSemOpenMacros.SEM_FAILED.address}");
 
           final int error_number = errno.value;
 
