@@ -5,7 +5,7 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
 
-import 'package:ffi/ffi.dart' show StringUtf16Pointer, StringUtf8Pointer, Utf8, Utf8Pointer, malloc;
+import 'package:ffi/ffi.dart' show StringUtf16Pointer, StringUtf8Pointer, Utf16Pointer, Utf8, Utf8Pointer, malloc;
 import "package:runtime_native_semaphores/ffi/unix.dart"
     show
         MODE_T_PERMISSIONS,
@@ -30,8 +30,6 @@ void main() {
     test('Single Thread: Open, Close, Unlink Semaphore', () {
       LPCWSTR name = ('Global\\${safeIntId.getId()}-named-sem'.toNativeUtf16());
 
-      print("Semaphore name $name");
-
       int address = CreateSemaphoreW(NULL.address, 0, 1, name);
       final sem = Pointer.fromAddress(address);
 
@@ -41,51 +39,45 @@ void main() {
       // expect sem_open to not be WindowsCreateSemaphoreWMacros.SEM_FAILED
       expect(sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
 
-      // try {
-      //   (sem.address != SemOpenUnixMacros.SEM_FAILED.address) ||
-      //       (throw "${SemOpenError.fromErrno(errno.value).toString()}");
-      // } catch (e) {
-      //   print(e);
-      // }
-
       final int released = ReleaseSemaphore(
         sem.address,
         WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
         WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
       );
-
-      print("Semaphore released $released");
       expect(released, isNonZero); // 0 indicates failure
 
       final int closed = CloseHandle(sem.address);
-      print("Semaphore closed $closed");
       expect(closed, isNonZero); // 0 indicates failure
-
-      // final int unlinked = sem_unlink(name);
-      // expect(unlinked, equals(0)); // 0 indicates success
 
       malloc.free(name);
     });
 
-    // test('Single Thread: Throw Semaphore Name Too Long ', () {
-    //   // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX
-    //   Pointer<Char> name = ('/${'x' * 30}'.toNativeUtf8()).cast();
-    //
-    //   Pointer<sem_t> sem = sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, 1);
-    //
-    //   expect(sem.address == SemOpenUnixMacros.SEM_FAILED.address, isTrue);
-    //
-    //   final int error_number = errno.value;
-    //
-    //   expect(error_number, equals(SemOpenUnixMacros.ENAMETOOLONG));
-    //
-    //   expect(
-    //       () => throw SemOpenError.fromErrno(error_number),
-    //       throwsA(isA<SemOpenError>()
-    //           .having((e) => e.message, 'message', contains(SemOpenError.fromErrno(error_number).message))));
-    //
-    //   malloc.free(name);
-    // });
+    test('Single Thread: Throw Semaphore Name Too Long ', () {
+      // Anything over 250 chars including the leading Global\ will be too long to fit into a 255 int which is NAME_MAX
+      LPCWSTR name = ('Global\\${'x' * 240}'.toNativeUtf16());
+
+      print(name.toDartString().length);
+      print(WindowsCreateSemaphoreWMacros.MAX_PATH);
+
+      int address = CreateSemaphoreW(NULL.address, 0, 1, name);
+      final sem = Pointer.fromAddress(address);
+
+      print("Semaphore address on windows $address");
+      print("Semaphore on windows $sem");
+
+      // expect(sem.address == SemOpenUnixMacros.SEM_FAILED.address, isTrue);
+
+      // final int error_number = errno.value;
+
+      // expect(error_number, equals(WindowsCreateSemaphoreWMacros.ERROR_ACCESS_DENIED));
+      //
+      // expect(
+      //     () => throw SemOpenError.fromErrno(error_number),
+      //     throwsA(isA<SemOpenError>()
+      //         .having((e) => e.message, 'message', contains(SemOpenError.fromErrno(error_number).message))));
+
+      malloc.free(name);
+    });
     //
     // test('Single Thread: Throw Semaphore Already Exists with O_EXCL Flag', () {
     //   // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX

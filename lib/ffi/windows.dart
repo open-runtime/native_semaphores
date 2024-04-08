@@ -79,9 +79,6 @@ base class ACL extends Struct {
   external int Sbz2;
 }
 
-// Path length
-const MAX_PATH = 260;
-
 /// Creates or opens a named or unnamed semaphore object.
 ///
 /// [lpSecurityAttributes] is a pointer to a [SECURITY_ATTRIBUTES] structure that
@@ -166,6 +163,9 @@ class WindowsCreateSemaphoreWMacros {
   static int INITIAL_VALUE_RECOMMENDED = 1;
 
   static int MAXIMUM_VALUE_RECOMMENDED = 1;
+
+  // Maximum length of a path for a named semaphore
+  static int MAX_PATH = 260;
 }
 
 class WindowsCreateSemaphoreWError extends Error {
