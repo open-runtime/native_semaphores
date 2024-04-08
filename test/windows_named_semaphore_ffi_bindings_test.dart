@@ -86,12 +86,10 @@ void main() {
         WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
         WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
       );
-      if (released == 0) print("Released Error number: ${getRestrictedErrorDescription(GetLastError())}");
       expect(released, isZero); // 0 indicates failure
 
-      final int closed = CloseHandle(sem.address);
       // We shouldn't be able to close the semaphore because it was never opened due to an invalid name
-      if (closed == 0) print("Closed Error number: ${getRestrictedErrorDescription(GetLastError())}");
+      final int closed = CloseHandle(sem.address);
       expect(closed, isZero); // 0 indicates failure
 
       malloc.free(name);
