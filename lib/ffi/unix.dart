@@ -57,7 +57,7 @@ class MODE_T_PERMISSIONS {
       ((u | user) << 6) | ((g | group) << 3) | (o | others);
 
   // Most common for named semaphores
-  static int RECOMMENDED = MODE_T_PERMISSIONS.ALL_READ_WRITE_EXECUTE;
+  static int RECOMMENDED = MODE_T_PERMISSIONS.OWNER_READ_WRITE_GROUP_READ;
 
   // 0644 - Owner can read and write; the group can read; others can read.
   // static int OWNER_READ_WRITE_GROUP_READ = toOctal(0, 6, 4, 4);
@@ -108,59 +108,17 @@ class MODE_T_PERMISSIONS {
 /// argument specifies the initial value for the new semaphore.  If
 /// [O_CREAT] is specified, and a semaphore with the given name already
 /// exists, then [mode_t] and [value] are ignored.
-// @Native<sem_t Function(Pointer<Char> name, Int oflag)>()
-// external int sem_open(Pointer<Char> name, int oflag);
 
-// @Native<Pointer<sem_t> Function(Pointer<Char>, Int, VarArgs<(mode_t, UnsignedInt)>)>()
-// external Pointer<sem_t> sem_open(Pointer<Char> name, int oflag);
-
-// typedef NativeHelloWorldFunction = Pointer<sem_t> Function(
-//     Pointer<Char> name,
-//     Int oflag,
-//     VarArgs<
-//         (
-//         // UnsignedLong x2,
-//         // UnsignedLong x3,
-//         // UnsignedLong x4,
-//         // UnsignedLong x5,
-//         // UnsignedLong x6,
-//         // UnsignedLong x7,
-//         mode_t mode,
-//         UnsignedInt value
-//         )>);
-
-// arm64
-typedef arm64_sem_open_function_type = Pointer<sem_t> Function(
-    Pointer<Char>, Int, VarArgs<(mode_t<UnsignedLong>, UnsignedInt)>);
-typedef dart_arm64_sem_open_function_type = Pointer<sem_t> Function(Pointer<Char> name, int oflag, int mode, int value);
-
-Pointer<sem_t> arm64_sem_open(Pointer<Char> name, int oflags, [int? mode, int? value]) =>
-    arm64_sem_open_callable(name, oflags, mode ?? MODE_T_PERMISSIONS.RECOMMENDED, value ?? 1);
-
-final arm64_sem_open_pointer =
-    DynamicLibrary.process().lookup<NativeFunction<arm64_sem_open_function_type>>('sem_open');
-
-final dart_arm64_sem_open_function_type arm64_sem_open_callable =
-    arm64_sem_open_pointer.cast<NativeFunction<arm64_sem_open_function_type>>().asFunction();
-
-// x86_64
-typedef x86_64_sem_open_function_type = Pointer<sem_t> Function(
-    Pointer<Char>, Int, VarArgs<(mode_t<UnsignedShort>, UnsignedInt)>);
-typedef dart_x86_64_sem_open_function_type = Pointer<sem_t> Function(
-    Pointer<Char> name, int oflag, int mode, int value);
-
-// TODO - route with oflag i.e. if O_CREAT is set, then mode and value are required
-// TODO - if O_CREAT is not set then we shouldn't pass mode and value and we should probably look up the function again
-Pointer<sem_t> x86_64_sem_open(Pointer<Char> name, int oflags, [int? mode, int? value]) =>
-    x86_64_sem_open_callable(name, oflags, mode ?? MODE_T_PERMISSIONS.RECOMMENDED, value ?? 1);
-
-final x86_64_sem_open_pointer =
-    DynamicLibrary.process().lookup<NativeFunction<x86_64_sem_open_function_type>>('sem_open');
-
-final dart_x86_64_sem_open_function_type x86_64_sem_open_callable =
-    x86_64_sem_open_pointer.cast<NativeFunction<x86_64_sem_open_function_type>>().asFunction();
-
-// unified
+/// When [value] is greater than 0: It indicates the number of times processes
+/// or threads can successfully [sem_wait] (decrement) the semaphore without blocking.
+/// For example, if [value] is set to 3, up to three processes or threads can decrement
+/// the semaphore without being blocked, effectively allowing simultaneous access to a
+/// resource that can support that many concurrent accesses.
+///
+/// When [value] is 0: It means that the semaphore is initially "locked" or unavailable.
+/// Any process or thread that tries to decrement the semaphore with [sem_wait] will block
+/// until another process or thread increments the semaphore with [sem_post], making
+/// the resource available.
 typedef sem_open_function_type<M> = Pointer<sem_t> Function(Pointer<Char>, Int, VarArgs<(mode_t<M>, UnsignedInt)>);
 typedef dart_sem_open_function_type = Pointer<sem_t> Function(Pointer<Char> name, int oflag, int mode, int value);
 
@@ -175,28 +133,6 @@ final sem_open_pointer = Abi.current() == Abi.macosArm64
 final dart_sem_open_function_type sem_open_callable = Abi.current() == Abi.macosArm64
     ? sem_open_pointer.cast<NativeFunction<sem_open_function_type<UnsignedLong>>>().asFunction()
     : sem_open_pointer.cast<NativeFunction<sem_open_function_type<UnsignedShort>>>().asFunction();
-
-// final sem_openPtr_2 = DynamicLibrary.process()
-//     .lookup<NativeFunction<Pointer<sem_t> Function(Pointer<Char>, Int, VarArgs<(mode_t,)>)>>('sem_open');
-//
-// final sem_open_2 = sem_openPtr_2.asFunction<Pointer<sem_t> Function(Pointer<Char>, int, int mode)>();
-//
-// Pointer<sem_t> unverified_sem_open_2(
-//   Pointer<Char> arg0,
-//   int arg1, [
-//   int? arg2,
-// ]) {
-//   if (arg2 is int)
-//     return sem_open_2(arg0, arg1, arg2);
-//   else
-//     return sem_open(arg0, arg1);
-// }
-
-// , Int, Int
-// , int mode, int value
-
-// Similar to int open(const char *pathname, int flags, ... /* mode_t mode */ );
-// const char *pathname
 
 /// [sem_wait] Decrements (locks) the semaphore pointed to by sem.
 /// If the semaphore's value is greater than zero, then the decrement
@@ -227,6 +163,18 @@ external int sem_wait(Pointer<sem_t> sem_t);
 /// it shall not lock the semaphore.
 @Native<Int Function(Pointer<sem_t>)>()
 external int sem_trywait(Pointer<sem_t> sem_t);
+
+/// [sem_post] function shall unlock the semaphore referenced by sem by
+/// performing a semaphore unlock operation on that semaphore.
+/// If the semaphore value resulting from this operation is positive,
+/// then no threads were blocked waiting for the semaphore to become unlocked;
+/// the semaphore value is simply incremented.
+///
+/// If the value of the semaphore resulting from this operation is zero,
+/// then one of the threads blocked waiting for the semaphore shall be
+/// allowed to return successfully from its call to [sem_wait].
+@Native<Int Function(Pointer<sem_t>)>()
+external int sem_post(Pointer<sem_t> sem_t);
 
 /// [sem_close] closes the named semaphore referred to by sem,
 /// allowing any resources that the system has allocated to the
@@ -364,13 +312,18 @@ class SemOpenUnixMacros {
   /// is undefined. If flags other than [O_CREAT] and [O_EXCL] are specified in the [oflag] parameter,
   /// the effect is unspecified.
   /// Size of the flags (size of an int): 4 bytes on MacOS Arm64 and MacOS x86_64
-  static int O_EXCL = isBSD ? 2048 : 128;
+  ///
+  static int _O_EXCL = isBSD ? 2048 : 128;
+
+  /// O_EXCL can only be used along side O_CREAT otherwise it has no effect and will likely throw an error
+  static int O_EXCL = O_CREAT | _O_EXCL;
 }
 
 class SemOpenError extends Error {
   final int code;
   final String message;
   final String? identifier;
+  late final String? description = toString();
 
   SemOpenError(this.code, this.message, this.identifier);
 
@@ -395,7 +348,9 @@ class SemOpenError extends Error {
           errno, "The per-process limit on the number of open file descriptors has been reached.", 'EMFILE');
     if (errno == SemOpenUnixMacros.ENAMETOOLONG)
       return SemOpenError(
-          errno, "The name was too long, or a pathname component is longer than NAME_MAX.", 'ENAMETOOLONG');
+          errno,
+          "The name was too long, or a pathname component is longer than NAME_MAX i.e. 30 character dart String including the leading slash.",
+          'ENAMETOOLONG');
     if (errno == SemOpenUnixMacros.ENFILE)
       return SemOpenError(errno, "The system-wide limit on the total number of open files has been reached.", 'ENFILE');
     if (errno == SemOpenUnixMacros.ENOENT)
