@@ -38,6 +38,7 @@ import 'package:test/test.dart'
         tearDown,
         test,
         throwsA;
+import 'package:win32/win32.dart' show GetLastError;
 import 'package:windows_foundation/internal.dart' show getRestrictedErrorDescription;
 
 void main() {
@@ -71,7 +72,10 @@ void main() {
       // Anything over 250 chars including the leading Global\ will be too long to fit into a the 260 int which is MAX_PATH
       LPCWSTR name = ('Global\\${'x<>:"/\\|?*' * WindowsCreateSemaphoreWMacros.MAX_PATH}'.toNativeUtf16());
 
-      int address = CreateSemaphoreW(WindowsCreateSemaphoreWMacros.NULL.address, 0, 1, name);
+      int address = CreateSemaphoreW(WindowsCreateSemaphoreWMacros.NULL.address,
+          WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
+          WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED, name);
+
       final sem = Pointer.fromAddress(address);
 
       expect(sem.address == WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
@@ -96,25 +100,30 @@ void main() {
     test('Single Thread: Open, Lock, Unlock, and Close Semaphore', () {
       LPCWSTR name = ('Global\\${safeIntId.getId()}-named-sem'.toNativeUtf16());
 
-      int address = CreateSemaphoreW(WindowsCreateSemaphoreWMacros.NULL.address, 0, 1, name);
+      int address = CreateSemaphoreW(WindowsCreateSemaphoreWMacros.NULL.address,
+          WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
+          WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
+          name);
       final sem = Pointer.fromAddress(address);
 
       // expect sem_open to not be WindowsCreateSemaphoreWMacros.SEM_FAILED
       expect(sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
 
-      final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO);
+      final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
       print("Locked: $locked");
+      print('${WindowsWaitForSingleObjectMacros.TIMEOUT_INFINITE}, ${WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0}, ${WindowsWaitForSingleObjectMacros.WAIT_ABANDONED}, ${WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT}');
+
+      print("Error number: ${getRestrictedErrorDescription(GetLastError())}");
+      print("Releasing Semaphore");
 
       final int released = ReleaseSemaphore(
         sem.address,
         WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
         WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
       );
-      print("Released: $released");
       expect(released, isNonZero); // 0 indicates failure
 
       final int closed = CloseHandle(sem.address);
-      print("Closed: $closed");
       expect(closed, isNonZero); // 0 indicates failure
 
       malloc.free(name);
@@ -147,83 +156,11 @@ void main() {
       final int closed_twice = CloseHandle(sem.address);
       print("Closed Twice: $closed_twice");
       print(getRestrictedErrorDescription(GetLastError()));
-      expect(closed_twice, isNonZero); // 0 indicates failure
+      expect(closed_twice, isZero); // 0 indicates failure
 
       malloc.free(name);
     });
 
-    //
-    // test('Single Thread: Opens Existing Semaphore with the same `name` and `O_CREATE` Flag', () {
-    //   // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX
-    //   Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
-    //
-    //   /// First [sem_open] Call: When you call [sem_open] for the first time with a given name and the [O_CREAT] flag,
-    //   /// the system checks if a semaphore with that name already exists. If it doesn't, the system creates a new named
-    //   /// semaphore. This semaphore is identified by its [name], not by its memory address in your process.
-    //   /// The function returns a semaphore descriptor (a pointer) that refers to the semaphore object.
-    //   Pointer<sem_t> sem_one = sem_open(name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, 1);
-    //
-    //   expect(sem_one.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
-    //
-    //   // Second [sem_open] Call: When you call [sem_open] again with the same name and the [O_CREAT] flag, the system
-    //   // finds that a semaphore with that name already exists. Since you're not using the [O_EXCL] flag
-    //   // (which would cause the call to fail if the semaphore already exists), the system simply opens
-    //   // the existing semaphore. However, the returned semaphore descriptor (pointer) from this second call may be
-    //   // different from the first call. This is because the descriptor is just a handle or a reference to the
-    //   // semaphore object in the kernel, and each call to [sem_open] can return a different handle for
-    //   // the same underlying semaphore object.
-    //   Pointer<sem_t> sem_two = sem_open(/*Passing in same name */ name,
-    //       /*Passing in O_CREAT Flag */ SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, 1);
-    //
-    //   expect(sem_two.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
-    //
-    //   // Note that the error number here could be incorrectly reported as it is persisted still from other tests
-    //
-    //   final int closed_one = sem_close(sem_one);
-    //   expect(closed_one, equals(0)); // 0 indicates success
-    //
-    //   final int closed_two = sem_close(sem_two);
-    //   expect(closed_two, equals(0)); // 0 indicates success
-    //
-    //   final int unlinked_one = sem_unlink(name);
-    //   expect(unlinked_one, equals(0)); // 0 indicates success
-    //
-    //   final int unlinked_two = sem_unlink(name);
-    //   expect(unlinked_two, equals(-1)); // -1 indicates success because the semaphore was already unlinked
-    //
-    //   malloc.free(name);
-    // });
-    //
-    // test('Single Thread: Open, Lock (Wait), Unlock (Post), Lock (TryWait), Unlock (Post), Close, Unlink Semaphore ',
-    //     () {
-    //   // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX
-    //   Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
-    //
-    //   Pointer<sem_t> sem = sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, 1);
-    //
-    //   expect(sem.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
-    //
-    //   int locked = sem_wait(sem);
-    //   expect(locked, equals(0));
-    //
-    //   int unlocked = sem_post(sem);
-    //   expect(unlocked, equals(0));
-    //
-    //   int locked_try_wait = sem_trywait(sem);
-    //   expect(locked_try_wait, equals(0));
-    //
-    //   int unlocked_after_try_wait = sem_post(sem);
-    //   expect(unlocked_after_try_wait, equals(0));
-    //
-    //   final int closed = sem_close(sem);
-    //   expect(closed, equals(0)); // 0 indicates success
-    //
-    //   final int unlinked = sem_unlink(name);
-    //   expect(unlinked, equals(0));
-    //
-    //   malloc.free(name);
-    // });
-  });
 
   // group('Testing Cross-Isolate Named Semaphore', () {
   //   test('Two Isolates Accessing Same Named Semaphore, One Throws Immediately through O_EXCL Flag ', () async {

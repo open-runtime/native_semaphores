@@ -166,10 +166,10 @@ external int CloseHandle(int hObject);
 /// DWORD GetLastError();
 /// ```
 /// {@category kernel32}
-int GetLastError() => _GetLastError();
-
-final _GetLastError =
-    DynamicLibrary.open('kernel32.dll').lookupFunction<Uint32 Function(), int Function()>('GetLastError');
+// int GetLastError() => _GetLastError();
+//
+// final _GetLastError =
+//     DynamicLibrary.open('kernel32.dll').lookupFunction<Uint32 Function(), int Function()>('GetLastError');
 
 // @Native<Uint32 Function()>()
 // external int GetLastError();
@@ -298,7 +298,7 @@ class WindowsWaitForSingleObjectMacros {
   static const int WAIT_OBJECT_0 = 0x00000000;
 
   // The time-out interval elapsed, and the object's state is nonsignaled.
-  static const int WAIT_TIMEOUT = 0x00000102;
+  static const int WAIT_TIMEOUT = 0x00000102; /* or error code 258 */
 
   // The function has failed. To get extended error information, call GetLastError. (DWORD)0xFFFFFFFF
   static const int WAIT_FAILED = 0xFFFFFFFF;
@@ -310,4 +310,9 @@ class WindowsReleaseSemaphoreMacros {
   static late Pointer<Never> PREVIOUS_RELEASE_COUNT_RECOMMENDED = NULL;
 
   static Pointer<Never> NULL = Pointer.fromAddress(0);
+}
+
+class WindowsCloseHandleMacros {
+  // ERROR_INVALID_HANDLE?
+  static const int INVALID_HANDLE_VALUE = -1;
 }
