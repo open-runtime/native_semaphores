@@ -100,6 +100,21 @@ base class ACL extends Struct {
 @Native<HANDLE Function(IntPtr lpSecurityAttributes, LONG lInitialCount, LONG lMaximumCount, LPCWSTR lpName)>()
 external int CreateSemaphoreW(int lpSecurityAttributes, int lInitialCount, int lMaximumCount, LPCWSTR lpName);
 
+/// Waits until the specified object is in the signaled state or the time-out interval elapses.
+///
+/// [hHandle] is a handle to the object. This handle must have the SYNCHRONIZE access right.
+/// For a list of the object types whose handles can be specified, see the following Remarks section.
+/// If this handle is closed while the wait is still pending, the function's behavior is undefined.
+///
+/// [dwMilliseconds] specifies the time-out interval, in milliseconds. If a nonzero value is specified,
+/// the function waits until the object is signaled or the interval elapses. If [dwMilliseconds] is zero,
+/// the function does not enter a wait state if the object is not signaled; it always returns immediately.
+/// If [dwMilliseconds] is [INFINITE], the function will return only when the object is signaled.
+///
+/// Returns [WAIT_FAILED] on failure, [WAIT_OBJECT_0] if the specified object is in the signaled state,
+/// [WAIT_TIMEOUT] if the time-out interval elapses, and [WAIT_ABANDONED] if the specified object is a mutex
+/// that was not released by the thread that owned the mutex before the owning thread terminated.
+/// Use [GetLastError] to get extended error information if [WAIT_FAILED] is returned.
 @Native<Uint32 Function(HANDLE hHandle, DWORD dwMilliseconds)>()
 external int WaitForSingleObject(int hHandle, int dwMilliseconds);
 
@@ -231,8 +246,13 @@ class WindowsCreateSemaphoreWError extends Error {
 }
 
 class WindowsWaitForSingleObjectMacros {
+  static const int TIMEOUT_RECOMMENDED = TIMEOUT_INFINITE;
+
   /// Return only when the object is signaled.
-  static const int INFINITE = 0xFFFFFFFF;
+  static const int TIMEOUT_INFINITE = 0xFFFFFFFF;
+
+  /// Return immediately if the object is not signaled.
+  static const int TIMEOUT_ZERO = 0;
 
   static const int WAIT_ABANDONED = 0x00000080;
 
