@@ -7,6 +7,7 @@ typedef LONG = Int32;
 typedef BOOL = Uint32;
 typedef DWORD = Uint32;
 typedef LPCWSTR = Pointer<Utf16>;
+
 final Pointer<Never> NULL = Pointer.fromAddress(0);
 
 /// Return only when the object is signaled.
@@ -113,6 +114,25 @@ external int CreateSemaphoreW(int lpSecurityAttributes, int lInitialCount, int l
 @Native<Uint32 Function(HANDLE hHandle, DWORD dwMilliseconds)>()
 external int WaitForSingleObject(int hHandle, int dwMilliseconds);
 
+/// Releases the specified semaphore by increasing its count by [lReleaseCount].
+///
+/// [hSemaphore] is a handle to the semaphore object. This handle is obtained
+/// through the CreateSemaphore or OpenSemaphore function and must have the
+/// SEMAPHORE_MODIFY_STATE access right. For more information, see
+/// Synchronization Object Security and Access Rights documentation.
+///
+/// [lReleaseCount] is the amount by which the semaphore object's current count
+/// is to be increased. The value must be greater than zero. If the specified
+/// amount would cause the semaphore's count to exceed the maximum count that
+/// was specified when the semaphore was created, the count is not changed and
+/// the function returns [FALSE].
+///
+/// [lpPreviousCount] is a pointer to a variable to receive the previous count
+/// for the semaphore. This parameter can be [NULL] if the previous count is not
+/// required.
+///
+/// Returns a nonzero value if the function succeeds, or zero if the function
+/// fails. To get extended error information, call [GetLastError].
 @Native<BOOL Function(HANDLE hSemaphore, LONG lReleaseCount, Pointer<LONG> lpPreviousCount)>()
 external int ReleaseSemaphore(int hSemaphore, int lReleaseCount, Pointer<LONG> lpPreviousCount);
 
@@ -123,6 +143,8 @@ external int CloseHandle(int hObject);
 external int GetLastError();
 
 class WindowsCreateSemaphoreWMacros {
+  static Pointer<Never> SEM_FAILED = NULL;
+
   // ERROR_ACCESS_DENIED: The caller does not have the required access rights to create or open the semaphore object.
   static const int ERROR_ACCESS_DENIED = 5;
 
@@ -142,5 +164,54 @@ class WindowsCreateSemaphoreWMacros {
   static const int ERROR_SEM_IS_SET = 102;
 
   static int INITIAL_VALUE_RECOMMENDED = 1;
+
   static int MAXIMUM_VALUE_RECOMMENDED = 1;
+}
+
+class WindowsCreateSemaphoreWError extends Error {
+  final int code;
+  final String message;
+  final String? identifier;
+  late final String? description = toString();
+
+  WindowsCreateSemaphoreWError(this.code, this.message, this.identifier);
+
+  @override
+  String toString() => 'WindowsCreateSemaphoreWMacros: [Error: $identifier Code: $code]: $message';
+
+  static WindowsCreateSemaphoreWError fromErrorCode(int code) {
+    if (code == WindowsCreateSemaphoreWMacros.ERROR_ACCESS_DENIED)
+      return WindowsCreateSemaphoreWError(
+          code,
+          "The caller does not have the required access rights to create or open the semaphore object.",
+          'ERROR_ACCESS_DENIED');
+
+    if (code == WindowsCreateSemaphoreWMacros.ERROR_INVALID_HANDLE)
+      return WindowsCreateSemaphoreWError(code, "An invalid handle was specified.", 'ERROR_INVALID_HANDLE');
+
+    if (code == WindowsCreateSemaphoreWMacros.ERROR_INVALID_PARAMETER)
+      return WindowsCreateSemaphoreWError(code, "One of the parameters was invalid.", 'ERROR_INVALID_PARAMETER');
+
+    if (code == WindowsCreateSemaphoreWMacros.ERROR_TOO_MANY_POSTS)
+      return WindowsCreateSemaphoreWError(
+          code,
+          "The semaphore cannot be set to the specified count because it would exceed the semaphore's maximum count.",
+          'ERROR_TOO_MANY_POSTS');
+
+    if (code == WindowsCreateSemaphoreWMacros.ERROR_SEM_NOT_FOUND)
+      return WindowsCreateSemaphoreWError(code, "The specified semaphore does not exist.", 'ERROR_SEM_NOT_FOUND');
+
+    if (code == WindowsCreateSemaphoreWMacros.ERROR_SEM_IS_SET)
+      return WindowsCreateSemaphoreWError(
+          code, "The semaphore is already set, and cannot be set again.", 'ERROR_SEM_IS_SET');
+
+    // Default case if none of the specific error codes match
+    return WindowsCreateSemaphoreWError(code, "Unknown error.", 'UNKNOWN');
+  }
+}
+
+class WindowsReleaseSemaphoreMacros {
+  static const int RELEASE_COUNT_RECOMMENDED = 1;
+
+  static Pointer<Never> PREVIOUS_RELEASE_COUNT_RECOMMENDED = NULL;
 }

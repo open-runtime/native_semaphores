@@ -32,14 +32,14 @@ void main() {
 
       print("Semaphore name $name");
 
-      int sem = CreateSemaphoreW(NULL.address, 0, 1, name);
-      final HANDLE = Pointer.fromAddress(sem);
+      int address = CreateSemaphoreW(NULL.address, 0, 1, name);
+      final sem = Pointer.fromAddress(address);
 
+      print("Semaphore address on windows $address");
       print("Semaphore on windows $sem");
-      print("Semaphore HANDLE on windows $HANDLE");
 
-      // expect sem_open to not be SemOpenUnixMacros.SEM_FAILED
-      // expect(sem.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
+      // expect sem_open to not be WindowsCreateSemaphoreWMacros.SEM_FAILED
+      expect(sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
 
       // try {
       //   (sem.address != SemOpenUnixMacros.SEM_FAILED.address) ||
@@ -48,8 +48,18 @@ void main() {
       //   print(e);
       // }
 
-      // final int closed = sem_close(sem);
-      // expect(closed, equals(0)); // 0 indicates success
+      final int released = ReleaseSemaphore(
+        sem.address,
+        WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
+        WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
+      );
+
+      print("Semaphore released $released");
+      expect(released, isNonZero); // 0 indicates failure
+
+      final int closed = CloseHandle(sem.address);
+      print("Semaphore closed $closed");
+      expect(closed, isNonZero); // 0 indicates failure
 
       // final int unlinked = sem_unlink(name);
       // expect(unlinked, equals(0)); // 0 indicates success
