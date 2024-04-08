@@ -290,7 +290,8 @@ class UnixSemOpenMacros {
   // Upon successful completion, the [sem_open] function shall return the address of the semaphore. Otherwise, it shall return a value of SEM_FAILED and set errno to indicate the error. The symbol SEM_FAILED is defined in the <semaphore.h> header. No successful return from sem_open() shall return the value SEM_FAILED.
   /// [SEM_FAILED] = 0xffffffffffffffff (as a pointer), 18446744073709551615 (as an unsigned integer)
   /// Size of SEM_FAILED (size of a pointer): 8 bytes on MacOS Arm64 and MacOS x86_64
-  static Pointer<Uint64> SEM_FAILED = Pointer.fromAddress(0xffffffffffffffff);
+  static Pointer<Uint64> SEM_FAILED =
+      Platform.isMacOS ? Pointer.fromAddress(0xffffffffffffffff) : Pointer.fromAddress(0x0);
 
   /// This flag is used to create a semaphore if it does not already exist. If [O_CREAT] is set and the semaphore
   /// already exists, then [O_CREAT] has no effect, except as noted under [O_EXCL]. Otherwise, [sem_open] creates

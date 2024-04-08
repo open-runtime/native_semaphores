@@ -57,7 +57,7 @@ void main() {
 
     test('Single Thread: Throw Semaphore Name Too Long ', () {
       // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX
-      Pointer<Char> name = ('/${'x' * (Platform.isMacOS ? 30 : 100)}'.toNativeUtf8()).cast();
+      Pointer<Char> name = ('/${'x' * (Platform.isMacOS ? 30 : 254)}'.toNativeUtf8()).cast();
 
       Pointer<sem_t> sem =
           sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
