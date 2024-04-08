@@ -90,11 +90,17 @@ void main() {
         WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
         WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
       );
+
       print("Released: $released");
-      expect(released, isNonZero); // 0 indicates failure
+
+      if (released == 0) print("Released Error number: ${getRestrictedErrorDescription(GetLastError())}");
 
       final int closed = CloseHandle(sem.address);
       print("Closed: $closed");
+
+      if (closed == 0) print("Closed Error number: ${getRestrictedErrorDescription(GetLastError())}");
+
+      expect(released, isNonZero); // 0 indicates failure
       expect(closed, isNonZero); // 0 indicates failure
 
       malloc.free(name);
