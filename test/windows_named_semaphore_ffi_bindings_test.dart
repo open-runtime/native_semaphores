@@ -46,10 +46,10 @@ void main() {
         WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
         WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
       );
-      expect(released, isNonZero); // 0 indicates failure
+      expect(released, isNonZero); // 0 indicates failure, 1 indicates success
 
       final int closed = CloseHandle(sem.address);
-      expect(closed, isNonZero); // 0 indicates failure
+      expect(closed, isNonZero); // 0 indicates failure, 1 indicates success
 
       malloc.free(name);
     });
@@ -74,11 +74,11 @@ void main() {
         WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
         WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
       );
-      expect(released, isZero); // 0 indicates failure
+      expect(released, isZero); // 0 indicates failure, 1 indicates success
 
       // We shouldn't be able to close the semaphore because it was never opened due to an invalid name
       final int closed = CloseHandle(sem.address);
-      expect(closed, isZero); // 0 indicates failure
+      expect(closed, isZero); // 0 indicates failure, 1 indicates success
 
       malloc.free(name);
     });
@@ -97,22 +97,17 @@ void main() {
       expect(sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
 
       final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
-      print("Locked: $locked");
-      print(
-          '${WindowsWaitForSingleObjectMacros.TIMEOUT_INFINITE}, ${WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0}, ${WindowsWaitForSingleObjectMacros.WAIT_ABANDONED}, ${WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT}');
-
-      print("Error number: ${getRestrictedErrorDescription(GetLastError())}");
-      print("Releasing Semaphore");
+      expect(locked, equals(WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0));
 
       final int released = ReleaseSemaphore(
         sem.address,
         WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
         WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
       );
-      expect(released, isNonZero); // 0 indicates failure
+      expect(released, isNonZero); // 0 indicates failure, 1 indicates success
 
       final int closed = CloseHandle(sem.address);
-      expect(closed, isNonZero); // 0 indicates failure
+      expect(closed, isNonZero); // 0 indicates failure, 1 indicates success
 
       malloc.free(name);
     });
@@ -127,23 +122,22 @@ void main() {
       expect(sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
 
       final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
-      print("Locked: $locked");
+      expect(locked, equals(WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0));
+
+      print(
+          '${WindowsWaitForSingleObjectMacros.TIMEOUT_INFINITE}, ${WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0}, ${WindowsWaitForSingleObjectMacros.WAIT_ABANDONED}, ${WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT}');
 
       final int released = ReleaseSemaphore(
         sem.address,
         WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
         WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
       );
-      print("Released: $released");
-      expect(released, isNonZero); // 0 indicates failure
+      expect(released, isNonZero); // 1 indicates success
 
       final int closed = CloseHandle(sem.address);
-      print("Closed: $closed");
-      expect(closed, isNonZero); // 0 indicates failure
+      expect(closed, isNonZero); // 1 indicates success
 
       final int closed_twice = CloseHandle(sem.address);
-      print("Closed Twice: $closed_twice");
-      print(getRestrictedErrorDescription(GetLastError()));
       expect(closed_twice, isZero); // 0 indicates failure
 
       malloc.free(name);

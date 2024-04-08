@@ -309,10 +309,12 @@ class WindowsReleaseSemaphoreMacros {
 
   static late Pointer<Never> PREVIOUS_RELEASE_COUNT_RECOMMENDED = NULL;
 
+  static int ERROR_SEM_OVERFLOW = 105;
+
   static Pointer<Never> NULL = Pointer.fromAddress(0);
 }
 
 class WindowsCloseHandleMacros {
-  // ERROR_INVALID_HANDLE?
+  // ERROR_INVALID_HANDLE? TODO - check if this is the correct error code
   static const int INVALID_HANDLE_VALUE = -1;
 }
