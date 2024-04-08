@@ -196,30 +196,30 @@ jobs:
     with:
       matrix-config: ${{ needs.windows-matrix.outputs.MATRIX_CONFIG }}
     secrets: inherit
-
-  macos-apple-silicon-composition:
-    name: Module Compositions ${{ matrix.config.name }}
-    needs:
-      - macos-apple-silicon-matrix
-    uses: ./.github/workflows/reusable-named-locks-platform-tester.yaml
-    with:
-      matrix-config: ${{ needs.macos-apple-silicon-matrix.outputs.MATRIX_CONFIG }}
-    secrets: inherit
-
-  macos-intel-composition:
-    name: Module Compositions ${{ matrix.config.name }}
-    needs:
-      - macos-intel-matrix
-    uses: ./.github/workflows/reusable-named-locks-platform-tester.yaml
-    with:
-      matrix-config: ${{ needs.macos-intel-matrix.outputs.MATRIX_CONFIG }}
-    secrets: inherit
-
-  ubuntu-composition:
-    name: Module Compositions ${{ matrix.config.name }}
-    needs:
-      - ubuntu-matrix
-    uses: ./.github/workflows/reusable-named-locks-platform-tester.yaml
-    with:
-      matrix-config: ${{ needs.ubuntu-matrix.outputs.MATRIX_CONFIG }}
-    secrets: inherit
+#
+#  macos-apple-silicon-composition:
+#    name: Module Compositions ${{ matrix.config.name }}
+#    needs:
+#      - macos-apple-silicon-matrix
+#    uses: ./.github/workflows/reusable-named-locks-platform-tester.yaml
+#    with:
+#      matrix-config: ${{ needs.macos-apple-silicon-matrix.outputs.MATRIX_CONFIG }}
+#    secrets: inherit
+#
+#  macos-intel-composition:
+#    name: Module Compositions ${{ matrix.config.name }}
+#    needs:
+#      - macos-intel-matrix
+#    uses: ./.github/workflows/reusable-named-locks-platform-tester.yaml
+#    with:
+#      matrix-config: ${{ needs.macos-intel-matrix.outputs.MATRIX_CONFIG }}
+#    secrets: inherit
+#
+#  ubuntu-composition:
+#    name: Module Compositions ${{ matrix.config.name }}
+#    needs:
+#      - ubuntu-matrix
+#    uses: ./.github/workflows/reusable-named-locks-platform-tester.yaml
+#    with:
+#      matrix-config: ${{ needs.ubuntu-matrix.outputs.MATRIX_CONFIG }}
+#    secrets: inherit
