@@ -23,7 +23,21 @@ import 'package:runtime_native_semaphores/ffi/windows.dart';
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
 import 'package:test/test.dart'
-    show TestOn, contains, equals, everyElement, expect, group, isA, isNonZero, isTrue, setUp, tearDown, test, throwsA;
+    show
+        TestOn,
+        contains,
+        equals,
+        everyElement,
+        expect,
+        group,
+        isA,
+        isNonZero,
+        isTrue,
+        isZero,
+        setUp,
+        tearDown,
+        test,
+        throwsA;
 import 'package:windows_foundation/internal.dart' show getRestrictedErrorDescription;
 
 void main() {
@@ -78,13 +92,7 @@ void main() {
 
       expect(sem.address == WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
 
-      // expect(error_number, equals(WindowsCreateSemaphoreWMacros.ERROR_ACCESS_DENIED));
-      //
-      // expect(
-      //     () => throw SemOpenError.fromErrno(error_number),
-      //     throwsA(isA<SemOpenError>()
-      //         .having((e) => e.message, 'message', contains(SemOpenError.fromErrno(error_number).message))));
-
+      // We shouldn't be able to release the semaphore because it was never opened due to an invalid name
       final int released = ReleaseSemaphore(
         sem.address,
         WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
@@ -96,12 +104,14 @@ void main() {
       if (released == 0) print("Released Error number: ${getRestrictedErrorDescription(GetLastError())}");
 
       final int closed = CloseHandle(sem.address);
+      // We shouldn't be able to close the semaphore because it was never opened due to an invalid name
+      expect(released, isZero); // 0 indicates failure
+
       print("Closed: $closed");
 
       if (closed == 0) print("Closed Error number: ${getRestrictedErrorDescription(GetLastError())}");
 
-      expect(released, isNonZero); // 0 indicates failure
-      expect(closed, isNonZero); // 0 indicates failure
+      expect(closed, isZero); // 0 indicates failure
 
       malloc.free(name);
     });
