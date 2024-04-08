@@ -71,24 +71,8 @@ void main() {
       // Anything over 250 chars including the leading Global\ will be too long to fit into a the 260 int which is MAX_PATH
       LPCWSTR name = ('Global\\${'x<>:"/\\|?*' * WindowsCreateSemaphoreWMacros.MAX_PATH}'.toNativeUtf16());
 
-      print(name.toDartString().length);
-      print(WindowsCreateSemaphoreWMacros.MAX_PATH);
-
       int address = CreateSemaphoreW(WindowsCreateSemaphoreWMacros.NULL.address, 0, 1, name);
       final sem = Pointer.fromAddress(address);
-
-      print("Semaphore address on windows $address");
-      print("Semaphore on windows $sem");
-
-      int error_number = GetLastError();
-      print('$error_number');
-      String? error_message = getRestrictedErrorDescription(error_number);
-
-      print(error_message);
-
-      print("Error number: $error_number");
-
-      print(WindowsCreateSemaphoreWError.fromErrorCode(error_number).description);
 
       expect(sem.address == WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
 
@@ -98,19 +82,12 @@ void main() {
         WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
         WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
       );
-
-      print("Released: $released");
-
       if (released == 0) print("Released Error number: ${getRestrictedErrorDescription(GetLastError())}");
+      expect(released, isZero); // 0 indicates failure
 
       final int closed = CloseHandle(sem.address);
       // We shouldn't be able to close the semaphore because it was never opened due to an invalid name
-      expect(released, isZero); // 0 indicates failure
-
-      print("Closed: $closed");
-
       if (closed == 0) print("Closed Error number: ${getRestrictedErrorDescription(GetLastError())}");
-
       expect(closed, isZero); // 0 indicates failure
 
       malloc.free(name);
@@ -125,7 +102,7 @@ void main() {
       // expect sem_open to not be WindowsCreateSemaphoreWMacros.SEM_FAILED
       expect(sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
 
-      final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
+      final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO);
       print("Locked: $locked");
 
       final int released = ReleaseSemaphore(
@@ -152,7 +129,7 @@ void main() {
       // expect sem_open to not be WindowsCreateSemaphoreWMacros.SEM_FAILED
       expect(sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
 
-      final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
+      final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO);
       print("Locked: $locked");
 
       final int released = ReleaseSemaphore(
