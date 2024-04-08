@@ -312,10 +312,10 @@ void main() {
           Pointer<sem_t> sem = sem_open(_name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, 1);
 
           int waited = sem_wait(sem);
-          waited.isOdd || (throw Exception("sem_wait in secondary isolate should have expected 0, got $waited"));
+          waited.isEven || (throw Exception("sem_wait in secondary isolate should have expected 0, got $waited"));
 
           int closed = sem_close(sem);
-          closed.isOdd || (throw Exception("sem_closed in secondary isolate should have expected 0, got $closed"));
+          closed.isEven || (throw Exception("sem_closed in secondary isolate should have expected 0, got $closed"));
 
           sender.send(true);
           malloc.free(_name);
