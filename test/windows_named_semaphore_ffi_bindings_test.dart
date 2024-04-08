@@ -1,24 +1,11 @@
 @TestOn('windows')
 
-import 'dart:ffi' show AbiSpecificIntegerPointer, Char, Pointer;
+import 'dart:ffi' show Pointer;
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
 
-import 'package:ffi/ffi.dart' show StringUtf16Pointer, StringUtf8Pointer, Utf16Pointer, Utf8, Utf8Pointer, malloc;
-import "package:runtime_native_semaphores/ffi/unix.dart"
-    show
-        MODE_T_PERMISSIONS,
-        UnixSemOpenError,
-        UnixSemOpenMacros,
-        errno,
-        sem_close,
-        sem_open,
-        sem_post,
-        sem_t,
-        sem_trywait,
-        sem_unlink,
-        sem_wait;
+import 'package:ffi/ffi.dart' show StringUtf16Pointer, malloc;
 import 'package:runtime_native_semaphores/ffi/windows.dart';
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
@@ -38,7 +25,6 @@ import 'package:test/test.dart'
         tearDown,
         test,
         throwsA;
-import 'package:win32/win32.dart' show GetLastError;
 import 'package:windows_foundation/internal.dart' show getRestrictedErrorDescription;
 
 void main() {
@@ -140,7 +126,7 @@ void main() {
       // expect sem_open to not be WindowsCreateSemaphoreWMacros.SEM_FAILED
       expect(sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
 
-      final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO);
+      final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
       print("Locked: $locked");
 
       final int released = ReleaseSemaphore(

@@ -1,9 +1,9 @@
 @TestOn('linux || mac-os')
 
 import 'dart:ffi' show AbiSpecificIntegerPointer, Char, Pointer;
-import 'dart:io';
-import 'dart:isolate';
-import 'dart:math';
+import 'dart:io' show Platform, sleep;
+import 'dart:isolate' show Isolate, ReceivePort, SendPort;
+import 'dart:math' show Random;
 
 import 'package:ffi/ffi.dart' show malloc, StringUtf8Pointer;
 import "package:runtime_native_semaphores/ffi/unix.dart"
@@ -19,10 +19,9 @@ import "package:runtime_native_semaphores/ffi/unix.dart"
         sem_trywait,
         sem_unlink,
         sem_wait;
-import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
-import 'package:test/test.dart'
-    show TestOn, contains, equals, everyElement, expect, group, isA, isNonZero, isTrue, setUp, tearDown, test, throwsA;
+import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
+import 'package:test/test.dart' show TestOn, contains, equals, everyElement, expect, group, isA, isTrue, test, throwsA;
 
 void main() {
   group('Semaphore tests', () {

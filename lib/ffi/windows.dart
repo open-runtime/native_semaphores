@@ -166,10 +166,10 @@ external int CloseHandle(int hObject);
 /// DWORD GetLastError();
 /// ```
 /// {@category kernel32}
-// int GetLastError() => _GetLastError();
-//
-// final _GetLastError =
-//     DynamicLibrary.open('kernel32.dll').lookupFunction<Uint32 Function(), int Function()>('GetLastError');
+int GetLastError() => _GetLastError();
+
+final _GetLastError =
+    DynamicLibrary.open('kernel32.dll').lookupFunction<Uint32 Function(), int Function()>('GetLastError');
 
 // @Native<Uint32 Function()>()
 // external int GetLastError();
