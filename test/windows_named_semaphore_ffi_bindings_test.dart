@@ -24,6 +24,7 @@ import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
 import 'package:test/test.dart'
     show TestOn, contains, equals, everyElement, expect, group, isA, isNonZero, isTrue, setUp, tearDown, test, throwsA;
+import 'package:windows_foundation/internal.dart' show getRestrictedErrorDescription;
 
 void main() {
   group('Semaphore tests', () {
@@ -66,14 +67,16 @@ void main() {
       print("Semaphore on windows $sem");
 
       int error_number = GetLastError();
+      print('$error_number');
+      String? error_message = getRestrictedErrorDescription(error_number);
+
+      print(error_message);
 
       print("Error number: $error_number");
 
       print(WindowsCreateSemaphoreWError.fromErrorCode(error_number).description);
 
-      // expect(sem.address == SemOpenUnixMacros.SEM_FAILED.address, isTrue);
-
-      // final int error_number = errno.value;
+      expect(sem.address == WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
 
       // expect(error_number, equals(WindowsCreateSemaphoreWMacros.ERROR_ACCESS_DENIED));
       //
