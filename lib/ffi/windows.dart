@@ -123,6 +123,24 @@ external int CloseHandle(int hObject);
 external int GetLastError();
 
 class WindowsCreateSemaphoreWMacros {
+  // ERROR_ACCESS_DENIED: The caller does not have the required access rights to create or open the semaphore object.
+  static const int ERROR_ACCESS_DENIED = 5;
+
+  // ERROR_INVALID_HANDLE: An invalid handle was specified.
+  static const int ERROR_INVALID_HANDLE = 6;
+
+  // ERROR_INVALID_PARAMETER: One of the parameters was invalid.
+  static const int ERROR_INVALID_PARAMETER = 87;
+
+  // ERROR_TOO_MANY_POSTS: The semaphore cannot be set to the specified count because it would exceed the semaphore's maximum count.
+  static const int ERROR_TOO_MANY_POSTS = 298;
+
+  // ERROR_SEM_NOT_FOUND: The specified semaphore does not exist.
+  static const int ERROR_SEM_NOT_FOUND = 187;
+
+  // ERROR_SEM_IS_SET: The semaphore is already set, and cannot be set again.
+  static const int ERROR_SEM_IS_SET = 102;
+
   static int INITIAL_VALUE_RECOMMENDED = 1;
   static int MAXIMUM_VALUE_RECOMMENDED = 1;
 }

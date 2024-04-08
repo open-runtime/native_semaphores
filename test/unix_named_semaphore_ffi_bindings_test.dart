@@ -57,7 +57,7 @@ void main() {
 
     test('Single Thread: Throw Semaphore Name Too Long ', () {
       // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX
-      Pointer<Char> name = ('/${'x' * 30}'.toNativeUtf8()).cast();
+      Pointer<Char> name = ('/${'x' * (Platform.isMacOS ? 30 : 100)}'.toNativeUtf8()).cast();
 
       Pointer<sem_t> sem =
           sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
@@ -86,9 +86,9 @@ void main() {
       Pointer<sem_t> sem_one =
           sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
 
-      print("Sem ${sem_one}");
-      print("Sem address is ${sem_one.address}");
-      print("Sem failed address is ${UnixSemOpenMacros.SEM_FAILED.address}");
+      print("sem_one ${sem_one}");
+      print("sem_one address is ${sem_one.address}");
+      print("sem_one failed address is ${UnixSemOpenMacros.SEM_FAILED.address}");
 
       expect(sem_one.address != UnixSemOpenMacros.SEM_FAILED.address, isTrue);
 
@@ -97,6 +97,10 @@ void main() {
           /*Passing in O_EXCL Flag */ UnixSemOpenMacros.O_EXCL,
           MODE_T_PERMISSIONS.RECOMMENDED,
           UnixSemOpenMacros.VALUE_RECOMMENDED);
+
+      print("sem_two ${sem_two}");
+      print("sem_two address is ${sem_two.address}");
+      print("sem_two failed address is ${UnixSemOpenMacros.SEM_FAILED.address}");
 
       expect(sem_two.address == UnixSemOpenMacros.SEM_FAILED.address, isTrue);
 
