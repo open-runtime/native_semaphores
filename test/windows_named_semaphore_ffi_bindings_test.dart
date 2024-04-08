@@ -68,7 +68,7 @@ void main() {
     });
 
     test('Single Thread: Throw Semaphore Name Error with Invalid Characters ', () {
-      // Anything over 250 chars including the leading Global\ will be too long to fit into a 255 int which is NAME_MAX
+      // Anything over 250 chars including the leading Global\ will be too long to fit into a the 260 int which is MAX_PATH
       LPCWSTR name = ('Global\\${'x<>:"/\\|?*' * WindowsCreateSemaphoreWMacros.MAX_PATH}'.toNativeUtf16());
 
       print(name.toDartString().length);
@@ -115,38 +115,65 @@ void main() {
 
       malloc.free(name);
     });
-    //
-    // test('Single Thread: Throw Semaphore Already Exists with O_EXCL Flag', () {
-    //   // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX
-    //   Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
-    //
-    //   Pointer<sem_t> sem_one = sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, 1);
-    //
-    //   expect(sem_one.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
-    //
-    //   Pointer<sem_t> sem_two = sem_open(/*Passing in same name */ name,
-    //       /*Passing in O_EXCL Flag */ SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, 1);
-    //
-    //   expect(sem_two.address == SemOpenUnixMacros.SEM_FAILED.address, isTrue);
-    //
-    //   final int error_number = errno.value;
-    //
-    //   expect(error_number, equals(SemOpenUnixMacros.EEXIST));
-    //
-    //   expect(
-    //       () => throw SemOpenError.fromErrno(error_number),
-    //       throwsA(isA<SemOpenError>()
-    //           .having((e) => e.message, 'message', contains(SemOpenError.fromErrno(error_number).message))));
-    //
-    //   // Only need to close sem_one here because sem_two was never opened
-    //   final int closed = sem_close(sem_one);
-    //   expect(closed, equals(0)); // 0 indicates success
-    //
-    //   final int unlinked = sem_unlink(name);
-    //   expect(unlinked, equals(0)); // 0 indicates success
-    //
-    //   malloc.free(name);
-    // });
+
+    test('Single Thread: Open, Lock, Unlock, and Close Semaphore', () {
+      LPCWSTR name = ('Global\\${safeIntId.getId()}-named-sem'.toNativeUtf16());
+
+      int address = CreateSemaphoreW(WindowsCreateSemaphoreWMacros.NULL.address, 0, 1, name);
+      final sem = Pointer.fromAddress(address);
+
+      // expect sem_open to not be WindowsCreateSemaphoreWMacros.SEM_FAILED
+      expect(sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
+
+      final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
+      print("Locked: $locked");
+
+      final int released = ReleaseSemaphore(
+        sem.address,
+        WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
+        WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
+      );
+      print("Released: $released");
+      expect(released, isNonZero); // 0 indicates failure
+
+      final int closed = CloseHandle(sem.address);
+      print("Closed: $closed");
+      expect(closed, isNonZero); // 0 indicates failure
+
+      malloc.free(name);
+    });
+
+    test('Single Thread: Try to throw an error by calling `CloseHandle` twice.', () {
+      LPCWSTR name = ('Global\\${safeIntId.getId()}-named-sem'.toNativeUtf16());
+
+      int address = CreateSemaphoreW(WindowsCreateSemaphoreWMacros.NULL.address, 0, 1, name);
+      final sem = Pointer.fromAddress(address);
+
+      // expect sem_open to not be WindowsCreateSemaphoreWMacros.SEM_FAILED
+      expect(sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address, isTrue);
+
+      final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
+      print("Locked: $locked");
+
+      final int released = ReleaseSemaphore(
+        sem.address,
+        WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
+        WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
+      );
+      print("Released: $released");
+      expect(released, isNonZero); // 0 indicates failure
+
+      final int closed = CloseHandle(sem.address);
+      print("Closed: $closed");
+      expect(closed, isNonZero); // 0 indicates failure
+
+      final int closed_twice = CloseHandle(sem.address);
+      print("Closed: $closed_twice");
+      expect(closed_twice, isNonZero); // 0 indicates failure
+
+      malloc.free(name);
+    });
+
     //
     // test('Single Thread: Opens Existing Semaphore with the same `name` and `O_CREATE` Flag', () {
     //   // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX

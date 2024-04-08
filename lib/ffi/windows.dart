@@ -141,6 +141,20 @@ external int WaitForSingleObject(int hHandle, int dwMilliseconds);
 @Native<BOOL Function(HANDLE hSemaphore, LONG lReleaseCount, Pointer<LONG> lpPreviousCount)>()
 external int ReleaseSemaphore(int hSemaphore, int lReleaseCount, Pointer<LONG> lpPreviousCount);
 
+/// Closes an open object handle.
+///
+/// [hObject] is a valid handle to an open object. This handle must have been obtained through
+/// a call to functions that return handles, such as [CreateSemaphoreW]
+///
+/// Returns a nonzero value if the function succeeds, indicating that the handle has been closed.
+///
+/// Returns zero if the function fails. To get extended error information, call [GetLastError].
+///
+/// If the application is running under a debugger, the function will throw an exception if it
+/// receives either a handle value that is not valid or a pseudo-handle value. This can occur if
+/// a handle is closed twice.
+///
+/// It is important to close handles when they are no longer needed to avoid resource leaks.
 @Native<BOOL Function(HANDLE hObject)>()
 external int CloseHandle(int hObject);
 
