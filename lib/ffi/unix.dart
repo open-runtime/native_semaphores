@@ -317,6 +317,8 @@ class SemOpenUnixMacros {
 
   /// O_EXCL can only be used along side O_CREAT otherwise it has no effect and will likely throw an error
   static int O_EXCL = O_CREAT | _O_EXCL;
+
+  static int VALUE_RECOMMENDED = 1;
 }
 
 class SemOpenError extends Error {

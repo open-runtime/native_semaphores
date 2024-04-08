@@ -1,9 +1,11 @@
+@TestOn('linux || mac-os')
+
 import 'dart:ffi' show AbiSpecificIntegerPointer, Char, Pointer;
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
 
-import 'package:ffi/ffi.dart' show Utf8Pointer, Utf8, malloc, StringUtf8Pointer;
+import 'package:ffi/ffi.dart' show malloc, StringUtf8Pointer;
 import "package:runtime_native_semaphores/ffi/unix.dart"
     show
         MODE_T_PERMISSIONS,
@@ -20,14 +22,15 @@ import "package:runtime_native_semaphores/ffi/unix.dart"
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
 import 'package:test/test.dart'
-    show contains, equals, everyElement, expect, group, isA, isNonZero, isTrue, setUp, tearDown, test, throwsA;
+    show TestOn, contains, equals, everyElement, expect, group, isA, isNonZero, isTrue, setUp, tearDown, test, throwsA;
 
 void main() {
   group('Semaphore tests', () {
     test('Single Thread: Open, Close, Unlink Semaphore', () {
       Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
 
-      Pointer<sem_t> sem = sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+      Pointer<sem_t> sem =
+          sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
 
       // expect sem_open to not be SemOpenUnixMacros.SEM_FAILED
       expect(sem.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
@@ -52,7 +55,8 @@ void main() {
       // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX
       Pointer<Char> name = ('/${'x' * 30}'.toNativeUtf8()).cast();
 
-      Pointer<sem_t> sem = sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+      Pointer<sem_t> sem =
+          sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
 
       expect(sem.address == SemOpenUnixMacros.SEM_FAILED.address, isTrue);
 
@@ -72,12 +76,18 @@ void main() {
       // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX
       Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
 
-      Pointer<sem_t> sem_one = sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+      Pointer<sem_t> sem_one =
+          sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
+
+      print(sem_one.address);
 
       expect(sem_one.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
 
-      Pointer<sem_t> sem_two = sem_open(/*Passing in same name */ name,
-          /*Passing in O_EXCL Flag */ SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+      Pointer<sem_t> sem_two = sem_open(
+          /*Passing in same name */ name,
+          /*Passing in O_EXCL Flag */ SemOpenUnixMacros.O_EXCL,
+          MODE_T_PERMISSIONS.RECOMMENDED,
+          SemOpenUnixMacros.VALUE_RECOMMENDED);
 
       expect(sem_two.address == SemOpenUnixMacros.SEM_FAILED.address, isTrue);
 
@@ -108,7 +118,8 @@ void main() {
       /// the system checks if a semaphore with that name already exists. If it doesn't, the system creates a new named
       /// semaphore. This semaphore is identified by its [name], not by its memory address in your process.
       /// The function returns a semaphore descriptor (a pointer) that refers to the semaphore object.
-      Pointer<sem_t> sem_one = sem_open(name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+      Pointer<sem_t> sem_one = sem_open(
+          name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
 
       expect(sem_one.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
 
@@ -119,8 +130,11 @@ void main() {
       // different from the first call. This is because the descriptor is just a handle or a reference to the
       // semaphore object in the kernel, and each call to [sem_open] can return a different handle for
       // the same underlying semaphore object.
-      Pointer<sem_t> sem_two = sem_open(/*Passing in same name */ name,
-          /*Passing in O_CREAT Flag */ SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+      Pointer<sem_t> sem_two = sem_open(
+          /*Passing in same name */ name,
+          /*Passing in O_CREAT Flag */ SemOpenUnixMacros.O_CREAT,
+          MODE_T_PERMISSIONS.RECOMMENDED,
+          SemOpenUnixMacros.VALUE_RECOMMENDED);
 
       expect(sem_two.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
 
@@ -146,7 +160,8 @@ void main() {
       // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX
       Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
 
-      Pointer<sem_t> sem = sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+      Pointer<sem_t> sem =
+          sem_open(name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
 
       expect(sem.address != SemOpenUnixMacros.SEM_FAILED.address, isTrue);
 
@@ -216,9 +231,12 @@ void main() {
         // The entry point for the isolate
         void secondary_isolate_entrypoint(SendPort sender) {
           Pointer<Char> _name = (name.toNativeUtf8()).cast();
-          Pointer<sem_t> sem = sem_open(_name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+          Pointer<sem_t> sem = sem_open(
+              _name, SemOpenUnixMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
 
           final int error_number = errno.value;
+
+          print(sem.address);
 
           sem.address == SemOpenUnixMacros.SEM_FAILED.address ||
               (throw Exception(
@@ -309,7 +327,8 @@ void main() {
         // The entry point for the isolate
         void secondary_isolate_entrypoint(SendPort sender) {
           Pointer<Char> _name = (name.toNativeUtf8()).cast();
-          Pointer<sem_t> sem = sem_open(_name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+          Pointer<sem_t> sem = sem_open(
+              _name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
 
           int waited = sem_wait(sem);
           waited.isEven || (throw Exception("sem_wait in secondary isolate should have expected 0, got $waited"));
@@ -356,7 +375,8 @@ void main() {
         void primary_isolate_entrypoint(SendPort sender) {
           Pointer<Char> _name = (name.toNativeUtf8()).cast();
 
-          Pointer<sem_t> sem = sem_open(_name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+          Pointer<sem_t> sem = sem_open(
+              _name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
 
           sem.address != SemOpenUnixMacros.SEM_FAILED.address ||
               (throw Exception(
@@ -394,7 +414,8 @@ void main() {
         // The entry point for the isolate
         void secondary_isolate_entrypoint(SendPort sender) {
           Pointer<Char> _name = (name.toNativeUtf8()).cast();
-          Pointer<sem_t> sem = sem_open(_name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+          Pointer<sem_t> sem = sem_open(
+              _name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, SemOpenUnixMacros.VALUE_RECOMMENDED);
 
           int waited = sem_trywait(sem);
 

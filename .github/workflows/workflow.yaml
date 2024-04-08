@@ -188,14 +188,14 @@ jobs:
       MATRIX_CONFIG: ${{ steps.matrices.outputs.metricized }}
 
 
-#  windows-composition:
-#    name: Module Compositions ${{ matrix.config.name }}
-#    needs:
-#      - windows-matrix
-#    uses: ./.github/workflows/reusable-named-locks-platform-tester.yaml
-#    with:
-#      matrix-config: ${{ needs.windows-matrix.outputs.MATRIX_CONFIG }}
-#    secrets: inherit
+  windows-composition:
+    name: Module Compositions ${{ matrix.config.name }}
+    needs:
+      - windows-matrix
+    uses: ./.github/workflows/reusable-named-locks-platform-tester.yaml
+    with:
+      matrix-config: ${{ needs.windows-matrix.outputs.MATRIX_CONFIG }}
+    secrets: inherit
 
   macos-apple-silicon-composition:
     name: Module Compositions ${{ matrix.config.name }}
