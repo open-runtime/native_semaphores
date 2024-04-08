@@ -217,7 +217,7 @@ class WindowsCreateSemaphoreWMacros {
   // ERROR_SEM_IS_SET: The semaphore is already set, and cannot be set again.
   static const int ERROR_SEM_IS_SET = 102;
 
-  static int INITIAL_VALUE_RECOMMENDED = 1;
+  static int INITIAL_VALUE_RECOMMENDED = 0;
 
   static int MAXIMUM_VALUE_RECOMMENDED = 1;
 
