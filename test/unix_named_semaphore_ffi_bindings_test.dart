@@ -24,15 +24,6 @@ import 'package:test/test.dart'
 
 void main() {
   group('Semaphore tests', () {
-    tearDown(() {
-      // Clean up any resources
-      // if (semaphore.address != 0) {
-      //   sem_close(semaphore);
-      //   sem_unlink('/test_semaphore'.toNativeUtf16());
-      // malloc.free(native_name);
-      // }
-    });
-
     test('Single Thread: Open, Close, Unlink Semaphore', () {
       Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
 
@@ -325,6 +316,100 @@ void main() {
 
           int closed = sem_close(sem);
           closed.isOdd || (throw Exception("sem_closed in secondary isolate should have expected 0, got $closed"));
+
+          sender.send(true);
+          malloc.free(_name);
+        }
+
+        // Create a receive port to get messages from the isolate
+        final ReceivePort receiver = ReceivePort();
+
+        // Spawn the isolate
+        await Isolate.spawn(secondary_isolate_entrypoint, receiver.sendPort);
+
+        // Wait for the isolate to send its message
+        return await receiver.first;
+      }
+
+      String name = '/${safeIntId.getId()}-named-sem';
+
+      // Spawn the first helper isolate
+      final result_one = spawn_primary_isolate(name);
+      sleep(Duration(milliseconds: 250));
+      final result_two = spawn_secondary_isolate(name);
+
+      // Wait for both isolates to complete their work
+      final outcomes = await Future.wait([result_one, result_two]);
+
+      Pointer<Char> _name = (name.toNativeUtf8()).cast();
+      final int unlinked = sem_unlink(_name);
+
+      expect(unlinked, equals(0));
+      expect(outcomes, everyElement(equals(true)));
+    });
+
+    test(
+        'Two Isolates Accessing Same Named Semaphore with O_CREAT flag, one locks for a 3 second Duration, the other try_wait(s), fails, try_waits and throws an error',
+        () async {
+      Future<bool> spawn_primary_isolate(String name) async {
+        // The entry point for the isolate
+        void primary_isolate_entrypoint(SendPort sender) {
+          Pointer<Char> _name = (name.toNativeUtf8()).cast();
+
+          Pointer<sem_t> sem = sem_open(_name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+
+          sem.address != SemOpenUnixMacros.SEM_FAILED.address ||
+              (throw Exception(
+                  "sem_open in primary isolate should have succeeded, got ${SemOpenError.fromErrno(errno.value)}"));
+
+          final int locked = sem_wait(sem);
+          locked.isEven || (throw Exception("sem_wait in primary isolate should have expected 0, got $locked"));
+
+          // Waiting in primary isolate for 3 seconds.
+          sleep(Duration(seconds: 1));
+
+          // Unlock
+          final int unlocked = sem_post(sem);
+          unlocked.isEven || (throw Exception("sem_post in primary isolate should have expected 0, got $unlocked"));
+
+          // Close
+          final int closed = sem_close(sem);
+          closed.isEven || (throw Exception("sem_close in primary isolate should have expected 0, got $closed"));
+
+          sender.send(true);
+          malloc.free(_name);
+        }
+
+        // Create a receive port to get messages from the isolate
+        final ReceivePort receiver = ReceivePort();
+
+        // Spawn the isolate
+        await Isolate.spawn(primary_isolate_entrypoint, receiver.sendPort);
+
+        // Wait for the isolate to send its message
+        return await receiver.first;
+      }
+
+      Future<bool> spawn_secondary_isolate(String name) async {
+        // The entry point for the isolate
+        void secondary_isolate_entrypoint(SendPort sender) {
+          Pointer<Char> _name = (name.toNativeUtf8()).cast();
+          Pointer<sem_t> sem = sem_open(_name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, 1);
+
+          int waited = sem_trywait(sem);
+
+          (waited.isOdd && waited.isNegative) ||
+              (throw Exception("sem_wait in secondary isolate should have expected -1, got $waited"));
+
+          // await 2 seconds and try again
+          sleep(Duration(seconds: 2));
+          int successfully_trywaited = sem_trywait(sem);
+          successfully_trywaited.isEven ||
+              (throw Exception(
+                  "second call to sem_trywait in secondary isolate should have expected 0, got $successfully_trywaited"));
+
+          int closed = sem_close(sem);
+          closed.isEven || (throw Exception("sem_closed in secondary isolate should have expected 0, got $closed"));
 
           sender.send(true);
           malloc.free(_name);
