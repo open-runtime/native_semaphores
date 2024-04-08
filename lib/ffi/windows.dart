@@ -142,6 +142,24 @@ external int GetLastError();
 class WindowsCreateSemaphoreWMacros {
   static Pointer<Never> SEM_FAILED = NULL;
 
+  /// ERROR_INVALID_NAME: The specified name is invalid. It is either too long or contains invalid characters.
+  /// When naming semaphore objects, certain characters are considered invalid
+  /// and cannot be used. The name must not include any of the following characters:
+  /// - `<` (less than)
+  /// - `>` (greater than)
+  /// - `:` (colon)
+  /// - `"` (double quote)
+  /// - `/` (forward slash)
+  /// - `\` (backslash)
+  /// - `|` (pipe)
+  /// - `?` (question mark)
+  /// - `*` (asterisk)
+  ///
+  /// Additionally, names cannot contain characters with ASCII codes less than 32,
+  /// which includes control characters such as newline (`\n`), carriage return (`\r`),
+  /// tab (`\t`), etc.
+  static const int ERROR_INVALID_NAME = 123;
+
   // ERROR_ACCESS_DENIED: The caller does not have the required access rights to create or open the semaphore object.
   static const int ERROR_ACCESS_DENIED = 5;
 
@@ -204,6 +222,10 @@ class WindowsCreateSemaphoreWError extends Error {
     if (code == WindowsCreateSemaphoreWMacros.ERROR_SEM_IS_SET)
       return WindowsCreateSemaphoreWError(
           code, "The semaphore is already set, and cannot be set again.", 'ERROR_SEM_IS_SET');
+
+    if (code == WindowsCreateSemaphoreWMacros.ERROR_INVALID_NAME)
+      return WindowsCreateSemaphoreWError(code,
+          "The specified name is invalid. It is either too long or contains invalid characters.", 'ERROR_INVALID_NAME');
 
     // Default case if none of the specific error codes match
     return WindowsCreateSemaphoreWError(code, "Unknown error.", 'UNKNOWN');

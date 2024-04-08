@@ -54,7 +54,7 @@ void main() {
 
     test('Single Thread: Throw Semaphore Name Too Long ', () {
       // Anything over 250 chars including the leading Global\ will be too long to fit into a 255 int which is NAME_MAX
-      LPCWSTR name = ('Global\\${'x' * 240}'.toNativeUtf16());
+      LPCWSTR name = ('Global\\${'x' * WindowsCreateSemaphoreWMacros.MAX_PATH}'.toNativeUtf16());
 
       print(name.toDartString().length);
       print(WindowsCreateSemaphoreWMacros.MAX_PATH);
@@ -64,6 +64,12 @@ void main() {
 
       print("Semaphore address on windows $address");
       print("Semaphore on windows $sem");
+
+      int error_number = GetLastError();
+
+      print("Error number: $error_number");
+
+      print(WindowsCreateSemaphoreWError.fromErrorCode(error_number).description);
 
       // expect(sem.address == SemOpenUnixMacros.SEM_FAILED.address, isTrue);
 
