@@ -51,7 +51,7 @@ class _WindowsSemaphore extends NativeSemaphore {
         semaphore.address, WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED, WindowsReleaseSemaphoreMacros.NULL);
 
     print("windows unlocked: $released");
-    return locked = released.isOdd;
+    return !(locked = !released.isOdd);
   }
 
   @override
@@ -64,6 +64,7 @@ class _WindowsSemaphore extends NativeSemaphore {
     disposed
         ? malloc.free(name)
         : throw Exception('Failed to dispose semaphore and free memory allocated for semaphore name.');
+
     return disposed;
   }
 

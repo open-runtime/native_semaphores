@@ -330,9 +330,6 @@ void main() {
 
           int waited = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO);
 
-          print(
-              "Waited [${waited}]:  ${WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0}, ${WindowsWaitForSingleObjectMacros.WAIT_ABANDONED}, ${WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT}, ${WindowsWaitForSingleObjectMacros.WAIT_FAILED}");
-
           waited == WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT ||
               (throw Exception("WaitForSingleObject in secondary isolate should have expected 258, got $waited"));
 
