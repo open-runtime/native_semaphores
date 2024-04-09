@@ -2,7 +2,7 @@ import 'dart:io' show sleep;
 import 'dart:isolate' show Isolate, ReceivePort, SendPort;
 import 'dart:math' show Random;
 
-import 'package:runtime_native_semaphores/semaphore.dart' show NativeSemaphore;
+import 'package:runtime_native_semaphores/runtime_native_semaphores.dart' show NativeSemaphore;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
 import 'package:test/test.dart' show equals, everyElement, expect, group, test;

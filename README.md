@@ -37,7 +37,7 @@ The following example demonstrates how to create a semaphore, lock and unlock it
 
 ```dart
 import 'dart:isolate';
-import 'package:runtime_native_semaphores/semaphore.dart' show NativeSemaphore;
+import 'package:runtime_native_semaphores/runtime_native_semaphores.dart' show NativeSemaphore;
 
 void main() {
   // Create a unique identifier for the semaphore 

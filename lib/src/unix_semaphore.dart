@@ -1,4 +1,4 @@
-part of '../semaphore.dart';
+part of '../runtime_native_semaphores.dart';
 
 class _UnixSemaphore extends NativeSemaphore {
   late final Pointer<Char> _identifier;

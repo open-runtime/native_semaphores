@@ -1,4 +1,4 @@
-part of '../semaphore.dart';
+part of '../runtime_native_semaphores.dart';
 
 class _WindowsSemaphore extends NativeSemaphore {
   late final LPCWSTR _identifier;
