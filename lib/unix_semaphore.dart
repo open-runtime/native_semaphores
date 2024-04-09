@@ -27,7 +27,10 @@ class _UnixSemaphore extends NativeSemaphore {
 
   @override
   bool unlock() {
-    return locked = !sem_post(semaphore).isEven;
+    int unlocked = sem_post(semaphore);
+
+    print("unix unlocked: $unlocked");
+    return locked = unlocked.isOdd;
   }
 
   @override
@@ -35,7 +38,11 @@ class _UnixSemaphore extends NativeSemaphore {
     !locked || unlock();
     final int closed = sem_close(semaphore);
     final int unlinked = sem_unlink(name);
+    print('unix closed: $closed, unix unlinked: $unlinked');
+
     bool disposed = closed == unlinked && closed.isEven && unlinked.isEven;
+    print('unix disposed: $disposed');
+
     disposed
         ? malloc.free(name)
         : throw Exception('Failed to dispose semaphore and free memory allocated for semaphore name.');
