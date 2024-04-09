@@ -27,23 +27,17 @@ class _UnixSemaphore extends NativeSemaphore {
 
   @override
   bool unlock() {
-    int unlocked = sem_post(semaphore);
-
-    print("unix unlocked: $unlocked");
-    print("unix locked: ${!(locked = !unlocked.isEven)}");
-
-    return !(locked = !unlocked.isEven);
+    return !(locked = !sem_post(semaphore).isEven);
   }
 
   @override
   bool dispose() {
-    !locked || unlock();
+    bool disposed = !locked || unlock();
     final int closed = sem_close(semaphore);
     final int unlinked = sem_unlink(name);
-    print('unix closed: $closed, unix unlinked: $unlinked');
 
-    bool disposed = (closed == 0 && closed.isEven) && (unlinked == 0 || unlinked == -1);
-    print('unix disposed: $disposed');
+    disposed =
+        disposed && (closed == 0 && closed.isEven) && (unlinked.isEven || (unlinked.isOdd && unlinked.isNegative));
 
     disposed
         ? malloc.free(name)
