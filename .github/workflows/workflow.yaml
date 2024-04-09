@@ -1,4 +1,4 @@
-name: Tests on MacOS (x86_64 & arm64) Linux, Windows
+name: Tests ⎹ Unix (x86_64, arm64) & Windows
 
 on:
   push:
