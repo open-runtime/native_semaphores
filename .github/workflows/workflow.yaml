@@ -1,4 +1,4 @@
-name: Test Native Semaphores across MacOS (x86_64 & arm64) Linux, Windows
+name: Tests on MacOS (x86_64 & arm64) Linux, Windows
 
 on:
   push:
