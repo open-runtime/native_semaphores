@@ -24,7 +24,6 @@ import 'package:test/test.dart'
         tearDown,
         test,
         throwsA;
-import 'package:windows_foundation/internal.dart' show getRestrictedErrorDescription;
 
 void main() {
   group('Semaphore tests', () {
