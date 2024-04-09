@@ -349,14 +349,14 @@ void main() {
       final outcomes = await Future.wait([result_one, result_two]);
 
       LPCWSTR _name = (name.toNativeUtf16());
-      final int unlinked = CloseHandle(_name.address);
+      final int closed = CloseHandle(_name.address);
 
-      expect(unlinked, equals(0));
+      expect(closed, equals(0));
       expect(outcomes, everyElement(equals(true)));
     });
 
     // test(
-    //     'Two Isolates Accessing Same Named Semaphore with O_CREAT flag, one locks for a 3 second Duration, the other try_wait(s), fails, try_waits and throws an error',
+    //     'Two Isolates Accessing Same Named Semaphore, one locks for a 3 second Duration, the other try_wait(s), fails, try_waits and throws an error',
     //     () async {
     //   Future<bool> spawn_primary_isolate(String name) async {
     //     // The entry point for the isolate
@@ -449,66 +449,73 @@ void main() {
     //   expect(outcomes, everyElement(equals(true)));
     // });
 
-    // test(
-    //     'Several Isolates Accessing Same Named Semaphore, all with O_CREAT flag, waiting random durations and then unlocking.',
-    //     () async {
-    //   Future<bool> spawn_isolate(String name, int sem_open_value, int id) async {
-    //     // The entry point for the isolate
-    //     void isolate_entrypoint(SendPort sender) {
-    //       Pointer<Char> _name = (name.toNativeUtf8()).cast();
-    //       Pointer<sem_t> sem =
-    //           sem_open(_name, SemOpenUnixMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, sem_open_value);
-    //
-    //       sem.address != SemOpenUnixMacros.SEM_FAILED.address ||
-    //           (throw Exception(
-    //               "sem_open in primary isolate should have succeeded, got ${SemOpenError.fromErrno(errno.value)}"));
-    //
-    //       int waited = sem_wait(sem);
-    //
-    //       waited.isEven || (throw Exception("sem_wait in isolate $id should have expected 0, got $waited"));
-    //
-    //       // Waiting in primary isolate for 3 seconds.
-    //       sleep(Duration(milliseconds: Random().nextInt(1000)));
-    //
-    //       // Unlock
-    //       final int unlocked = sem_post(sem);
-    //       unlocked.isEven || (throw Exception("sem_post in primary isolate should have expected 0, got $unlocked"));
-    //
-    //       // Close & expect 0
-    //       final int closed = sem_close(sem);
-    //       closed.isEven || (throw Exception("sem_closed in primary isolate should have expected 0, got $closed"));
-    //
-    //       sender.send(true);
-    //       malloc.free(_name);
-    //     }
-    //
-    //     // Create a receive port to get messages from the isolate
-    //     final ReceivePort receiver = ReceivePort();
-    //
-    //     // Spawn the isolate
-    //     await Isolate.spawn(isolate_entrypoint, receiver.sendPort);
-    //
-    //     // Wait for the isolate to send its message
-    //     return await receiver.first;
-    //   }
-    //
-    //   String name = '/${safeIntId.getId()}-named-sem';
-    //
-    //   int sem_open_value = 1;
-    //   // Spawn the first helper isolate
-    //   final result_one = spawn_isolate(name, sem_open_value, 1);
-    //   final result_two = spawn_isolate(name, sem_open_value, 2);
-    //   final result_three = spawn_isolate(name, sem_open_value, 3);
-    //   final result_four = spawn_isolate(name, sem_open_value, 4);
-    //
-    //   // Wait for both isolates to complete their work
-    //   final outcomes = await Future.wait([result_one, result_two, result_three, result_four]);
-    //
-    //   Pointer<Char> _name = (name.toNativeUtf8()).cast();
-    //   final int unlinked = sem_unlink(_name);
-    //
-    //   expect(unlinked, equals(0));
-    //   expect(outcomes, everyElement(equals(true)));
-    // });
+    test(
+        'Several Isolates Accessing Same Named Semaphore, all with O_CREAT flag, waiting random durations and then unlocking.',
+        () async {
+      Future<bool> spawn_isolate(String name, int sem_open_value, int id) async {
+        // The entry point for the isolate
+        void isolate_entrypoint(SendPort sender) {
+          LPCWSTR _name = (name.toNativeUtf16());
+
+          int address = CreateSemaphoreW(
+              WindowsCreateSemaphoreWMacros.NULL.address,
+              WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
+              WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
+              _name);
+          final sem = Pointer.fromAddress(address);
+
+          sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address ||
+              (throw Exception("CreateSemaphoreW in isolate $id should have succeeded, got ${sem.address}"));
+
+          final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
+
+          locked.isEven || (throw Exception("Thread $id should have locked and returned 0, got $locked"));
+
+          sleep(Duration(milliseconds: Random().nextInt(1000)));
+
+          // Unlock
+          final int released = ReleaseSemaphore(
+            sem.address,
+            WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
+            WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
+          );
+          released.isOdd || (throw Exception("ReleaseSemaphore in isolate $id should have expected 1, got $released"));
+
+          // Close
+          final int closed = CloseHandle(sem.address);
+          closed.isOdd || (throw Exception("CloseHandle in isolate $id should have expected 1, got $closed"));
+
+          sender.send(true);
+          malloc.free(_name);
+        }
+
+        // Create a receive port to get messages from the isolate
+        final ReceivePort receiver = ReceivePort();
+
+        // Spawn the isolate
+        await Isolate.spawn(isolate_entrypoint, receiver.sendPort);
+
+        // Wait for the isolate to send its message
+        return await receiver.first;
+      }
+
+      String name = '/${safeIntId.getId()}-named-sem';
+
+      int sem_open_value = 1;
+      // Spawn the first helper isolate
+      final result_one = spawn_isolate(name, sem_open_value, 1);
+      final result_two = spawn_isolate(name, sem_open_value, 2);
+      final result_three = spawn_isolate(name, sem_open_value, 3);
+      final result_four = spawn_isolate(name, sem_open_value, 4);
+
+      // Wait for both isolates to complete their work
+      final outcomes = await Future.wait([result_one, result_two, result_three, result_four]);
+
+      LPCWSTR _name = (name.toNativeUtf16());
+      final int closed = CloseHandle(_name.address);
+
+      expect(closed, equals(0));
+      expect(outcomes, everyElement(equals(true)));
+    });
   });
 }
