@@ -332,8 +332,8 @@ void main() {
           print(
               "Waited [${waited}]:  ${WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0}, ${WindowsWaitForSingleObjectMacros.WAIT_ABANDONED}, ${WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT}, ${WindowsWaitForSingleObjectMacros.WAIT_FAILED}");
 
-          (waited.isOdd && waited.isNegative) ||
-              (throw Exception("WaitForSingleObject in secondary isolate should have expected -1, got $waited"));
+          waited == WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT ||
+              (throw Exception("WaitForSingleObject in secondary isolate should have expected 258, got $waited"));
 
           // await 2 seconds and try again
           sleep(Duration(seconds: 2));
