@@ -5,7 +5,7 @@ import 'dart:isolate' show Isolate, ReceivePort, SendPort;
 import 'dart:math' show Random;
 
 import 'package:ffi/ffi.dart' show StringUtf16Pointer, malloc;
-import 'package:runtime_native_semaphores/ffi/windows.dart'
+import 'package:runtime_native_semaphores/src/ffi/windows.dart'
     show
         CloseHandle,
         CreateSemaphoreW,

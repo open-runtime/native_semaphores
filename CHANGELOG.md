@@ -8,4 +8,5 @@
 - Reflect Platform Support in the README.md
 
 ## 0.0.3
-- 
+- Update README.md with more detailed usage examples, use cases, and background information/references
+- Refine directory structure for more standardized dart code organization

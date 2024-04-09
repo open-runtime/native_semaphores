@@ -2,7 +2,7 @@ import 'dart:ffi' show AbiSpecificIntegerPointer, Char, Finalizable, NativeType,
 import 'dart:io' show Platform;
 
 import "package:ffi/ffi.dart" show StringUtf16Pointer, StringUtf8Pointer, malloc;
-import 'package:runtime_native_semaphores/ffi/unix.dart'
+import 'package:runtime_native_semaphores/src/ffi/unix.dart'
     show
         MODE_T_PERMISSIONS,
         UnixSemLimits,
@@ -16,7 +16,7 @@ import 'package:runtime_native_semaphores/ffi/unix.dart'
         sem_trywait,
         sem_unlink,
         sem_wait;
-import 'package:runtime_native_semaphores/ffi/windows.dart'
+import 'package:runtime_native_semaphores/src/ffi/windows.dart'
     show
         CloseHandle,
         CreateSemaphoreW,
@@ -27,10 +27,22 @@ import 'package:runtime_native_semaphores/ffi/windows.dart'
         WindowsReleaseSemaphoreMacros,
         WindowsWaitForSingleObjectMacros;
 
-part 'windows_semaphore.dart';
-part 'unix_semaphore.dart';
+part 'src/windows_semaphore.dart';
+part 'src/unix_semaphore.dart';
 
 sealed class NativeSemaphore implements Finalizable {
+  bool _locked = false;
+
+  get locked {
+    return _locked;
+  }
+
+  bool _disposed = false;
+
+  get disposed {
+    return _disposed;
+  }
+
   final String identifier;
 
   int get address => throw UnimplementedError(

@@ -6,7 +6,7 @@ import 'dart:isolate' show Isolate, ReceivePort, SendPort;
 import 'dart:math' show Random;
 
 import 'package:ffi/ffi.dart' show malloc, StringUtf8Pointer;
-import "package:runtime_native_semaphores/ffi/unix.dart"
+import "package:runtime_native_semaphores/src/ffi/unix.dart"
     show
         MODE_T_PERMISSIONS,
         UnixSemOpenError,

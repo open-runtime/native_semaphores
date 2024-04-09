@@ -1,9 +1,8 @@
-part of 'semaphore.dart';
+part of '../semaphore.dart';
 
 class _WindowsSemaphore extends NativeSemaphore {
-  bool locked = false;
-  // bool acquired = false;
-  late final LPCWSTR name;
+  late final LPCWSTR _identifier;
+
   late final Pointer<NativeType> semaphore;
 
   _WindowsSemaphore({required String identifier}) : super._(identifier: identifier) {
@@ -18,13 +17,13 @@ class _WindowsSemaphore extends NativeSemaphore {
     if (identifier.contains(RegExp(r'[\\/:*?"<>|]'))) throw ArgumentError('Identifier contains invalid characters.');
 
     // Assume global for now
-    name = ('Global\\${identifier}'.toNativeUtf16());
+    _identifier = ('Global\\${identifier}'.toNativeUtf16());
 
     int address = CreateSemaphoreW(
         WindowsCreateSemaphoreWMacros.NULL.address,
         WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
         WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
-        name);
+        _identifier);
 
     semaphore = Pointer.fromAddress(address);
 
@@ -38,31 +37,32 @@ class _WindowsSemaphore extends NativeSemaphore {
     final int returnable = blocking
         ? WaitForSingleObject(semaphore.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED)
         : WaitForSingleObject(semaphore.address, WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO);
-    if (returnable == WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0) return locked = true;
-    if (returnable == WindowsWaitForSingleObjectMacros.WAIT_ABANDONED) return false;
-    if (returnable == WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT) return false;
-    if (returnable == WindowsWaitForSingleObjectMacros.WAIT_FAILED) return false;
+    if (returnable == WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0) return _locked = true;
+    // TODO potentially get the status of locked before setting it to false here
+    if (returnable == WindowsWaitForSingleObjectMacros.WAIT_ABANDONED) return _locked = false;
+    if (returnable == WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT) return _locked = false;
+    if (returnable == WindowsWaitForSingleObjectMacros.WAIT_FAILED) return _locked = false;
     return throw Exception('WaitForSingleObject returned an unexpected value: $returnable');
   }
 
   @override
   bool unlock() {
-    return !(locked = !ReleaseSemaphore(semaphore.address, WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
+    return !(_locked = !ReleaseSemaphore(semaphore.address, WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
             WindowsReleaseSemaphoreMacros.NULL)
         .isOdd);
   }
 
   @override
   bool dispose() {
-    bool disposed = (!locked || unlock()) && CloseHandle(semaphore.address).isOdd;
+    bool __disposed = (!locked || unlock()) && CloseHandle(semaphore.address).isOdd;
 
-    disposed
-        ? malloc.free(name)
-        : throw Exception('Failed to dispose semaphore and free memory allocated for semaphore name.');
+    __disposed
+        ? malloc.free(_identifier)
+        : throw Exception('Failed to dispose semaphore and free memory allocated for semaphore $_identifier.');
 
-    return disposed;
+    return _disposed = __disposed;
   }
 
   @override
-  String toString() => '_WindowsSemaphore(name: $identifier)';
+  String toString() => '_WindowsSemaphore(_identifier: $_identifier)';
 }
