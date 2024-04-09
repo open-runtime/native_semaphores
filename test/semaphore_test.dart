@@ -1,29 +1,11 @@
-import 'dart:ffi' show Pointer;
-import 'dart:io';
-import 'dart:isolate';
-import 'dart:math';
+import 'dart:io' show sleep;
+import 'dart:isolate' show Isolate, ReceivePort, SendPort;
+import 'dart:math' show Random;
 
-import 'package:ffi/ffi.dart' show StringUtf16Pointer, malloc;
-import 'package:runtime_native_semaphores/ffi/windows.dart';
-import 'package:runtime_native_semaphores/semaphore.dart';
+import 'package:runtime_native_semaphores/semaphore.dart' show NativeSemaphore;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
-import 'package:test/test.dart'
-    show
-        TestOn,
-        contains,
-        equals,
-        everyElement,
-        expect,
-        group,
-        isA,
-        isNonZero,
-        isTrue,
-        isZero,
-        setUp,
-        tearDown,
-        test,
-        throwsA;
+import 'package:test/test.dart' show equals, everyElement, expect, group, test;
 
 void main() {
   group('Testing Cross-Isolate Named Semaphore', () {
@@ -60,7 +42,7 @@ void main() {
         return await receiver.first;
       }
 
-      String name = '/${safeIntId.getId()}-named-sem';
+      String name = '${safeIntId.getId()}-named-sem';
 
       // Spawn the first helper isolate
       final result_one = spawn_isolate(name, 1);

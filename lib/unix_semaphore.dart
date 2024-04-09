@@ -14,7 +14,7 @@ class _UnixSemaphore extends NativeSemaphore {
     name = ('/${identifier.replaceFirst(('/'), '')}'.toNativeUtf8()).cast();
 
     semaphore =
-        sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
+        sem_open(name, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
 
     (semaphore.address != UnixSemOpenMacros.SEM_FAILED.address) ||
         (throw "${UnixSemOpenError.fromErrno(errno.value).toString()}");
