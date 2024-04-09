@@ -261,7 +261,7 @@ void main() {
     });
 
     test(
-        'Two Isolates Accessing Same Named Semaphore, one locks for a 3 second Duration, the other try_wait(s), fails, try_waits and throws an error',
+        'Two Isolates Accessing Same Named Semaphore, one locks for a 3 second Duration, the other WaitForSingleObject fails, and then WaitForSingleObject completes properly after a duration.',
         () async {
       Future<bool> spawn_primary_isolate(String name) async {
         // The entry point for the isolate
@@ -282,7 +282,7 @@ void main() {
 
           locked.isEven || (throw Exception("Thread (primary isolate) should have locked and returned 0, got $locked"));
 
-          sleep(Duration(milliseconds: 1000));
+          sleep(Duration(seconds: 1));
 
           // Unlock
           final int released = ReleaseSemaphore(
@@ -328,6 +328,10 @@ void main() {
               (throw Exception("CreateSemaphoreW in secondary isolate should have succeeded, got ${sem.address}"));
 
           int waited = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO);
+
+          print(
+              "Waited [${waited}]:  ${WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0}, ${WindowsWaitForSingleObjectMacros.WAIT_ABANDONED}, ${WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT}, ${WindowsWaitForSingleObjectMacros.WAIT_FAILED}");
+
           (waited.isOdd && waited.isNegative) ||
               (throw Exception("WaitForSingleObject in secondary isolate should have expected -1, got $waited"));
 
