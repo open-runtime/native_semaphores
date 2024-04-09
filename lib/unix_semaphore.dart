@@ -30,7 +30,9 @@ class _UnixSemaphore extends NativeSemaphore {
     int unlocked = sem_post(semaphore);
 
     print("unix unlocked: $unlocked");
-    return locked = unlocked.isOdd;
+    print("unix locked: ${!(locked = !unlocked.isEven)}");
+
+    return !(locked = !unlocked.isEven);
   }
 
   @override
