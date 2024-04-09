@@ -15,9 +15,7 @@ sealed class NativeSemaphore implements Finalizable {
   factory NativeSemaphore({required String identifier}) =>
       Platform.isWindows ? _WindowsSemaphore(identifier: identifier) : _UnixSemaphore(identifier: identifier);
 
-  bool acquire() => throw UnimplementedError();
-
-  bool lock() => throw UnimplementedError();
+  bool lock({bool blocking = true}) => throw UnimplementedError();
 
   bool unlock() => throw UnimplementedError();
 

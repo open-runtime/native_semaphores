@@ -25,12 +25,7 @@ class _UnixSemaphore extends NativeSemaphore {
   }
 
   @override
-  bool acquire() {
-    throw UnimplementedError();
-  }
-
-  @override
-  bool lock() {
+  bool lock({bool blocking = true}) {
     throw UnimplementedError();
   }
 
