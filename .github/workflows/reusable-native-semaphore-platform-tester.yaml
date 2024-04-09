@@ -1,4 +1,4 @@
-name: (Shared) Named Lock Platform Tester
+name: Tests ⎹ Unix (x86_64, arm64) & Windows
 
 on:
   workflow_call:
