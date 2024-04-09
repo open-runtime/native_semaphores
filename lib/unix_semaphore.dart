@@ -42,7 +42,7 @@ class _UnixSemaphore extends NativeSemaphore {
     final int unlinked = sem_unlink(name);
     print('unix closed: $closed, unix unlinked: $unlinked');
 
-    bool disposed = closed == unlinked && closed.isEven && unlinked.isEven;
+    bool disposed = (closed == 0 && closed.isEven) && (unlinked == 0 || unlinked == -1);
     print('unix disposed: $disposed');
 
     disposed
