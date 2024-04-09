@@ -1,29 +1,23 @@
 @TestOn('windows')
 import 'dart:ffi' show Pointer;
-import 'dart:io';
-import 'dart:isolate';
-import 'dart:math';
+import 'dart:io' show sleep;
+import 'dart:isolate' show Isolate, ReceivePort, SendPort;
+import 'dart:math' show Random;
 
 import 'package:ffi/ffi.dart' show StringUtf16Pointer, malloc;
-import 'package:runtime_native_semaphores/ffi/windows.dart';
+import 'package:runtime_native_semaphores/ffi/windows.dart'
+    show
+        CloseHandle,
+        CreateSemaphoreW,
+        LPCWSTR,
+        ReleaseSemaphore,
+        WaitForSingleObject,
+        WindowsCreateSemaphoreWMacros,
+        WindowsReleaseSemaphoreMacros,
+        WindowsWaitForSingleObjectMacros;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
-import 'package:test/test.dart'
-    show
-        TestOn,
-        contains,
-        equals,
-        everyElement,
-        expect,
-        group,
-        isA,
-        isNonZero,
-        isTrue,
-        isZero,
-        setUp,
-        tearDown,
-        test,
-        throwsA;
+import 'package:test/test.dart' show TestOn, equals, everyElement, expect, group, isNonZero, isTrue, isZero, test;
 
 void main() {
   group('Semaphore tests', () {

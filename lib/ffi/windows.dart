@@ -1,5 +1,4 @@
-import 'dart:ffi'
-    show DynamicLibrary, DynamicLibraryExtension, Int32, IntPtr, Native, Pointer, Struct, Uint16, Uint32, Uint8;
+import 'dart:ffi' show Int32, IntPtr, Native, Pointer, Struct, Uint16, Uint32, Uint8;
 import 'dart:math' show min;
 import 'package:ffi/ffi.dart' show Utf16;
 
@@ -166,10 +165,10 @@ external int CloseHandle(int hObject);
 /// DWORD GetLastError();
 /// ```
 /// {@category kernel32}
-int GetLastError() => _GetLastError();
-
-final _GetLastError =
-    DynamicLibrary.open('kernel32.dll').lookupFunction<Uint32 Function(), int Function()>('GetLastError');
+// int GetLastError() => _GetLastError();
+//
+// final _GetLastError =
+//     DynamicLibrary.open('kernel32.dll').lookupFunction<Uint32 Function(), int Function()>('GetLastError');
 
 // @Native<Uint32 Function()>()
 // external int GetLastError();

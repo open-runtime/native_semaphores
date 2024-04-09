@@ -1,9 +1,31 @@
 import 'dart:ffi' show AbiSpecificIntegerPointer, Char, Finalizable, NativeType, Pointer;
 import 'dart:io' show Platform;
 
-import 'package:ffi/ffi.dart';
-import 'package:runtime_native_semaphores/ffi/unix.dart';
-import 'package:runtime_native_semaphores/ffi/windows.dart';
+import "package:ffi/ffi.dart" show StringUtf16Pointer, StringUtf8Pointer, malloc;
+import 'package:runtime_native_semaphores/ffi/unix.dart'
+    show
+        MODE_T_PERMISSIONS,
+        UnixSemLimits,
+        UnixSemOpenError,
+        UnixSemOpenMacros,
+        errno,
+        sem_close,
+        sem_open,
+        sem_post,
+        sem_t,
+        sem_trywait,
+        sem_unlink,
+        sem_wait;
+import 'package:runtime_native_semaphores/ffi/windows.dart'
+    show
+        CloseHandle,
+        CreateSemaphoreW,
+        LPCWSTR,
+        ReleaseSemaphore,
+        WaitForSingleObject,
+        WindowsCreateSemaphoreWMacros,
+        WindowsReleaseSemaphoreMacros,
+        WindowsWaitForSingleObjectMacros;
 
 part 'windows_semaphore.dart';
 part 'unix_semaphore.dart';

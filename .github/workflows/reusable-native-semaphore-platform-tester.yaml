@@ -106,32 +106,5 @@ jobs:
       - name: Install Dart Dependencies
         run: dart pub get
 
-#      - name: Enable Developer Command Prompt
-#        if: matrix.config.system_information.operating_system_family == 'windows'
-#        uses: ilammy/msvc-dev-cmd@v1.13.0
-
-#      - name: Compile C++ code
-#        if: matrix.config.system_information.operating_system_family == 'windows'
-#        run: |
-#          cl /EHsc test\native_create_semaphore_w.cpp /Fe:test\native_create_semaphore_w.exe
-#
-#      - name: Verify executable creation
-#        if: matrix.config.system_information.operating_system_family == 'windows'
-#        run: |
-#          if (Test-Path test\native_create_semaphore_w.exe) {
-#            Write-Host "Executable created successfully ✅"
-#          } else {
-#            Write-Error "Executable does not exist"
-#            exit 1
-#          }
-#
-#      - name: Run C++ code as a background process
-#        run: |
-#          Start-Process -FilePath "test\native_create_mutex_w.exe" -NoNewWindow
-
-#      - name: Run Dart Code
-#        if: matrix.config.system_information.operating_system_family == 'windows'
-#        run: dart run test/create_mutex_w.dart
-
       - name: Run Dart Tests
         run: dart test .
