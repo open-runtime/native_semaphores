@@ -127,9 +127,6 @@ void main() {
       final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
       expect(locked, equals(WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0));
 
-      print(
-          '${WindowsWaitForSingleObjectMacros.TIMEOUT_INFINITE}, ${WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0}, ${WindowsWaitForSingleObjectMacros.WAIT_ABANDONED}, ${WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT}');
-
       final int released = ReleaseSemaphore(
         sem.address,
         WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
@@ -259,12 +256,11 @@ void main() {
 
           final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
 
-          print("Primary Thread Locked: $locked");
-
-          print(
-              '${WindowsWaitForSingleObjectMacros.TIMEOUT_INFINITE}, ${WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0}, ${WindowsWaitForSingleObjectMacros.WAIT_ABANDONED}, ${WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT}');
-
+          // Should be signaled with 0 i.e. WAIT_OBJECT_0
           locked.isEven || (throw Exception("Primary Thread should have locked and returned 0, got $locked"));
+
+          locked == WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0 ||
+              (throw Exception("Primary Thread should have locked and returned WAIT_OBJECT_0, got $locked"));
 
           // Waiting in primary isolate for 3 seconds.
           sleep(Duration(seconds: 3));
@@ -312,8 +308,8 @@ void main() {
               (throw Exception("CreateSemaphoreW in secondary isolate should have succeeded, got ${sem.address}"));
 
           final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
-          print("Secondary Thread Locked: $locked");
-          locked.isOdd || (throw Exception("Secondary Thread should have locked and returned 1, got $locked"));
+
+          locked.isEven || (throw Exception("Secondary Thread should have locked and returned 0, got $locked"));
 
           // Unlock
           final int released = ReleaseSemaphore(
