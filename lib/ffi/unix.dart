@@ -220,7 +220,7 @@ Pointer<Int> Function() _errno = () => Platform.isMacOS ? __error() : __errno_lo
 
 Pointer<Int> get errno => _errno();
 
-class SemUnixLimits {
+class UnixSemLimits {
   static bool isBSD = Platform.isMacOS;
 
   // Uint8
@@ -233,6 +233,8 @@ class SemUnixLimits {
 
   // Size of NAME_MAX (size of an int): 4 bytes on MacOS Arm64 and x86_64
   static int NAME_MAX = 255;
+
+  static int NAME_MAX_CHARACTERS = 30;
 }
 
 class UnixSemOpenMacros {

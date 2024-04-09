@@ -1,42 +1,45 @@
 part of 'semaphore.dart';
 
-// class _WindowsNamedLockNameType extends NamedLockNameType<String> {
-//   _WindowsNamedLockNameType() : super._();
-// }
-
 class _UnixSemaphore extends NativeSemaphore {
-  // bool locked = false;
-  // bool acquired = false;
-
-  // Memory Allocation in Bytes
-  // static const int _allocation = 8;
-
-  // late final Pointer<HANDLE> handle = calloc.allocate(_WindowsNamedLock._allocation);
-
-  // late final HANDLE mutex_handle;
-
-  // static final _finalizer = Finalizer<Pointer<HANDLE>>((Pointer<HANDLE> ptr) {
-  //   // TODO: Is this proper?
-  //   calloc.free(ptr);
-  // });
+  bool locked = false;
+  late final Pointer<Char> name;
+  late final Pointer<sem_t> semaphore;
 
   _UnixSemaphore({required String identifier}) : super._(identifier: identifier) {
-    throw UnimplementedError();
+    if (identifier.replaceFirst(('/'), '').length > UnixSemLimits.NAME_MAX_CHARACTERS)
+      throw ArgumentError(
+          'Identifier is too long. Must be less than or equal to ${UnixSemLimits.NAME_MAX_CHARACTERS} characters.');
+    // TODO other checks on the identifier string
+
+    name = ('/${identifier.replaceFirst(('/'), '')}'.toNativeUtf8()).cast();
+
+    semaphore =
+        sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
+
+    (semaphore.address != UnixSemOpenMacros.SEM_FAILED.address) ||
+        (throw "${UnixSemOpenError.fromErrno(errno.value).toString()}");
   }
 
   @override
   bool lock({bool blocking = true}) {
-    throw UnimplementedError();
+    return locked = blocking ? sem_wait(semaphore).isEven : sem_trywait(semaphore).isEven;
   }
 
   @override
   bool unlock() {
-    throw UnimplementedError();
+    return locked = !sem_post(semaphore).isEven;
   }
 
   @override
   bool dispose() {
-    throw UnimplementedError();
+    !locked || unlock();
+    final int closed = sem_close(semaphore);
+    final int unlinked = sem_unlink(name);
+    bool disposed = closed == unlinked && closed.isEven && unlinked.isEven;
+    disposed
+        ? malloc.free(name)
+        : throw Exception('Failed to dispose semaphore and free memory allocated for semaphore name.');
+    return disposed;
   }
 
   @override

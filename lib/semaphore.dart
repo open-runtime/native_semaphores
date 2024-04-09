@@ -1,5 +1,9 @@
-import 'dart:ffi' show Finalizable;
+import 'dart:ffi' show AbiSpecificIntegerPointer, Char, Finalizable, NativeType, Pointer;
 import 'dart:io' show Platform;
+
+import 'package:ffi/ffi.dart';
+import 'package:runtime_native_semaphores/ffi/unix.dart';
+import 'package:runtime_native_semaphores/ffi/windows.dart';
 
 part 'windows_semaphore.dart';
 part 'unix_semaphore.dart';

@@ -86,6 +86,7 @@ void main() {
           WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
           WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
           name);
+
       final sem = Pointer.fromAddress(address);
 
       // expect sem_open to not be WindowsCreateSemaphoreWMacros.SEM_FAILED
@@ -354,7 +355,7 @@ void main() {
 
           // Close
           final int closed = CloseHandle(sem.address);
-          closed.isEven || (throw Exception("CloseHandle in secondary isolate should have expected 0, got $closed"));
+          closed.isOdd || (throw Exception("CloseHandle in secondary isolate should have expected 1, got $closed"));
 
           sender.send(true);
           malloc.free(_name);
