@@ -14,4 +14,4 @@
 ## 0.0.4
 - Leverage the @Native decorator to re-implement `sem_open` 
 - Extend `AbiSpecificInteger` with the `@AbiSpecificIntegerMapping` decorator to enable`mode_t` architecture specific type mappings i.e. UnsignedShort on x86_64 and UnsignedLong on arm64
-- 
+- Guidance provided on this [dart-sdk issue](https://github.com/dart-lang/native/issues/1086) shout out to [@dcharkes](https://github.com/dcharkes) for the help!
