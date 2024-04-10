@@ -201,15 +201,6 @@ external int sem_unlink(Pointer<Char> name);
 @Native<Pointer<Int> Function()>()
 external Pointer<Int> __error();
 
-// Pointer<Int> error() {
-//   return ___error();
-// }
-//
-// late final ___errorPtr =
-// _lookup<NativeFunction<Pointer<Int> Function()>>('__error');
-// late final ___error =
-// ___errorPtr.asFunction<Pointer<Int> Function()>();
-
 @Native<Pointer<Int> Function()>()
 external Pointer<Int> __errno_location();
 
