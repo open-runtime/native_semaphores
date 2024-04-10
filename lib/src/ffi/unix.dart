@@ -1,6 +1,8 @@
 import 'dart:ffi'
     show
         Abi,
+        AbiSpecificInteger,
+        AbiSpecificIntegerMapping,
         Char,
         DynamicLibrary,
         Int,
@@ -18,8 +20,8 @@ import 'dart:ffi'
         VarArgs;
 import 'dart:io' show Platform;
 
-// sizeof(sem_t) = 4 bytes on MacOS Arm64 and x86_64
-// final class sem_t extends Opaque {}
+// in C the sizeof(sem_t) = 4 bytes on MacOS Arm64 and x86_64 and on Linux it seems to be the same case!
+typedef sem_t = Int;
 
 /// Data Type: [mode_t] is typically defined as an unsigned integer type.
 /// The exact size can vary between systems, but it is commonly 16 bits wide
@@ -38,8 +40,14 @@ import 'dart:io' show Platform;
 /// that require [mode_t], you would declare them in Dart using [Uint16] for those parameters.
 
 /// On [x86_64], [mode_t] is a [UnsignedShort] and on [arm64], [mode_t] is an [UnsignedLong]
-typedef mode_t<T> = T;
-typedef sem_t = Int;
+/// mode_t
+@AbiSpecificIntegerMapping({
+  Abi.macosArm64: Uint64(),
+  Abi.macosX64: Uint16(),
+})
+final class mode_t extends AbiSpecificInteger {
+  const mode_t();
+}
 
 class MODE_T_PERMISSIONS {
   static int x = 1;
@@ -116,20 +124,8 @@ class MODE_T_PERMISSIONS {
 /// Any process or thread that tries to decrement the semaphore with [sem_wait] will block
 /// until another process or thread increments the semaphore with [sem_post], making
 /// the resource available.
-typedef sem_open_function_type<M> = Pointer<sem_t> Function(Pointer<Char>, Int, VarArgs<(mode_t<M>, UnsignedInt)>);
-typedef dart_sem_open_function_type = Pointer<sem_t> Function(Pointer<Char> name, int oflag, int mode, int value);
-
-Pointer<sem_t> sem_open(Pointer<Char> name, int oflags, [int? mode, int? value]) =>
-    sem_open_callable(name, oflags, mode ?? MODE_T_PERMISSIONS.RECOMMENDED, value ?? 1);
-
-// if we are on MacOS Arm64, then our mode_t is UnsignedLong otherwise it is UnsignedShort
-final sem_open_pointer = Abi.current() == Abi.macosArm64
-    ? DynamicLibrary.process().lookup<NativeFunction<sem_open_function_type<UnsignedLong>>>('sem_open')
-    : DynamicLibrary.process().lookup<NativeFunction<sem_open_function_type<UnsignedShort>>>('sem_open');
-
-final dart_sem_open_function_type sem_open_callable = Abi.current() == Abi.macosArm64
-    ? sem_open_pointer.cast<NativeFunction<sem_open_function_type<UnsignedLong>>>().asFunction()
-    : sem_open_pointer.cast<NativeFunction<sem_open_function_type<UnsignedShort>>>().asFunction();
+@Native<Pointer<sem_t> Function(Pointer<Char>, Int, VarArgs<(mode_t, UnsignedInt)>)>()
+external Pointer<sem_t> sem_open(Pointer<Char> name, int oflag, int mode, int value);
 
 /// [sem_wait] Decrements (locks) the semaphore pointed to by sem.
 /// If the semaphore's value is greater than zero, then the decrement
