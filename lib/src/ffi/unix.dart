@@ -44,6 +44,8 @@ typedef sem_t = Int;
 @AbiSpecificIntegerMapping({
   Abi.macosArm64: Uint64(),
   Abi.macosX64: Uint16(),
+  Abi.linuxX64: Uint16(),
+  Abi.linuxIA32: Uint16(),
 })
 final class mode_t extends AbiSpecificInteger {
   const mode_t();

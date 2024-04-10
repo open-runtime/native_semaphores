@@ -10,3 +10,8 @@
 ## 0.0.3
 - Update README.md with more detailed usage examples, use cases, and background information/references
 - Refine directory structure for more standardized dart code organization
+
+## 0.0.4
+- Leverage the @Native decorator to re-implement `sem_open` 
+- Extend `AbiSpecificInteger` with the `@AbiSpecificIntegerMapping` decorator to enable`mode_t` architecture specific type mappings i.e. UnsignedShort on x86_64 and UnsignedLong on arm64
+- 
