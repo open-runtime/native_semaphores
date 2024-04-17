@@ -22,7 +22,7 @@ import 'package:test/test.dart' show TestOn, equals, everyElement, expect, group
 void main() {
   group('Semaphore tests', () {
     test('Single Thread: Open, Close, Unlink Semaphore', () {
-      LPCWSTR name = ('Global\\${safeIntId.getId()}-named-sem'.toNativeUtf16());
+      LPCWSTR name = ('Global\\${safeIntId.getId()}_named_sem'.toNativeUtf16());
 
       int address = CreateSemaphoreW(WindowsCreateSemaphoreWMacros.NULL.address, 0, 1, name);
       final sem = Pointer.fromAddress(address);
@@ -73,7 +73,7 @@ void main() {
     });
 
     test('Single Thread: Open, Lock, Unlock, and Close Semaphore', () {
-      LPCWSTR name = ('Global\\${safeIntId.getId()}-named-sem'.toNativeUtf16());
+      LPCWSTR name = ('Global\\${safeIntId.getId()}_named_sem'.toNativeUtf16());
 
       int address = CreateSemaphoreW(
           WindowsCreateSemaphoreWMacros.NULL.address,
@@ -103,7 +103,7 @@ void main() {
     });
 
     test('Single Thread: Try to throw an error by calling `CloseHandle` twice.', () {
-      LPCWSTR name = ('Global\\${safeIntId.getId()}-named-sem'.toNativeUtf16());
+      LPCWSTR name = ('Global\\${safeIntId.getId()}_named_sem'.toNativeUtf16());
 
       int address = CreateSemaphoreW(
           WindowsCreateSemaphoreWMacros.NULL.address,
@@ -238,7 +238,7 @@ void main() {
         return await receiver.first;
       }
 
-      String name = '/${safeIntId.getId()}-named-sem';
+      String name = '/${safeIntId.getId()}_named_sem';
 
       // Spawn the first helper isolate
       final result_one = spawn_primary_isolate(name);
@@ -362,7 +362,7 @@ void main() {
         return await receiver.first;
       }
 
-      String name = '/${safeIntId.getId()}-named-sem';
+      String name = '/${safeIntId.getId()}_named_sem';
 
       // Spawn the first helper isolate
       final result_one = spawn_primary_isolate(name);
@@ -427,7 +427,7 @@ void main() {
         return await receiver.first;
       }
 
-      String name = '/${safeIntId.getId()}-named-sem';
+      String name = '/${safeIntId.getId()}_named_sem';
 
       int sem_open_value = 1;
       // Spawn the first helper isolate

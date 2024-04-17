@@ -26,7 +26,7 @@ import 'package:test/test.dart' show TestOn, contains, equals, everyElement, exp
 void main() {
   group('Semaphore tests', () {
     test('Single Thread: Open, Close, Unlink Semaphore', () {
-      Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
+      Pointer<Char> name = ('/${safeIntId.getId()}_named_sem'.toNativeUtf8()).cast();
 
       Pointer<sem_t> sem =
           sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
@@ -80,7 +80,7 @@ void main() {
 
     test('Single Thread: Throw Semaphore Already Exists with O_EXCL Flag', () {
       // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX
-      Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
+      Pointer<Char> name = ('/${safeIntId.getId()}_named_sem'.toNativeUtf8()).cast();
 
       Pointer<sem_t> sem_one =
           sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
@@ -116,7 +116,7 @@ void main() {
 
     test('Single Thread: Opens Existing Semaphore with the same `name` and `O_CREATE` Flag', () {
       // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX
-      Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
+      Pointer<Char> name = ('/${safeIntId.getId()}_named_sem'.toNativeUtf8()).cast();
 
       /// First [sem_open] Call: When you call [sem_open] for the first time with a given name and the [O_CREAT] flag,
       /// the system checks if a semaphore with that name already exists. If it doesn't, the system creates a new named
@@ -162,7 +162,7 @@ void main() {
     test('Single Thread: Open, Lock (Wait), Unlock (Post), Lock (TryWait), Unlock (Post), Close, Unlink Semaphore ',
         () {
       // Anything over 30 chars including the leading slash will be too long to fit into a 255 int which is NAME_MAX
-      Pointer<Char> name = ('/${safeIntId.getId()}-named-sem'.toNativeUtf8()).cast();
+      Pointer<Char> name = ('/${safeIntId.getId()}_named_sem'.toNativeUtf8()).cast();
 
       Pointer<sem_t> sem =
           sem_open(name, UnixSemOpenMacros.O_EXCL, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
@@ -273,7 +273,7 @@ void main() {
         return await receiver.first;
       }
 
-      String name = '/${safeIntId.getId()}-named-sem';
+      String name = '/${safeIntId.getId()}_named_sem';
 
       // Spawn the first helper isolate
       final result_one = spawn_primary_isolate(name);
@@ -365,7 +365,7 @@ void main() {
         return await receiver.first;
       }
 
-      String name = '/${safeIntId.getId()}-named-sem';
+      String name = '/${safeIntId.getId()}_named_sem';
 
       // Spawn the first helper isolate
       final result_one = spawn_primary_isolate(name);
@@ -466,7 +466,7 @@ void main() {
         return await receiver.first;
       }
 
-      String name = '/${safeIntId.getId()}-named-sem';
+      String name = '/${safeIntId.getId()}_named_sem';
 
       // Spawn the first helper isolate
       final result_one = spawn_primary_isolate(name);
@@ -530,7 +530,7 @@ void main() {
         return await receiver.first;
       }
 
-      String name = '/${safeIntId.getId()}-named-sem';
+      String name = '/${safeIntId.getId()}_named_sem';
 
       int sem_open_value = 1;
       // Spawn the first helper isolate

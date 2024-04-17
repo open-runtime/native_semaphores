@@ -1,4 +1,5 @@
-import 'dart:ffi' show Int32, IntPtr, Native, Pointer, Struct, Uint16, Uint32, Uint8;
+import 'dart:ffi'
+    show Int32, IntPtr, Native, Pointer, Struct, Uint16, Uint32, Uint8;
 import 'dart:math' show min;
 import 'package:ffi/ffi.dart' show Utf16;
 
@@ -97,8 +98,11 @@ base class ACL extends Struct {
 /// Note: The name can have a "Global\\" or "Local\\" prefix to explicitly create the object in the global
 /// or session namespace. The remainder of the name can contain any character except the backslash character (`\`).
 /// For more information, see Kernel Object Namespaces.
-@Native<HANDLE Function(IntPtr lpSecurityAttributes, LONG lInitialCount, LONG lMaximumCount, LPCWSTR lpName)>()
-external int CreateSemaphoreW(int lpSecurityAttributes, int lInitialCount, int lMaximumCount, LPCWSTR lpName);
+@Native<
+    HANDLE Function(IntPtr lpSecurityAttributes, LONG lInitialCount,
+        LONG lMaximumCount, LPCWSTR lpName)>()
+external int CreateSemaphoreW(int lpSecurityAttributes, int lInitialCount,
+    int lMaximumCount, LPCWSTR lpName);
 
 /// Waits until the specified object is in the signaled state or the time-out interval elapses.
 ///
@@ -137,8 +141,11 @@ external int WaitForSingleObject(int hHandle, int dwMilliseconds);
 ///
 /// Returns a nonzero value if the function succeeds, or zero if the function
 /// fails. To get extended error information, call [GetLastError].
-@Native<BOOL Function(HANDLE hSemaphore, LONG lReleaseCount, Pointer<LONG> lpPreviousCount)>()
-external int ReleaseSemaphore(int hSemaphore, int lReleaseCount, Pointer<LONG> lpPreviousCount);
+@Native<
+    BOOL Function(
+        HANDLE hSemaphore, LONG lReleaseCount, Pointer<LONG> lpPreviousCount)>()
+external int ReleaseSemaphore(
+    int hSemaphore, int lReleaseCount, Pointer<LONG> lpPreviousCount);
 
 /// Closes an open object handle.
 ///
@@ -225,7 +232,8 @@ class WindowsCreateSemaphoreWMacros {
   static String LOCAL_NAME_PREFIX = 'Local\\';
 
   // Maximum length of a path for a named semaphore, in some cases on windows 10 it can be up to 32,767
-  static int MAX_PATH = 260 - min(GLOBAL_NAME_PREFIX.length, LOCAL_NAME_PREFIX.length);
+  static int MAX_PATH =
+      260 - min(GLOBAL_NAME_PREFIX.length, LOCAL_NAME_PREFIX.length);
 }
 
 class WindowsCreateSemaphoreWError extends Error {
@@ -237,7 +245,8 @@ class WindowsCreateSemaphoreWError extends Error {
   WindowsCreateSemaphoreWError(this.code, this.message, this.identifier);
 
   @override
-  String toString() => 'WindowsCreateSemaphoreWMacros: [Error: $identifier Code: $code]: $message';
+  String toString() =>
+      'WindowsCreateSemaphoreWMacros: [Error: $identifier Code: $code]: $message';
 
   static WindowsCreateSemaphoreWError fromErrorCode(int code) {
     if (code == WindowsCreateSemaphoreWMacros.ERROR_ACCESS_DENIED)
@@ -247,10 +256,12 @@ class WindowsCreateSemaphoreWError extends Error {
           'ERROR_ACCESS_DENIED');
 
     if (code == WindowsCreateSemaphoreWMacros.ERROR_INVALID_HANDLE)
-      return WindowsCreateSemaphoreWError(code, "An invalid handle was specified.", 'ERROR_INVALID_HANDLE');
+      return WindowsCreateSemaphoreWError(
+          code, "An invalid handle was specified.", 'ERROR_INVALID_HANDLE');
 
     if (code == WindowsCreateSemaphoreWMacros.ERROR_INVALID_PARAMETER)
-      return WindowsCreateSemaphoreWError(code, "One of the parameters was invalid.", 'ERROR_INVALID_PARAMETER');
+      return WindowsCreateSemaphoreWError(code,
+          "One of the parameters was invalid.", 'ERROR_INVALID_PARAMETER');
 
     if (code == WindowsCreateSemaphoreWMacros.ERROR_TOO_MANY_POSTS)
       return WindowsCreateSemaphoreWError(
@@ -259,19 +270,26 @@ class WindowsCreateSemaphoreWError extends Error {
           'ERROR_TOO_MANY_POSTS');
 
     if (code == WindowsCreateSemaphoreWMacros.ERROR_SEM_NOT_FOUND)
-      return WindowsCreateSemaphoreWError(code, "The specified semaphore does not exist.", 'ERROR_SEM_NOT_FOUND');
+      return WindowsCreateSemaphoreWError(code,
+          "The specified semaphore does not exist.", 'ERROR_SEM_NOT_FOUND');
 
     if (code == WindowsCreateSemaphoreWMacros.ERROR_SEM_IS_SET)
       return WindowsCreateSemaphoreWError(
-          code, "The semaphore is already set, and cannot be set again.", 'ERROR_SEM_IS_SET');
+          code,
+          "The semaphore is already set, and cannot be set again.",
+          'ERROR_SEM_IS_SET');
 
     if (code == WindowsCreateSemaphoreWMacros.ERROR_INVALID_NAME)
-      return WindowsCreateSemaphoreWError(code,
-          "The specified name is invalid. It is either too long or contains invalid characters.", 'ERROR_INVALID_NAME');
+      return WindowsCreateSemaphoreWError(
+          code,
+          "The specified name is invalid. It is either too long or contains invalid characters.",
+          'ERROR_INVALID_NAME');
 
     if (code == WindowsCreateSemaphoreWMacros.ERROR_SUCCESS)
       return WindowsCreateSemaphoreWError(
-          code, "The operation completed successfully and there is no 'last error'.", 'ERROR_SUCCESS');
+          code,
+          "The operation completed successfully and there is no 'last error'.",
+          'ERROR_SUCCESS');
 
     // Default case if none of the specific error codes match
     return WindowsCreateSemaphoreWError(code, "Unknown error.", 'UNKNOWN');
