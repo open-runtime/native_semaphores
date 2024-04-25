@@ -1,8 +1,9 @@
 // Note this probably wont work for code obfuscation
-bool LatePropertyAllocated<X>(Function function) {
+typedef LatePropertySetParameterType = dynamic Function();
+
+bool LatePropertyAssigned<X>(LatePropertySetParameterType function) {
   try {
-    final allocated = function() is X;
-    return allocated;
+    return function() is X;
   } catch (error, trace) {
     return !(error.toString().contains('has not been initialized.') || (Error.throwWithStackTrace(error, trace)));
   }

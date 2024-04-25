@@ -57,13 +57,7 @@ class MODE_T_PERMISSIONS {
   static int wx = w | x;
   static int rwx = r | w | x;
 
-  static int perm(
-          {int u = 0,
-          int g = 0,
-          int o = 0,
-          int user = 0,
-          int group = 0,
-          int others = 0}) =>
+  static int perm({int u = 0, int g = 0, int o = 0, int user = 0, int group = 0, int others = 0}) =>
       ((u | user) << 6) | ((g | group) << 3) | (o | others);
 
   // Most common for named semaphores
@@ -75,8 +69,7 @@ class MODE_T_PERMISSIONS {
 
   // 0666 - Owner can read and write; the group can read and write; others can read and write.
   // static int OWNER_READ_WRITE_GROUP_READ_WRITE = toOctal(0, 6, 6, 6);
-  static int OWNER_READ_WRITE_GROUP_AND_OTHERS_READ_WRITE =
-      perm(u: rw, g: rw, o: rw);
+  static int OWNER_READ_WRITE_GROUP_AND_OTHERS_READ_WRITE = perm(u: rw, g: rw, o: rw);
 
   // 0600 - Owner can read and write; the group cannot access; others cannot access.
   // static int OWNER_READ_WRITE_GROUP_NO_ACCESS = toOctal(0, 6, 0, 0);
@@ -84,13 +77,11 @@ class MODE_T_PERMISSIONS {
 
   // 0700 - Owner can read, write, and execute; the group cannot access; others cannot access.
   // static int OWNER_READ_WRITE_EXECUTE_GROUP_NO_ACCESS = toOctal(0, 7, 0, 0);
-  static int OWNER_READ_WRITE_EXECUTE_GROUP_NO_ACCESS =
-      perm(u: rwx, g: 0, o: 0);
+  static int OWNER_READ_WRITE_EXECUTE_GROUP_NO_ACCESS = perm(u: rwx, g: 0, o: 0);
 
   // 0755 - Owner can read, write, and execute; the group can read and execute; others can read and execute.
   // static int OWNER_READ_WRITE_EXECUTE_GROUP_AND_OTHERS_READ_EXECUTE = toOctal(0, 7, 5, 5);
-  static int OWNER_READ_WRITE_EXECUTE_GROUP_AND_OTHERS_READ_EXECUTE =
-      perm(u: rwx, g: rx, o: rx);
+  static int OWNER_READ_WRITE_EXECUTE_GROUP_AND_OTHERS_READ_EXECUTE = perm(u: rwx, g: rx, o: rx);
 
   // 0777 - Owner can read, write, and execute; the group can read, write, and execute; others can read, write, and execute.
   // static int ALL_READ_WRITE_EXECUTE = toOctal(0, 7, 7, 7);
@@ -132,11 +123,8 @@ class MODE_T_PERMISSIONS {
 /// Any process or thread that tries to decrement the semaphore with [sem_wait] will block
 /// until another process or thread increments the semaphore with [sem_post], making
 /// the resource available.
-@Native<
-    Pointer<sem_t> Function(
-        Pointer<Char>, Int, VarArgs<(mode_t, UnsignedInt)>)>()
-external Pointer<sem_t> sem_open(
-    Pointer<Char> name, int oflag, int mode, int value);
+@Native<Pointer<sem_t> Function(Pointer<Char>, Int, VarArgs<(mode_t, UnsignedInt)>)>()
+external Pointer<sem_t> sem_open(Pointer<Char> name, int oflag, int mode, int value);
 
 /// [sem_wait] Decrements (locks) the semaphore pointed to by sem.
 /// If the semaphore's value is greater than zero, then the decrement
@@ -177,6 +165,13 @@ external int sem_trywait(Pointer<sem_t> sem_t);
 /// If the value of the semaphore resulting from this operation is zero,
 /// then one of the threads blocked waiting for the semaphore shall be
 /// allowed to return successfully from its call to [sem_wait].
+///
+/// [sem_post] increments (unlocks) the semaphore pointed to by sem.  If the semaphore's value
+/// consequently becomes greater than zero, then  another  process  or  thread  blocked  in  a
+/// [sem_wait] call will be woken up and proceed to lock the semaphore.
+///
+/// [sem_post]  returns  0 on success; on error, the value of the semaphore is left unchanged,
+/// -1 is returned, and [errno] is set to indicate the error.
 @Native<Int Function(Pointer<sem_t>)>()
 external int sem_post(Pointer<sem_t> sem_t);
 
@@ -193,6 +188,8 @@ external int sem_close(Pointer<sem_t> sem_t);
 ///  The semaphore name is removed immediately.  The semaphore is
 ///  destroyed once all other processes that have the semaphore open
 ///  close it.
+///  On  success  [sem_unlink]  returns 0; on error, -1 is returned,
+///  with [errno] set to indicate the error.
 @Native<Int Function(Pointer<Char>)>()
 external int sem_unlink(Pointer<Char> name);
 
@@ -211,8 +208,7 @@ external Pointer<Int> __error();
 @Native<Pointer<Int> Function()>()
 external Pointer<Int> __errno_location();
 
-Pointer<Int> Function() _errno =
-    () => Platform.isMacOS ? __error() : __errno_location();
+Pointer<Int> Function() _errno = () => Platform.isMacOS ? __error() : __errno_location();
 
 Pointer<Int> get errno => _errno();
 
@@ -288,9 +284,8 @@ class UnixSemOpenMacros {
   // Upon successful completion, the [sem_open] function shall return the address of the semaphore. Otherwise, it shall return a value of SEM_FAILED and set errno to indicate the error. The symbol SEM_FAILED is defined in the <semaphore.h> header. No successful return from sem_open() shall return the value SEM_FAILED.
   /// [SEM_FAILED] = 0xffffffffffffffff (as a pointer), 18446744073709551615 (as an unsigned integer)
   /// Size of SEM_FAILED (size of a pointer): 8 bytes on MacOS Arm64 and MacOS x86_64
-  static Pointer<Uint64> SEM_FAILED = Platform.isMacOS
-      ? Pointer.fromAddress(0xffffffffffffffff)
-      : Pointer.fromAddress(0x0);
+  static Pointer<Uint64> SEM_FAILED =
+      Platform.isMacOS ? Pointer.fromAddress(0xffffffffffffffff) : Pointer.fromAddress(0x0);
 
   /// This flag is used to create a semaphore if it does not already exist. If [O_CREAT] is set and the semaphore
   /// already exists, then [O_CREAT] has no effect, except as noted under [O_EXCL]. Otherwise, [sem_open] creates
@@ -321,32 +316,34 @@ class UnixSemOpenMacros {
   static int VALUE_RECOMMENDED = 1;
 }
 
-class UnixSemOpenError extends Error {
+class UnixSemError extends Error {
+  final bool critical;
   final int code;
   final String message;
   final String? identifier;
   late final String? description = toString();
 
-  UnixSemOpenError(this.code, this.message, this.identifier);
+  UnixSemError(this.code, this.message, this.identifier, [this.critical = true]);
 
   @override
-  String toString() =>
-      'SemOpenError: [Error: $identifier Code: $code]: $message';
+  String toString() => 'UnixSemError: [Critical: $critical Error: $identifier Code: $code]: $message';
+}
+
+class UnixSemOpenError extends UnixSemError {
+  UnixSemOpenError(code, message, identifier, [bool critical = true]) : super(code, message, identifier, critical);
+
+  @override
+  String toString() => 'UnixSemOpenError: [Error: $identifier Code: $code]: $message';
 
   static UnixSemOpenError fromErrno(int errno) {
     if (errno == UnixSemOpenMacros.EACCES)
       return UnixSemOpenError(
-          errno,
-          "The semaphore exists, but the caller does not have permission to open it.",
-          'EACCES');
+          errno, "The semaphore exists, but the caller does not have permission to open it.", 'EACCES');
     if (errno == UnixSemOpenMacros.EINTR)
-      return UnixSemOpenError(errno,
-          "The sem_open() operation was interrupted by a signal.", 'EINTR');
+      return UnixSemOpenError(errno, "The sem_open() operation was interrupted by a signal.", 'EINTR');
     if (errno == UnixSemOpenMacros.EEXIST)
-      return UnixSemOpenError(
-          errno,
-          "Both O_CREAT and O_EXCL were specified in oflag, but a semaphore with this name already exists.",
-          'EEXIST');
+      return UnixSemOpenError(errno,
+          "Both O_CREAT and O_EXCL were specified in oflag, but a semaphore with this name already exists.", 'EEXIST');
     if (errno == UnixSemOpenMacros.EINVAL)
       return UnixSemOpenError(
           errno,
@@ -354,9 +351,7 @@ class UnixSemOpenError extends Error {
           'EINVAL');
     if (errno == UnixSemOpenMacros.EMFILE)
       return UnixSemOpenError(
-          errno,
-          "The per-process limit on the number of open file descriptors has been reached.",
-          'EMFILE');
+          errno, "The per-process limit on the number of open file descriptors has been reached.", 'EMFILE');
     if (errno == UnixSemOpenMacros.ENAMETOOLONG)
       return UnixSemOpenError(
           errno,
@@ -364,21 +359,13 @@ class UnixSemOpenError extends Error {
           'ENAMETOOLONG');
     if (errno == UnixSemOpenMacros.ENFILE)
       return UnixSemOpenError(
-          errno,
-          "The system-wide limit on the total number of open files has been reached.",
-          'ENFILE');
+          errno, "The system-wide limit on the total number of open files has been reached.", 'ENFILE');
     if (errno == UnixSemOpenMacros.ENOENT)
-      return UnixSemOpenError(
-          errno,
-          "No semaphore with this name exists; or, name wasn't well formed.",
-          'ENOENT');
-    if (errno == UnixSemOpenMacros.ENOMEM)
-      return UnixSemOpenError(errno, "Insufficient memory.", 'ENOMEM');
+      return UnixSemOpenError(errno, "No semaphore with this name exists; or, name wasn't well formed.", 'ENOENT');
+    if (errno == UnixSemOpenMacros.ENOMEM) return UnixSemOpenError(errno, "Insufficient memory.", 'ENOMEM');
     if (errno == UnixSemOpenMacros.ENOSPC)
       return UnixSemOpenError(
-          errno,
-          "There is insufficient space for the creation of the new named semaphore.",
-          'ENOSPC');
+          errno, "There is insufficient space for the creation of the new named semaphore.", 'ENOSPC');
     if (errno == UnixSemOpenMacros.EFAULT)
       return UnixSemOpenError(
           errno,
@@ -413,11 +400,50 @@ class UnixSemWaitOrTryWaitMacros {
   static int EINVAL = isBSD ? 22 : 22;
 }
 
+class UnixSemOpenErrorUnixSemWaitOrTryWaitError extends UnixSemError {
+  UnixSemOpenErrorUnixSemWaitOrTryWaitError(code, message, identifier, [critical = true])
+      : super(code, message, identifier, critical);
+
+  @override
+  String toString() => 'UnixSemOpenErrorSemWaitOrTryWaitError: [Error: $identifier Code: $code]: $message';
+
+  static UnixSemOpenErrorUnixSemWaitOrTryWaitError fromErrno(int errno) {
+    if (errno == UnixSemWaitOrTryWaitMacros.EAGAIN)
+      return UnixSemOpenErrorUnixSemWaitOrTryWaitError(
+          errno,
+          "The semaphore was already locked, so it cannot be immediately locked by the sem_trywait operation.",
+          'EAGAIN');
+    if (errno == UnixSemWaitOrTryWaitMacros.EDEADLK)
+      return UnixSemOpenErrorUnixSemWaitOrTryWaitError(errno, "A deadlock condition was detected.", 'EDEADLK');
+    if (errno == UnixSemWaitOrTryWaitMacros.EINTR)
+      return UnixSemOpenErrorUnixSemWaitOrTryWaitError(errno, "A signal interrupted this function.", 'EINTR');
+    if (errno == UnixSemWaitOrTryWaitMacros.EINVAL)
+      return UnixSemOpenErrorUnixSemWaitOrTryWaitError(
+          errno, "The sem_t argument does not refer to a valid semaphore.", 'EINVAL');
+    else
+      return UnixSemOpenErrorUnixSemWaitOrTryWaitError(errno, "Unknown error.", 'UNKNOWN');
+  }
+}
+
 class UnixSemCloseMacros {
   static bool isBSD = Platform.isMacOS;
 
   /// [sem_t] is not a valid semaphore.
   static int EINVAL = isBSD ? 22 : 22;
+}
+
+class UnixSemCloseError extends UnixSemError {
+  UnixSemCloseError(code, message, identifier, [critical = true]) : super(code, message, identifier, critical);
+
+  @override
+  String toString() => 'UnixSemCloseError: [Error: $identifier Code: $code]: $message';
+
+  static UnixSemCloseError fromErrno(int errno) {
+    if (errno == UnixSemCloseMacros.EINVAL)
+      return UnixSemCloseError(errno, "sem_t is not a valid semaphore.", 'EINVAL');
+    else
+      return UnixSemCloseError(errno, "Unknown error.", 'UNKNOWN');
+  }
 }
 
 class UnixSemUnlinkMacros {
@@ -435,7 +461,31 @@ class UnixSemUnlinkMacros {
   static int ENAMETOOLONG = isBSD ? 63 : 36;
 }
 
-class UnixSemPostMacros {
+class UnixSemUnlinkError extends UnixSemError {
+  UnixSemUnlinkError(code, message, identifier, [critical = true]) : super(code, message, identifier, critical);
+
+  @override
+  String toString() => 'UnixSemUnlinkError: [Error: $identifier Code: $code]: $message';
+
+  static UnixSemUnlinkError fromErrno(int errno) {
+    if (errno == UnixSemUnlinkMacros.ENOENT)
+      return UnixSemUnlinkError(errno, "The named semaphore referred to by name does not exist.", 'ENOENT', false);
+    if (errno == UnixSemUnlinkMacros.EACCES)
+      return UnixSemUnlinkError(
+          errno,
+          "The named semaphore referred to by name exists, but the caller does not have permission to unlink it.",
+          'EACCES');
+    if (errno == UnixSemUnlinkMacros.ENAMETOOLONG)
+      return UnixSemUnlinkError(
+          errno,
+          "The name was too long, or a pathname component is longer than NAME_MAX i.e. 30 character dart String including the leading slash.",
+          'ENAMETOOLONG');
+    else
+      return UnixSemUnlinkError(errno, "Unknown error.", 'UNKNOWN');
+  }
+}
+
+class UnixSemUnlockWithPostMacros {
   static bool isBSD = Platform.isMacOS;
 
   /// The semaphore referred to by [sem] is not a valid semaphore.
@@ -443,4 +493,22 @@ class UnixSemPostMacros {
 
   //  The maximum allowable value for a semaphore would be exceeded.
   static int EOVERFLOW = isBSD ? 84 : 75;
+}
+
+class UnixSemUnlockWithPostError extends UnixSemError {
+  UnixSemUnlockWithPostError(code, message, identifier, [critical = true]) : super(code, message, identifier, critical);
+
+  @override
+  String toString() => 'UnixSemPostError: [Error: $identifier Code: $code]: $message';
+
+  static UnixSemUnlockWithPostError fromErrno(int errno) {
+    if (errno == UnixSemUnlockWithPostMacros.EINVAL)
+      return UnixSemUnlockWithPostError(
+          errno, "The semaphore referred to by sem is not a valid semaphore.", 'EINVAL  ');
+    if (errno == UnixSemUnlockWithPostMacros.EOVERFLOW)
+      return UnixSemUnlockWithPostError(
+          errno, "The maximum allowable value for a semaphore would be exceeded.", 'EOVERFLOW');
+    else
+      return UnixSemUnlockWithPostError(errno, "Unknown error.", 'UNKNOWN');
+  }
 }
