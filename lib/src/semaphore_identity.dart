@@ -1,51 +1,43 @@
 import 'dart:developer' show Service;
 import 'dart:io' show pid;
 import 'dart:isolate' show Isolate;
-
-import 'package:runtime_native_semaphores/src/singleton.dart';
-
-import 'utils/later_property_set.dart';
+import 'utils/late_property_assigned.dart' show LatePropertyAssigned;
 
 class SemaphoreIdentities<I extends SemaphoreIdentity> {
   static String prefix = 'runtime_native_semaphores';
 
-  static final String isolate =
-      (Service.getIsolateId(Isolate.current)?.toString() ?? (throw Exception('Failed to get isolate id')))
-          .replaceAll("isolates", "")
-          .substring(1);
+  static final String isolate = (Service.getIsolateId(Isolate.current)?.toString() ?? (throw Exception('Failed to get isolate id'))).replaceAll("isolates", "").substring(1);
 
   static final String process = pid.toString();
 
-  static final Map<String, dynamic> _identities = {};
+  static final Map<String, dynamic> __identities = {};
+
+  Map<String, dynamic> get _identities => SemaphoreIdentities.__identities;
 
   Map<String, I> get all => Map.unmodifiable(_identities as Map<String, I>);
 
   bool has<T>({required String name}) => _identities.containsKey(name) && _identities[name] is T;
 
   // Returns the semaphore identity for the given identifier as a singleton
-  I get({required String name}) =>
-      _identities[name] ?? (throw Exception('Failed to get semaphore identity for $name. It doesn\'t exist.'));
+  I get({required String name}) => _identities[name] ?? (throw Exception('Failed to get semaphore identity for $name. It doesn\'t exist.'));
 
   I register({required String name, required I identity}) {
     (_identities.containsKey(name) || identity != _identities[name]) ||
-        (throw Exception(
-            'Failed to register semaphore identity for $name. It already exists or is not the same as the inbound identity being passed.'));
+        (throw Exception('Failed to register semaphore identity for $name. It already exists or is not the same as the inbound identity being passed.'));
 
     return _identities.putIfAbsent(name, () => identity);
   }
 
   void delete({required String name}) {
-    _identities.containsKey(name) ||
-        (throw Exception('Failed to delete semaphore identity for $name. It doesn\'t exist.'));
+    _identities.containsKey(name) || (throw Exception('Failed to delete semaphore identity for $name. It doesn\'t exist.'));
     _identities.remove(name);
   }
 }
 
 class SemaphoreIdentity {
-  static late final dynamic _instances;
+  static late final dynamic __instances;
 
-  // copy here so its immutable
-  // Map<String, SemaphoreIdentity> get identities => Map.unmodifiable(SemaphoreIdentity._identities);
+  dynamic get _instances => SemaphoreIdentity.__instances;
 
   String get prefix => SemaphoreIdentities.prefix;
 
@@ -64,16 +56,15 @@ class SemaphoreIdentity {
 
   // helper property to know if it has been registered inside of a named semaphore instance
   late final bool _registered;
+
   bool get registered => _registered;
 
   String get uuid => [name, isolate, process].join('_');
 
-  // TODO this likely needs to be a factory as well
-  SemaphoreIdentity._({required String name}) {
+  SemaphoreIdentity({required String name}) {
     name = name.replaceFirst('Global\\', '').replaceFirst('Local\\', '');
     // check if identifier has invalid characters
     if (name.contains(RegExp(r'[\\/:*?"<>|]'))) throw ArgumentError('Identifier contains invalid characters.');
-
     _name = name;
   }
 
@@ -84,24 +75,13 @@ class SemaphoreIdentity {
       IS extends SemaphoreIdentities<I>
       /* formatting guard comment */
       >({required String name}) {
-    if (!LatePropertyAssigned<IS>(() => SemaphoreIdentity._instances))
-      SemaphoreIdentity._instances = SemaphoreIdentities<I>();
-    // bool identities = LatePropertySet<IS>(() => SemaphoreCounter._identities);
-    // if (!identities) SemaphoreCounter._identities = identities;
+    if (!LatePropertyAssigned<IS>(() => __instances)) __instances = SemaphoreIdentities<I>();
 
-    return (SemaphoreIdentity._instances as IS).has<I>(name: name)
-        ? (SemaphoreIdentity._instances as IS).get(name: name)
-        : (SemaphoreIdentity._instances as IS).register(name: name, identity: SemaphoreIdentity._(name: name) as I);
+    return (__instances as IS).has<I>(name: name) ? (__instances as IS).get(name: name) : (__instances as IS).register(name: name, identity: SemaphoreIdentity(name: name) as I);
   }
 
-  bool dispose() {
-    // Other cleanup here?
-    // return SemaphoreIdentity._instances.remove(_semaphore) is SemaphoreIdentity;
-    throw UnimplementedError('Dispose not implemented');
-  }
+  bool dispose() => throw UnimplementedError('Dispose not implemented');
 
   @override
-  String toString() {
-    return 'SemaphoreIdentity(name: $name, isolate: $isolate, process: $process)';
-  }
+  String toString() => 'SemaphoreIdentity(name: $name, isolate: $isolate, process: $process)';
 }

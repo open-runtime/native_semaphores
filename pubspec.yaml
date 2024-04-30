@@ -17,6 +17,6 @@ dependencies:
   meta: ^1.14.0
 
 dev_dependencies:
-  test: ^1.25.3
+  test: ^1.25.4
   safe_int_id: ^1.1.1
 

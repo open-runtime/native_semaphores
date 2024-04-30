@@ -1,20 +1,39 @@
-part of runtime_native_semaphores.semaphore;
+import 'dart:ffi';
 
-class _WindowsSemaphore<
-    /*  Identity */
+import 'native_semaphore.dart' show NativeSemaphore;
+import 'semaphore_counter.dart' show SemaphoreCount, SemaphoreCountDeletion, SemaphoreCountUpdate, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
+import 'semaphore_identity.dart' show SemaphoreIdentities, SemaphoreIdentity;
+
+import 'ffi/windows.dart'
+    show
+        CloseHandle,
+        CreateSemaphoreW,
+        LPCWSTR,
+        ReleaseSemaphore,
+        WaitForSingleObject,
+        WindowsCreateSemaphoreWMacros,
+        WindowsReleaseSemaphoreMacros,
+        WindowsWaitForSingleObjectMacros;
+
+class WindowsSemaphore<
+/*  Identity */
     I extends SemaphoreIdentity,
-    /* Semaphore Identities */
+/* Semaphore Identities */
     IS extends SemaphoreIdentities<I>,
-    /* Semaphore Count */
-    CT extends SemaphoreCount,
-    /* Semaphore Counts */
-    CTS extends SemaphoreCounts<CT>,
-    /* Semaphore Counter */
-    CTR extends SemaphoreCounter<I, CT, CTS>,
-    /* Semaphore Counter */
-    CTRS extends SemaphoreCounters<I, CT, CTS, CTR>
-    /* formatting guard comment */
-    > extends NativeSemaphore<I, IS, CT, CTS, CTR, CTRS> {
+/*Count Update*/
+    CU extends SemaphoreCountUpdate,
+/*Count Deletion*/
+    CD extends SemaphoreCountDeletion,
+/* Semaphore Count */
+    CT extends SemaphoreCount<CU, CD>,
+/* Semaphore Counts */
+    CTS extends SemaphoreCounts<CU, CD, CT>,
+/* Semaphore Counter */
+    CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
+/* Semaphore Counter */
+    CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>
+/* formatting guard comment */
+    > extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS> {
   bool _locked = false;
   bool _disposed = false;
   bool locked = false;
@@ -23,7 +42,7 @@ class _WindowsSemaphore<
 
   late final Pointer<NativeType> semaphore;
 
-  _WindowsSemaphore({required String name, required CTR counter}) : super._(name: name, counter: counter) {
+  WindowsSemaphore({required String name, required CTR counter}) : super(name: name, counter: counter) {
     // if (identity.semaphore.length > WindowsCreateSemaphoreWMacros.MAX_PATH)
     //   throw ArgumentError(
     //       'Identifier is too long. Must be less than or equal to ${WindowsCreateSemaphoreWMacros.MAX_PATH} characters.');

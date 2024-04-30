@@ -64,6 +64,7 @@ void main() {
       final outcomes = await Future.wait([result_one, result_two, result_three, result_four]);
 
       final NS sem = NativeSemaphore.instantiate(name: name);
+
       final disposed = (sem
             ..open()
             ..close())

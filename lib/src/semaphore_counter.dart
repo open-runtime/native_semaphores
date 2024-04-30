@@ -1,11 +1,8 @@
-import 'dart:io' show Directory, File, Platform;
+import 'package:meta/meta.dart';
 
-// import '../runtime_native_semaphores.dart' show NATIVE_SEMAPHORE_OPERATION_STATUS;
-import 'package:runtime_native_semaphores/runtime_native_semaphores.dart';
-
+import 'native_semaphore.dart' show NativeSemaphore;
 import 'semaphore_identity.dart' show SemaphoreIdentity;
-import 'singleton.dart';
-import 'utils/later_property_set.dart';
+import 'utils/late_property_assigned.dart' show LatePropertyAssigned;
 
 class SemaphoreCountUpdate {
   // Updated for parent identifier
@@ -27,9 +24,13 @@ class SemaphoreCountDeletion {
   SemaphoreCountDeletion({required String this.identifier, int? this.at = null});
 }
 
-class SemaphoreCount {
-  static final Map<String, int?> _counts = {};
-  static Map<String, int?> get all => Map.unmodifiable(_counts);
+class SemaphoreCount<CU extends SemaphoreCountUpdate, CD extends SemaphoreCountDeletion> {
+  static final Map<String, int?> __counts = {};
+
+  @protected
+  Map<String, int?> get counts => SemaphoreCount.__counts;
+
+  Map<String, int?> get all => Map.unmodifiable(counts);
 
   late final String identifier;
 
@@ -37,16 +38,14 @@ class SemaphoreCount {
 
   SemaphoreCount({required String identifier, required String this.forProperty}) {
     this.identifier = identifier + "_for_$forProperty";
-    _update(value: 0);
+    update(value: 0);
   }
 
-  int get() => _counts[identifier] ?? (throw Exception('Failed to get semaphore count for $identifier.'));
+  int get() => counts[identifier] ?? (throw Exception('Failed to get semaphore count for $identifier.'));
 
-  SemaphoreCountUpdate _update({required int value}) {
-    SemaphoreCountUpdate _update = SemaphoreCountUpdate(
-        identifier: identifier,
-        from: _counts.putIfAbsent(identifier, () => null) ?? _counts[identifier],
-        to: _counts[identifier] = value);
+  @protected
+  CU update({required int value}) {
+    CU _update = SemaphoreCountUpdate(identifier: identifier, from: counts.putIfAbsent(identifier, () => null) ?? counts[identifier], to: counts[identifier] = value) as CU;
 
     if (NativeSemaphore.verbose)
       _update.from == null
@@ -56,29 +55,29 @@ class SemaphoreCount {
     return _update;
   }
 
-  SemaphoreCountDeletion delete() {
-    SemaphoreCountDeletion _deletion = SemaphoreCountDeletion(identifier: identifier, at: _counts.remove(identifier));
+  CD delete() {
+    CD _deletion = SemaphoreCountDeletion(identifier: identifier, at: counts.remove(identifier)) as CD;
 
     if (NativeSemaphore.verbose)
-      _deletion.at == null
-          ? print("Semaphore count for $identifier does not exist.")
-          : print("Semaphore count for $identifier deleted with final count at ${_deletion.at}.");
+      _deletion.at == null ? print("Semaphore count for $identifier does not exist.") : print("Semaphore count for $identifier deleted with final count at ${_deletion.at}.");
 
     return _deletion;
   }
 
   // todo? (total - count) <= 1 || (throw Exception('Failed to increment semaphore count.'));
-  SemaphoreCountUpdate increment() => _update(value: get() + 1);
+  CU increment() => update(value: get() + 1);
 
   // todo? (count - total) <= 1 || (throw Exception('Failed to decrement semaphore count.'));
-  SemaphoreCountUpdate decrement() => _update(value: get() - 1);
+  CU decrement() => update(value: get() - 1);
 }
 
 class SemaphoreCounts<
+    /* Count Update */
+    CU extends SemaphoreCountUpdate,
+    /* Count Deletion */
+    CD extends SemaphoreCountDeletion,
     /* Semaphore Count */
-    CT extends SemaphoreCount
-    /* Singleton Semaphore Count */
-    /* SCT extends Singleton<CT> */
+    CT extends SemaphoreCount<CU, CD>
     /* formatting guard comment */
     > {
   // Updated by reentrant locks and unlocks
@@ -103,36 +102,38 @@ class SemaphoreCounts<
 class SemaphoreCounters<
     /*  Identity */
     I extends SemaphoreIdentity,
-    /* Semaphore Identities */
-    // IS extends SemaphoreIdentities<I>,
+    /* Count Update */
+    CU extends SemaphoreCountUpdate,
+    /* Count Deletion */
+    CD extends SemaphoreCountDeletion,
     /* Semaphore Count */
-    CT extends SemaphoreCount,
+    CT extends SemaphoreCount<CU, CD>,
     /* Semaphore Counts */
-    CTS extends SemaphoreCounts<CT>,
+    CTS extends SemaphoreCounts<CU, CD, CT>,
     /* Semaphore Counter */
-    CTR extends SemaphoreCounter<I, CT, CTS>
+    CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>
     /* formatting guard comment */
     > {
-  static final Map<String, dynamic> _counters = {};
+  static final Map<String, dynamic> __counters = {};
+
+  Map<String, dynamic> get _counters => SemaphoreCounters.__counters;
+
   Map<String, CTR> get all => Map.unmodifiable(_counters as Map<String, CTR>);
 
   bool has<T>({required String identifier}) => _counters.containsKey(identifier) && _counters[identifier] is T;
 
   // Returns the semaphore identity for the given identifier as a singleton
-  CTR get({required String identifier}) =>
-      _counters[identifier] ?? (throw Exception('Failed to get semaphore counter for $identifier. It doesn\'t exist.'));
+  CTR get({required String identifier}) => _counters[identifier] ?? (throw Exception('Failed to get semaphore counter for $identifier. It doesn\'t exist.'));
 
   CTR register({required String identifier, required CTR counter}) {
     (_counters.containsKey(identifier) || counter != _counters[identifier]) ||
-        (throw Exception(
-            'Failed to register semaphore counter for $identifier. It already exists or is not the same as the inbound identity being passed.'));
+        (throw Exception('Failed to register semaphore counter for $identifier. It already exists or is not the same as the inbound identity being passed.'));
 
     return _counters.putIfAbsent(identifier, () => counter);
   }
 
   void delete({required String identifier}) {
-    _counters.containsKey(identifier) ||
-        (throw Exception('Failed to delete semaphore counter for $identifier. It doesn\'t exist.'));
+    _counters.containsKey(identifier) || (throw Exception('Failed to delete semaphore counter for $identifier. It doesn\'t exist.'));
     _counters.remove(identifier);
   }
 }
@@ -141,51 +142,50 @@ class SemaphoreCounters<
 class SemaphoreCounter<
     /*  Identity */
     I extends SemaphoreIdentity,
-    /* Semaphore Identities */
-    // IS extends SemaphoreIdentities<I>,
+    CU extends SemaphoreCountUpdate,
+    CD extends SemaphoreCountDeletion,
     /* Semaphore Count */
-    CT extends SemaphoreCount,
+    CT extends SemaphoreCount<CU, CD>,
     /* Semaphore Counts */
-    CTS extends SemaphoreCounts<CT>
+    CTS extends SemaphoreCounts<CU, CD, CT>
     /* formatting guard comment */
     > {
-  static late final dynamic _instances;
-  // static late final dynamic _identities;
+  static late final dynamic __instances;
 
-  // final IS identities = _identities as IS;
-  // final CTS counts = _counts as CTS;
+  dynamic get _instances => SemaphoreCounter.__instances;
 
   late final String identifier;
   late final I identity;
   late final CTS counts;
 
-  SemaphoreCounter._({required String this.identifier, required I this.identity, required CTS this.counts});
+  SemaphoreCounter({required String this.identifier, required I this.identity, required CTS this.counts});
 
-  static SemaphoreCounter<I, CT, CTS> instantiate<
+  static SemaphoreCounter<I, CU, CD, CT, CTS> instantiate<
       /*  Identity */
       I extends SemaphoreIdentity,
-      /* Semaphore Identities */
-      // IS extends SemaphoreIdentities<I>,
+      /* Count Update */
+      CU extends SemaphoreCountUpdate,
+      /* Count Deletion */
+      CD extends SemaphoreCountDeletion,
       /* Semaphore Count */
-      CT extends SemaphoreCount,
+      CT extends SemaphoreCount<CU, CD>,
       /* Semaphore Counts */
-      CTS extends SemaphoreCounts<CT>,
+      CTS extends SemaphoreCounts<CU, CD, CT>,
       /* Semaphore Counter i.e. this class */
-      CTR extends SemaphoreCounter<I, CT, CTS>,
+      CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
       /* Semaphore Counters */
-      CTRS extends SemaphoreCounters<I, CT, CTS, CTR>
+      CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>
       /* formatting guard comment */
       >({required I identity}) {
-    if (!LatePropertyAssigned<CTRS>(() => SemaphoreCounter._instances))
-      SemaphoreCounter._instances = SemaphoreCounters<I, CT, CTS, CTR>();
+    if (!LatePropertyAssigned<CTRS>(() => __instances)) __instances = SemaphoreCounters<I, CU, CD, CT, CTS, CTR>();
 
-    return (SemaphoreCounter._instances as CTRS).has<CTR>(identifier: identity.name)
-        ? (SemaphoreCounter._instances as CTRS).get(identifier: identity.name)
-        : (SemaphoreCounter._instances as CTRS).register(
+    return (__instances as CTRS).has<CTR>(identifier: identity.name)
+        ? (__instances as CTRS).get(identifier: identity.name)
+        : (__instances as CTRS).register(
             identifier: identity.name,
-            counter: SemaphoreCounter<I, CT, CTS>._(
+            counter: SemaphoreCounter<I, CU, CD, CT, CTS>(
               identity: identity,
-              counts: (SemaphoreCounts<CT>(
+              counts: (SemaphoreCounts<CU, CD, CT>(
                 // Super important to pass the forProperty as the name of the property that the counter is set on
                 isolate: SemaphoreCount(identifier: identity.name, forProperty: 'isolate') as CT,
                 process: SemaphoreCount(identifier: identity.name, forProperty: 'process') as CT,

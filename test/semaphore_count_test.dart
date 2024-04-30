@@ -1,9 +1,8 @@
-import 'dart:io' show sleep;
 import 'dart:isolate' show Isolate, ReceivePort, SendPort;
 import 'dart:math' show Random;
 
 import 'package:runtime_native_semaphores/src/semaphore_counter.dart'
-    show SemaphoreCount, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
+    show SemaphoreCount, SemaphoreCountDeletion, SemaphoreCountUpdate, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
 import 'package:runtime_native_semaphores/src/semaphore_identity.dart' show SemaphoreIdentities, SemaphoreIdentity;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
@@ -11,10 +10,12 @@ import 'package:test/test.dart' show equals, everyElement, expect, group, isNot,
 
 typedef I = SemaphoreIdentity;
 typedef IS = SemaphoreIdentities<I>;
-typedef CT = SemaphoreCount;
-typedef CTS = SemaphoreCounts<CT>;
-typedef CTR = SemaphoreCounter<I, CT, CTS>;
-typedef CTRS = SemaphoreCounters<I, CT, CTS, CTR>;
+typedef CU = SemaphoreCountUpdate;
+typedef CD = SemaphoreCountDeletion;
+typedef CT = SemaphoreCount<CU, CD>;
+typedef CTS = SemaphoreCounts<CU, CD, CT>;
+typedef CTR = SemaphoreCounter<I, CU, CD, CT, CTS>;
+typedef CTRS = SemaphoreCounters<I, CU, CD, CT, CTS, CTR>;
 
 void main() {
   group('Testing Semaphore Counters Within Current Thread', () {
@@ -25,13 +26,13 @@ void main() {
       final SemaphoreIdentity identity = SemaphoreIdentity.instantiate<I, IS>(name: name);
 
       // Create a new semaphore counter
-      final SemaphoreCounter counter = SemaphoreCounter.instantiate<I, CT, CTS, CTR, CTRS>(identity: identity);
+      final SemaphoreCounter counter = SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity);
 
       // Verify the counter is a singleton
-      expect(counter, equals(SemaphoreCounter.instantiate<I, CT, CTS, CTR, CTRS>(identity: identity)));
+      expect(counter, equals(SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity)));
 
       // Verify the counter is registered
-      expect(SemaphoreCounters<I, CT, CTS, CTR>().has<CTR>(identifier: name), equals(true));
+      expect(SemaphoreCounters<I, CU, CD, CT, CTS, CTR>().has<CTR>(identifier: name), equals(true));
 
       // Verify that identity is a singleton
       expect(identity, equals(SemaphoreIdentity.instantiate<I, IS>(name: name)));
@@ -55,6 +56,7 @@ void main() {
       expect(counter.counts.isolate.get(), equals(1));
 
       // increment the process count
+      expect(counter.counts.process.increment().to, equals(1));
       expect(counter.counts.process.increment().to, equals(2));
 
       expect(counter.counts.process.get(), equals(2));
@@ -74,9 +76,7 @@ void main() {
       // expect(counter, equals(SemaphoreCurrentThreadCounter<SemaphoreIdentity>(identity: identity)));
     });
 
-    test(
-        "Verify that two counters with different names and identities have different count states within same isolate/thread",
-        () {
+    test("Verify that two counters with different names and identities have different count states within same isolate/thread", () {
       String name_one = '${safeIntId.getId()}_named_sem';
       String name_two = '${safeIntId.getId()}_named_sem';
 
@@ -85,15 +85,15 @@ void main() {
       final SemaphoreIdentity identity_two = SemaphoreIdentity.instantiate<I, IS>(name: name_two);
 
       // Create a new semaphore counter
-      final SemaphoreCounter counter_one = SemaphoreCounter.instantiate<I, CT, CTS, CTR, CTRS>(
+      final SemaphoreCounter counter_one = SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(
         identity: identity_one,
       );
 
-      final SemaphoreCounter counter_two = SemaphoreCounter.instantiate<I, CT, CTS, CTR, CTRS>(identity: identity_two);
+      final SemaphoreCounter counter_two = SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity_two);
 
       // Verify the counter is a singleton
-      expect(counter_one, equals(SemaphoreCounter.instantiate<I, CT, CTS, CTR, CTRS>(identity: identity_one)));
-      expect(counter_two, equals(SemaphoreCounter.instantiate<I, CT, CTS, CTR, CTRS>(identity: identity_two)));
+      expect(counter_one, equals(SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity_one)));
+      expect(counter_two, equals(SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity_two)));
 
       expect(counter_one.counts.isolate.get(), equals(0));
       expect(counter_one.counts.isolate.increment().to, equals(1));
@@ -133,8 +133,8 @@ void main() {
       expect(SemaphoreIdentities<I>().has<SemaphoreIdentity>(name: name_two), equals(true));
 
       // Verify the counter is a singleton
-      expect(SemaphoreCounters<I, CT, CTS, CTR>().has<CTR>(identifier: name_one), equals(true));
-      expect(SemaphoreCounters<I, CT, CTS, CTR>().has<CTR>(identifier: name_two), equals(true));
+      expect(SemaphoreCounters<I, CU, CD, CT, CTS, CTR>().has<CTR>(identifier: name_one), equals(true));
+      expect(SemaphoreCounters<I, CU, CD, CT, CTS, CTR>().has<CTR>(identifier: name_two), equals(true));
     });
 
     test("Verify that across isolates the counters are different.", () async {
@@ -144,7 +144,7 @@ void main() {
       final SemaphoreIdentity identity = SemaphoreIdentity.instantiate<I, IS>(name: name);
 
       // Create a new semaphore counter
-      final SemaphoreCounter counter = SemaphoreCounter.instantiate<I, CT, CTS, CTR, CTRS>(identity: identity);
+      final SemaphoreCounter counter = SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity);
 
       //increment the isolate count
       counter.counts.isolate
@@ -162,12 +162,12 @@ void main() {
           final SemaphoreIdentity _identity = SemaphoreIdentity.instantiate<I, IS>(name: name);
 
           // Create a new semaphore counter
-          final SemaphoreCounter _counter = SemaphoreCounter.instantiate<I, CT, CTS, CTR, CTRS>(identity: identity);
+          final SemaphoreCounter _counter = SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity);
 
           // increment the isolate count
           // loop for 100 times and increment the isolate count
           for (var i = 0; i < 200; i++) {
-            if (i == Random().nextInt(50)) _counter.counts.isolate.increment();
+            if (i == Random().nextInt(100)) _counter.counts.isolate.increment();
             if (i == Random().nextInt(200)) _counter.counts.isolate.decrement();
             if (Random().nextBool()) _counter.counts.process.increment();
           }

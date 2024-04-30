@@ -1,20 +1,5 @@
 import 'dart:ffi'
-    show
-        Abi,
-        AbiSpecificInteger,
-        AbiSpecificIntegerMapping,
-        Char,
-        Int,
-        Native,
-        Pointer,
-        Uint16,
-        Uint32,
-        Uint64,
-        Uint8,
-        UnsignedInt,
-        UnsignedLong,
-        UnsignedShort,
-        VarArgs;
+    show Abi, AbiSpecificInteger, AbiSpecificIntegerMapping, Char, Int, Native, Pointer, Uint16, Uint32, Uint64, Uint8, UnsignedInt, UnsignedLong, UnsignedShort, VarArgs;
 import 'dart:io' show Platform;
 
 // in C the sizeof(sem_t) = 4 bytes on MacOS Arm64 and x86_64 and on Linux it seems to be the same case!
@@ -57,8 +42,7 @@ class MODE_T_PERMISSIONS {
   static int wx = w | x;
   static int rwx = r | w | x;
 
-  static int perm({int u = 0, int g = 0, int o = 0, int user = 0, int group = 0, int others = 0}) =>
-      ((u | user) << 6) | ((g | group) << 3) | (o | others);
+  static int perm({int u = 0, int g = 0, int o = 0, int user = 0, int group = 0, int others = 0}) => ((u | user) << 6) | ((g | group) << 3) | (o | others);
 
   // Most common for named semaphores
   static int RECOMMENDED = MODE_T_PERMISSIONS.OWNER_READ_WRITE_GROUP_READ;
@@ -247,7 +231,7 @@ class UnixSemOpenMacros {
   // O_CREAT and O_EXCL are set and the named semaphore already exists.
   static int EEXIST = isBSD ? 17 : 17;
 
-  /// [value] was greater than [SEM_VALUE_MAX].
+  /// [returned] was greater than [SEM_VALUE_MAX].
   /// [name] consists of just "/", followed by no other characters.
   /// The [sem_open] operation is not supported for the given [name],
   /// or [O_CREAT] was specified in [oflag] and value was greater than [SEM_VALUE_MAX].
@@ -284,13 +268,12 @@ class UnixSemOpenMacros {
   // Upon successful completion, the [sem_open] function shall return the address of the semaphore. Otherwise, it shall return a value of SEM_FAILED and set errno to indicate the error. The symbol SEM_FAILED is defined in the <semaphore.h> header. No successful return from sem_open() shall return the value SEM_FAILED.
   /// [SEM_FAILED] = 0xffffffffffffffff (as a pointer), 18446744073709551615 (as an unsigned integer)
   /// Size of SEM_FAILED (size of a pointer): 8 bytes on MacOS Arm64 and MacOS x86_64
-  static Pointer<Uint64> SEM_FAILED =
-      Platform.isMacOS ? Pointer.fromAddress(0xffffffffffffffff) : Pointer.fromAddress(0x0);
+  static Pointer<Uint64> SEM_FAILED = Platform.isMacOS ? Pointer.fromAddress(0xffffffffffffffff) : Pointer.fromAddress(0x0);
 
   /// This flag is used to create a semaphore if it does not already exist. If [O_CREAT] is set and the semaphore
   /// already exists, then [O_CREAT] has no effect, except as noted under [O_EXCL]. Otherwise, [sem_open] creates
   /// a named semaphore. The [O_CREAT] flag requires a third and a fourth argument: [mode], which is of type [mode_t],
-  /// and [value], which is of type unsigned. The semaphore is created with an initial value of [value]. Valid initial
+  /// and [returned], which is of type unsigned. The semaphore is created with an initial value of [returned]. Valid initial
   /// values for semaphores are less than or equal to [SEM_VALUE_MAX]. The user ID of the semaphore is set to the
   /// effective user ID of the process; the group ID of the semaphore is set to a system default group ID or to the
   /// effective group ID of the process. The permission bits of the semaphore are set to the value of the [mode]
@@ -336,41 +319,23 @@ class UnixSemOpenError extends UnixSemError {
   String toString() => 'UnixSemOpenError: [Error: $identifier Code: $code]: $message';
 
   static UnixSemOpenError fromErrno(int errno) {
-    if (errno == UnixSemOpenMacros.EACCES)
-      return UnixSemOpenError(
-          errno, "The semaphore exists, but the caller does not have permission to open it.", 'EACCES');
-    if (errno == UnixSemOpenMacros.EINTR)
-      return UnixSemOpenError(errno, "The sem_open() operation was interrupted by a signal.", 'EINTR');
+    if (errno == UnixSemOpenMacros.EACCES) return UnixSemOpenError(errno, "The semaphore exists, but the caller does not have permission to open it.", 'EACCES');
+    if (errno == UnixSemOpenMacros.EINTR) return UnixSemOpenError(errno, "The sem_open() operation was interrupted by a signal.", 'EINTR');
     if (errno == UnixSemOpenMacros.EEXIST)
-      return UnixSemOpenError(errno,
-          "Both O_CREAT and O_EXCL were specified in oflag, but a semaphore with this name already exists.", 'EEXIST');
+      return UnixSemOpenError(errno, "Both O_CREAT and O_EXCL were specified in oflag, but a semaphore with this name already exists.", 'EEXIST');
     if (errno == UnixSemOpenMacros.EINVAL)
       return UnixSemOpenError(
-          errno,
-          "Invalid argument. The name was just '/' or the value was greater than SEM_VALUE_MAX, or the operation is not supported for the given name.",
-          'EINVAL');
-    if (errno == UnixSemOpenMacros.EMFILE)
-      return UnixSemOpenError(
-          errno, "The per-process limit on the number of open file descriptors has been reached.", 'EMFILE');
+          errno, "Invalid argument. The name was just '/' or the value was greater than SEM_VALUE_MAX, or the operation is not supported for the given name.", 'EINVAL');
+    if (errno == UnixSemOpenMacros.EMFILE) return UnixSemOpenError(errno, "The per-process limit on the number of open file descriptors has been reached.", 'EMFILE');
     if (errno == UnixSemOpenMacros.ENAMETOOLONG)
       return UnixSemOpenError(
-          errno,
-          "The name was too long, or a pathname component is longer than NAME_MAX i.e. 30 character dart String including the leading slash.",
-          'ENAMETOOLONG');
-    if (errno == UnixSemOpenMacros.ENFILE)
-      return UnixSemOpenError(
-          errno, "The system-wide limit on the total number of open files has been reached.", 'ENFILE');
-    if (errno == UnixSemOpenMacros.ENOENT)
-      return UnixSemOpenError(errno, "No semaphore with this name exists; or, name wasn't well formed.", 'ENOENT');
+          errno, "The name was too long, or a pathname component is longer than NAME_MAX i.e. 30 character dart String including the leading slash.", 'ENAMETOOLONG');
+    if (errno == UnixSemOpenMacros.ENFILE) return UnixSemOpenError(errno, "The system-wide limit on the total number of open files has been reached.", 'ENFILE');
+    if (errno == UnixSemOpenMacros.ENOENT) return UnixSemOpenError(errno, "No semaphore with this name exists; or, name wasn't well formed.", 'ENOENT');
     if (errno == UnixSemOpenMacros.ENOMEM) return UnixSemOpenError(errno, "Insufficient memory.", 'ENOMEM');
-    if (errno == UnixSemOpenMacros.ENOSPC)
-      return UnixSemOpenError(
-          errno, "There is insufficient space for the creation of the new named semaphore.", 'ENOSPC');
+    if (errno == UnixSemOpenMacros.ENOSPC) return UnixSemOpenError(errno, "There is insufficient space for the creation of the new named semaphore.", 'ENOSPC');
     if (errno == UnixSemOpenMacros.EFAULT)
-      return UnixSemOpenError(
-          errno,
-          "Invalid memory address encountered. Please ensure all pointers and addresses are correctly set and accessible.",
-          'EFAULT');
+      return UnixSemOpenError(errno, "Invalid memory address encountered. Please ensure all pointers and addresses are correctly set and accessible.", 'EFAULT');
     else
       return UnixSemOpenError(errno, "Unknown error.", 'UNKNOWN');
   }
@@ -401,25 +366,18 @@ class UnixSemWaitOrTryWaitMacros {
 }
 
 class UnixSemOpenErrorUnixSemWaitOrTryWaitError extends UnixSemError {
-  UnixSemOpenErrorUnixSemWaitOrTryWaitError(code, message, identifier, [critical = true])
-      : super(code, message, identifier, critical);
+  UnixSemOpenErrorUnixSemWaitOrTryWaitError(code, message, identifier, [critical = true]) : super(code, message, identifier, critical);
 
   @override
   String toString() => 'UnixSemOpenErrorSemWaitOrTryWaitError: [Error: $identifier Code: $code]: $message';
 
   static UnixSemOpenErrorUnixSemWaitOrTryWaitError fromErrno(int errno) {
     if (errno == UnixSemWaitOrTryWaitMacros.EAGAIN)
-      return UnixSemOpenErrorUnixSemWaitOrTryWaitError(
-          errno,
-          "The semaphore was already locked, so it cannot be immediately locked by the sem_trywait operation.",
-          'EAGAIN');
-    if (errno == UnixSemWaitOrTryWaitMacros.EDEADLK)
-      return UnixSemOpenErrorUnixSemWaitOrTryWaitError(errno, "A deadlock condition was detected.", 'EDEADLK');
-    if (errno == UnixSemWaitOrTryWaitMacros.EINTR)
-      return UnixSemOpenErrorUnixSemWaitOrTryWaitError(errno, "A signal interrupted this function.", 'EINTR');
+      return UnixSemOpenErrorUnixSemWaitOrTryWaitError(errno, "The semaphore was already locked, so it cannot be immediately locked by the sem_trywait operation.", 'EAGAIN');
+    if (errno == UnixSemWaitOrTryWaitMacros.EDEADLK) return UnixSemOpenErrorUnixSemWaitOrTryWaitError(errno, "A deadlock condition was detected.", 'EDEADLK');
+    if (errno == UnixSemWaitOrTryWaitMacros.EINTR) return UnixSemOpenErrorUnixSemWaitOrTryWaitError(errno, "A signal interrupted this function.", 'EINTR');
     if (errno == UnixSemWaitOrTryWaitMacros.EINVAL)
-      return UnixSemOpenErrorUnixSemWaitOrTryWaitError(
-          errno, "The sem_t argument does not refer to a valid semaphore.", 'EINVAL');
+      return UnixSemOpenErrorUnixSemWaitOrTryWaitError(errno, "The sem_t argument does not refer to a valid semaphore.", 'EINVAL');
     else
       return UnixSemOpenErrorUnixSemWaitOrTryWaitError(errno, "Unknown error.", 'UNKNOWN');
   }
@@ -468,18 +426,12 @@ class UnixSemUnlinkError extends UnixSemError {
   String toString() => 'UnixSemUnlinkError: [Error: $identifier Code: $code]: $message';
 
   static UnixSemUnlinkError fromErrno(int errno) {
-    if (errno == UnixSemUnlinkMacros.ENOENT)
-      return UnixSemUnlinkError(errno, "The named semaphore referred to by name does not exist.", 'ENOENT', false);
+    if (errno == UnixSemUnlinkMacros.ENOENT) return UnixSemUnlinkError(errno, "The named semaphore referred to by name does not exist.", 'ENOENT', false);
     if (errno == UnixSemUnlinkMacros.EACCES)
-      return UnixSemUnlinkError(
-          errno,
-          "The named semaphore referred to by name exists, but the caller does not have permission to unlink it.",
-          'EACCES');
+      return UnixSemUnlinkError(errno, "The named semaphore referred to by name exists, but the caller does not have permission to unlink it.", 'EACCES');
     if (errno == UnixSemUnlinkMacros.ENAMETOOLONG)
       return UnixSemUnlinkError(
-          errno,
-          "The name was too long, or a pathname component is longer than NAME_MAX i.e. 30 character dart String including the leading slash.",
-          'ENAMETOOLONG');
+          errno, "The name was too long, or a pathname component is longer than NAME_MAX i.e. 30 character dart String including the leading slash.", 'ENAMETOOLONG');
     else
       return UnixSemUnlinkError(errno, "Unknown error.", 'UNKNOWN');
   }
@@ -502,12 +454,9 @@ class UnixSemUnlockWithPostError extends UnixSemError {
   String toString() => 'UnixSemPostError: [Error: $identifier Code: $code]: $message';
 
   static UnixSemUnlockWithPostError fromErrno(int errno) {
-    if (errno == UnixSemUnlockWithPostMacros.EINVAL)
-      return UnixSemUnlockWithPostError(
-          errno, "The semaphore referred to by sem is not a valid semaphore.", 'EINVAL  ');
+    if (errno == UnixSemUnlockWithPostMacros.EINVAL) return UnixSemUnlockWithPostError(errno, "The semaphore referred to by sem is not a valid semaphore.", 'EINVAL  ');
     if (errno == UnixSemUnlockWithPostMacros.EOVERFLOW)
-      return UnixSemUnlockWithPostError(
-          errno, "The maximum allowable value for a semaphore would be exceeded.", 'EOVERFLOW');
+      return UnixSemUnlockWithPostError(errno, "The maximum allowable value for a semaphore would be exceeded.", 'EOVERFLOW');
     else
       return UnixSemUnlockWithPostError(errno, "Unknown error.", 'UNKNOWN');
   }
