@@ -25,7 +25,7 @@ To add `runtime_native_semaphores` to your Dart package, include it in your `pub
 
 ```yaml
 dependencies:
-  runtime_native_semaphores: ^0.0.3
+  runtime_native_semaphores: ^1.0.0-beta.1
 ```
 
 ## Getting Started
@@ -52,18 +52,44 @@ void main() {
 
 Future<void> spawnIsolate(String name, int isolate) async {
   void isolateEntryPoint(SendPort sendPort) {
-    final sem = NativeSemaphore(identifier: name);
     
-    if (!sem.lock()) {
-      throw Exception("Failed to lock semaphore in isolate $isolate");
-    }
+    // Instantiate the semaphore
+    final NS sem = NativeSemaphore.instantiate(name: name);
+
+    // Print the semaphore name
+    print('Isolate $isolate: Created semaphore with name: ${sem.name}');
     
-    // Perform work here...i.e. a random blocking operation
-    sleep(Duration(milliseconds: Random().nextInt(500)));
-    
-    if (!sem.unlock()) {
-      throw Exception("Failed to unlock semaphore in isolate $isolate");
-    }
+    // Print the semaphore's open status
+    print('Semaphore open status: ${sem.opened}');
+
+    // Open the semaphore
+    bool opened = sem.open();
+
+    // Lock
+    bool locked = sem.lock();
+    locked || throw Exception('Failed to lock the semaphore');
+    // Check if the semaphore is locked
+    print('Semaphore current locked status: ${sem.locked}');
+    // Print if the semaphore is reentrant 
+    print('Semaphore is reentrant: ${sem.reentrant}');
+
+    // Do some work here...i.e. a random blocking operation
+    sleep(Duration(milliseconds: Random().nextInt(1000)));
+
+    // Unlock before closing
+    bool unlocked = sem.unlock();
+    // Print the semaphore's locked status
+    print('Semaphore current locked status: ${sem.locked}');
+
+    // Close before unlinking
+    bool closed = sem.close();
+    // Print the semaphore's closed status
+    print('Semaphore closed status: ${sem.closed}');
+
+    // Unlink the semaphore
+    bool unlink = sem.unlink();
+    // Print the semaphore's unlinked status
+    print('Semaphore unlinked status: ${sem.unlinked}');
     
     sendPort.send(true);
   }
@@ -74,7 +100,6 @@ Future<void> spawnIsolate(String name, int isolate) async {
   //...
   
   // Cleanup
-  sem.dispose();
   receivePort.close();
     
 }
@@ -82,9 +107,11 @@ Future<void> spawnIsolate(String name, int isolate) async {
 
 ## **_API Reference:_**
 ### **Main Class**
-- `NativeSemaphore({required String identifier})`: Creates a new semaphore with the given identifier.
+- `NativeSemaphore.instantiate({required String name})`: Creates a new semaphore with the given name.
 
 ### **Methods**:
+#### **Opening**
+- `bool open()`: Opens the semaphore. Returns `true` if the open operation was successful, `false` otherwise.
 
 #### **Locking**
 - `bool lock()`: Locks the semaphore. Returns `true` if the lock operation was successful, `false` otherwise.
@@ -95,12 +122,16 @@ Future<void> spawnIsolate(String name, int isolate) async {
 - `bool unlock()`: Unlocks the semaphore. Returns `true` if the unlock operation was successful, `false` otherwise.
 
 #### **Disposing**
-- `bool dispose()`: Disposes of the semaphore. Returns `true` if the dispose operation was successful, `false` otherwise. Internally, if the semaphore is still locked, it will be unlocked before being disposed.
+- `bool close()`: Closes the semaphore. Returns `true` if the close operation was successful, `false` otherwise. Note this method should be called before unlinking the semaphore.
+- `bool unlink()`: Unlinks the semaphore. Returns `true` if the unlink operation was successful, `false` otherwise.
 
 ### **Properties**:
-- `String identifier`: The unique identifier for the semaphore. Internally this will be prefixed with the platform-specific prefix. i.e. `/` on Unix Systems, and `Global\\` on Windows.
-- `bool locked`: Returns `true` if the semaphore is currently locked, `false` otherwise.
-- `bool disposed`: Returns `true` if the semaphore has been disposed, `false` otherwise.
+- `String name`: The unique name/identifier for the semaphore. Internally this will be prefixed with the platform-specific prefix. i.e. `/` on Unix Systems, and `Global\\` on Windows.
+- `bool opened`: Indicates whether the semaphore has been opened.
+- `bool locked`: Indicates whether the semaphore is currently locked.
+- `bool reentrant`: Indicates whether the semaphore is reentrant.
+- `bool closed`: Indicates whether the semaphore has been closed.
+- `bool unlinked`: Indicates whether the semaphore has been unlinked.
 
 --- 
 

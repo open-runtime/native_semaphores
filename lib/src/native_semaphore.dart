@@ -1,16 +1,20 @@
-library runtime_native_semaphores.semaphore;
+import 'dart:ffi' show Finalizable;
+import 'dart:io' show Platform;
 
-import 'dart:ffi' show AbiSpecificIntegerPointer, Char, Finalizable, NativeType, Pointer;
-import 'dart:io' show Platform, sleep;
-
-import 'package:ffi/ffi.dart';
-import 'package:meta/meta.dart';
-import 'package:runtime_native_semaphores/src/unix_semaphore.dart';
-import 'package:runtime_native_semaphores/src/windows_semaphore.dart';
-
-// import '../runtime_native_semaphores.dart'
-//     show NativeSemaphoreStatus, NATIVE_SEMAPHORE_STATUS, SemaphoreCounter, SemaphoreIdentity;
-import '../runtime_native_semaphores.dart';
+import 'package:meta/meta.dart' show protected;
+import '../runtime_native_semaphores.dart'
+    show
+        LatePropertyAssigned,
+        SemaphoreCount,
+        SemaphoreCountDeletion,
+        SemaphoreCountUpdate,
+        SemaphoreCounter,
+        SemaphoreCounters,
+        SemaphoreCounts,
+        SemaphoreIdentities,
+        SemaphoreIdentity,
+        UnixSemaphore,
+        WindowsSemaphore;
 
 // A wrapper to track the instances of the native semaphore
 class NativeSemaphores<
@@ -81,7 +85,7 @@ class NativeSemaphore<
 
   dynamic get _instances => NativeSemaphore.__instances;
 
-  static bool verbose = true;
+  bool verbose;
 
   late final String name;
 
@@ -118,7 +122,7 @@ class NativeSemaphore<
   // if we are reentrant internally
   // bool get reentrant => throw UnimplementedError();
 
-  NativeSemaphore({required String this.name, required CTR this.counter});
+  NativeSemaphore({required String this.name, required CTR this.counter, this.verbose = false});
 
   // TODO maybe a rehydrate method? or instantiate takes in a "from process" flag i.e. to attempt to find and rehydrate the semaphore from another process/all processes
   static NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS> instantiate<
@@ -143,10 +147,10 @@ class NativeSemaphore<
       /*Native Semaphores*/
       NSS extends NativeSemaphores<I, IS, CU, CD, CT, CTS, CTR, CTRS, NS>
       /* formatting guard comment */
-      >({required String name, I? identity, CTR? counter}) {
+      >({required String name, I? identity, CTR? counter, bool verbose = false}) {
     if (!LatePropertyAssigned<NSS>(() => __instances)) {
       __instances = NativeSemaphores<I, IS, CU, CD, CT, CTS, CTR, CTRS, NS>();
-      if (NativeSemaphore.verbose) print('Setting NativeSemaphore._instances: ${__instances}');
+      if (verbose) print('Setting NativeSemaphore._instances: ${__instances}');
     }
 
     return (__instances as NSS).has<NS>(name: name)

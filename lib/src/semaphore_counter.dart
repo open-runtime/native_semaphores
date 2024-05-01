@@ -1,6 +1,4 @@
-import 'package:meta/meta.dart';
-
-import 'native_semaphore.dart' show NativeSemaphore;
+import 'package:meta/meta.dart' show protected;
 import 'semaphore_identity.dart' show SemaphoreIdentity;
 import 'utils/late_property_assigned.dart' show LatePropertyAssigned;
 
@@ -27,6 +25,8 @@ class SemaphoreCountDeletion {
 class SemaphoreCount<CU extends SemaphoreCountUpdate, CD extends SemaphoreCountDeletion> {
   static final Map<String, int?> __counts = {};
 
+  bool verbose;
+
   @protected
   Map<String, int?> get counts => SemaphoreCount.__counts;
 
@@ -36,7 +36,7 @@ class SemaphoreCount<CU extends SemaphoreCountUpdate, CD extends SemaphoreCountD
 
   final String forProperty;
 
-  SemaphoreCount({required String identifier, required String this.forProperty}) {
+  SemaphoreCount({required String identifier, required String this.forProperty, bool this.verbose = false}) {
     this.identifier = identifier + "_for_$forProperty";
     update(value: 0);
   }
@@ -47,7 +47,7 @@ class SemaphoreCount<CU extends SemaphoreCountUpdate, CD extends SemaphoreCountD
   CU update({required int value}) {
     CU _update = SemaphoreCountUpdate(identifier: identifier, from: counts.putIfAbsent(identifier, () => null) ?? counts[identifier], to: counts[identifier] = value) as CU;
 
-    if (NativeSemaphore.verbose)
+    if (verbose)
       _update.from == null
           ? print("Semaphore count for $identifier initialized to ${_update.to}.")
           : print("Semaphore count for $identifier updated from ${_update.from} to ${_update.to}.");
@@ -58,7 +58,7 @@ class SemaphoreCount<CU extends SemaphoreCountUpdate, CD extends SemaphoreCountD
   CD delete() {
     CD _deletion = SemaphoreCountDeletion(identifier: identifier, at: counts.remove(identifier)) as CD;
 
-    if (NativeSemaphore.verbose)
+    if (verbose)
       _deletion.at == null ? print("Semaphore count for $identifier does not exist.") : print("Semaphore count for $identifier deleted with final count at ${_deletion.at}.");
 
     return _deletion;
