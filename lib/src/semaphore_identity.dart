@@ -6,7 +6,10 @@ import 'utils/late_property_assigned.dart' show LatePropertyAssigned;
 class SemaphoreIdentities<I extends SemaphoreIdentity> {
   static String prefix = 'runtime_native_semaphores';
 
-  static final String isolate = (Service.getIsolateId(Isolate.current)?.toString() ?? (throw Exception('Failed to get isolate id'))).replaceAll("isolates", "").substring(1);
+  static String get isolate {
+    String? _isolate = Service.getIsolateId(Isolate.current)?.toString();
+    return _isolate ?? Isolate.current.hashCode.toString();
+  }
 
   static final String process = pid.toString();
 
