@@ -10,7 +10,7 @@ on:
 
 jobs:
   compose:
-    name: ${{ matrix.config.name }} Composition
+    name: ${{ matrix.config.name }} Tester
     runs-on: ${{ matrix.config.runner }}
     strategy:
       fail-fast: false
@@ -21,22 +21,15 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
-    outputs:
-      DOCKERIZATION: ${{ steps.dockerize.outputs.configurations }}
-
     steps:
       - name: Echo Default Cache Paths
         if: matrix.config.system_information.kernel_family == 'unix'
         env:
           DART_SDK_DIR_DEFAULT: /opt/hostedtoolcache/dart-sdk/
           HOME_BREW_DIR_DEFAULT: /usr/local
-          PROTOC_SDK_DIR_DEFAULT: /opt/hostedtoolcache/protoc/
-          DCLI_BIN_DIR_DEFAULT: .dcli/bin/
           PUB_CACHE_DIR_DEFAULT: .pub-cache/
         run: |
           echo "HOME_BREW_DIR=$(command -v brew >/dev/null 2>&1 && echo "$(brew --prefix)" || echo $HOME_BREW_DIR_DEFAULT)" >> $GITHUB_ENV
-          echo "PROTOC_SDK_DIR=$(echo $PROTOC_SDK_DIR_DEFAULT)" >> $GITHUB_ENV
-          echo "DCLI_BIN_DIR=$HOME/${DCLI_BIN_DIR_DEFAULT}" >> $GITHUB_ENV
           echo "PUB_CACHE_DIR=$HOME/${PUB_CACHE_DIR_DEFAULT}" >> $GITHUB_ENV
           echo "DART_SDK_DIR=$(echo $DART_SDK_DIR_DEFAULT)" >> $GITHUB_ENV
 
@@ -44,21 +37,14 @@ jobs:
         if: matrix.config.system_information.operating_system_family == 'windows'
         env:
           DART_SDK_DIR_DEFAULT: C:\tools\dart-sdk\bin
-          PROTOC_SDK_DIR_DEFAULT: C:\tools\protoc\bin
         run: |
-          echo "DART_SDK_DIR=$($env:DART_SDK_DIR_DEFAULT)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          echo "PROTOC_SDK_DIR=$($env:PROTOC_SDK_DIR_DEFAULT)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          
+          echo "DART_SDK_DIR=$($env:DART_SDK_DIR_DEFAULT)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append          
           $program_files = $env:ProgramFiles
-          $dcli_bin_dir = Join-Path -Path $program_files -ChildPath "\.dcli\bin"
-          echo "DCLI_BIN_DIR=$dcli_bin_dir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "PUB_CACHE_DIR=$env:USERPROFILE\.pub-cache\" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Echo Initial Cache Locations
         run: |
           echo 'DART_SDK_DIR: ${{ env.DART_SDK_DIR }}'
-          echo 'PROTOC_SDK_DIR: ${{ env.PROTOC_SDK_DIR }}'
-          echo 'DCLI_BIN_DIR: ${{ env.DCLI_BIN_DIR }}'
           echo 'PUB_CACHE_DIR: ${{ env.PUB_CACHE_DIR }}'
 
       # TODO: Re-enable the cache for the dart sdk
