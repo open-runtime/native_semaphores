@@ -198,8 +198,7 @@ class UnixSemaphore<
   @override
   bool willAttemptUnlockAcrossProcesses() {
     if (verbose) print("Evaluating [Will Attempt Unlock Across Process]: IDENTITY: ${identity.uuid}");
-
-    print("Process Counts: ${counter.counts.process.get()} locked $locked Isolate Counts: ${counter.counts.isolate.get()}");
+    if (verbose) print("Process Counts: ${counter.counts.process.get()} locked $locked Isolate Counts: ${counter.counts.isolate.get()}");
 
     if (locked && counter.counts.isolate.get() > 0) {
       if (verbose) print("Failed [Will Attempt Unlock Across Process]: IDENTITY: ${identity.uuid} REASON: Semaphore already locked across processes");
@@ -299,7 +298,7 @@ class UnixSemaphore<
 
   @override
   bool unlock() {
-    print("Attempting [Unlock]: IDENTITY: ${identity.uuid} LOCKED: $locked");
+    if (verbose) print("Evaluating [Unlock]: IDENTITY: ${identity.uuid} LOCKED: $locked");
     return unlockReentrantToIsolate() || unlockAcrossProcesses();
   }
 
