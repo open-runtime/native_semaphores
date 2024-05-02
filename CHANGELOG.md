@@ -38,3 +38,7 @@
 - TODO: @tsavo-at-pieces Re-Implement WindowsNamedSemaphore to support reentrant locking and intra-isolate counts
 - TODO: @tsavo-at-pieces Implement a clean-up mechanism for stray locks across the OS
 - TODO: @tsavo-at-pieces Implement a way to track lock requests/blocked executions across processes due to current process having yet to unlock itself
+
+## 1.0.0-beta.4
+- Small adjustments to README.md
+- Small fix in CI/CD workflow to ensure proper testing across all platforms
