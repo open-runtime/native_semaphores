@@ -62,7 +62,7 @@ class UnixSemaphore<
   // if we are reentrant internally
   bool get reentrant => counter.counts.isolate.get() > 1;
 
-  UnixSemaphore({required String name, required CTR counter}) : super(name: name, counter: counter);
+  UnixSemaphore({required String name, required CTR counter, verbose = false}) : super(name: name, counter: counter, verbose: verbose);
 
   @override
   bool willAttemptOpen() {
@@ -405,5 +405,5 @@ class UnixSemaphore<
   }
 
   @override
-  String toString() => '_UnixSemaphore(name: $name)';
+  String toString() => 'UnixSemaphore(name: $name)';
 }

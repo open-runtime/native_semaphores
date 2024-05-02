@@ -42,7 +42,7 @@ class WindowsSemaphore<
 
   late final Pointer<NativeType> semaphore;
 
-  WindowsSemaphore({required String name, required CTR counter}) : super(name: name, counter: counter) {
+  WindowsSemaphore({required String name, required CTR counter, verbose = false}) : super(name: name, counter: counter, verbose: verbose) {
     // if (identity.semaphore.length > WindowsCreateSemaphoreWMacros.MAX_PATH)
     //   throw ArgumentError(
     //       'Identifier is too long. Must be less than or equal to ${WindowsCreateSemaphoreWMacros.MAX_PATH} characters.');
@@ -112,5 +112,5 @@ class WindowsSemaphore<
   }
 
   @override
-  String toString() => '_WindowsSemaphore(_identifier: $_identifier)';
+  toString() => 'WindowsSemaphore(name: $name)';
 }

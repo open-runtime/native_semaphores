@@ -1,5 +1,4 @@
 ## 0.0.1
-
 - Initial release
 - See test/semaphore_test.dart for unified usage examples
 - See test/unix_named_semaphore_ffi_bindings_test.dart and test/windows_named_semaphore_ffi_bindings_test.dart for platform-specific usage examples
@@ -24,6 +23,12 @@
 - Made UnixNamedSemaphore and WindowsNamedSemaphore classes extendable to allow for custom implementations
 - Refactored all classes to be extensible and now support reentrant behavior + counts of locks/unlocks within the same isolate/thread in addition to the initial cross process locking support.
 - Updated unit tests to reflect recursive locking scenarios, and ensure proper implementation of SemaphoreIdentities and SemaphoreCounters
+- TODO: @tsavo-at-pieces Re-Implement WindowsNamedSemaphore to support reentrant locking and intra-isolate counts
+- TODO: @tsavo-at-pieces Implement a clean-up mechanism for stray locks across the OS
+- TODO: @tsavo-at-pieces Implement a way to track lock requests/blocked executions across processes due to current process having yet to unlock itself
+
+## 1.0.0-beta.2
+- Small fix to pass `verbose` onto the `NativeSemaphore` constructor
 - TODO: @tsavo-at-pieces Re-Implement WindowsNamedSemaphore to support reentrant locking and intra-isolate counts
 - TODO: @tsavo-at-pieces Implement a clean-up mechanism for stray locks across the OS
 - TODO: @tsavo-at-pieces Implement a way to track lock requests/blocked executions across processes due to current process having yet to unlock itself
