@@ -171,6 +171,7 @@ class NativeSemaphore<
                                 name: name,
                               ) as I,
                         ),
+                    verbose: verbose,
                   ) as NS
                 : UnixSemaphore(
                     name: name,
@@ -181,6 +182,7 @@ class NativeSemaphore<
                                 name: name,
                               ) as I,
                         ) as CTR,
+                    verbose: verbose,
                   ) as NS,
           );
   }
