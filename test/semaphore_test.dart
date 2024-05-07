@@ -16,7 +16,7 @@ void main() {
         void isolate_entrypoint(SendPort sender) {
           // Captures the call frame here, put right right inside the method entrypoint
 
-          final NS sem = NativeSemaphore.instantiate(name: name);
+          final NS sem = NativeSemaphore.instantiate(name: name, verbose: true);
 
           bool opened = sem.open();
           opened || (throw Exception("Open in isolate $id should have succeeded"));

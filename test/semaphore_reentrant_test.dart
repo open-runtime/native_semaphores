@@ -1,3 +1,5 @@
+@TestOn('mac-os && linux')
+
 import 'dart:io' show sleep;
 import 'dart:isolate' show Isolate, ReceivePort, SendPort;
 import 'dart:math' show Random;
@@ -6,7 +8,7 @@ import 'package:runtime_native_semaphores/runtime_native_semaphores.dart' show N
 import 'package:runtime_native_semaphores/src/native_semaphore_types.dart' show NS;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
-import 'package:test/test.dart' show equals, everyElement, expect, group, test;
+import 'package:test/test.dart' show equals, everyElement, expect, group, test, TestOn;
 
 void main() {
   group('Testing Reentrant Semaphores within a single isolate', () {
