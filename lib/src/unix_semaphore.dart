@@ -45,22 +45,11 @@ class UnixSemaphore<
     > extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS> {
   late final Pointer<Char> _identifier;
 
-  get identifier => LatePropertyAssigned<Pointer<Char>>(() => _identifier) ? _identifier : null;
+  ({bool isSet, Pointer<Char>? get}) get identifier => LatePropertyAssigned<Pointer<Char>>(() => _identifier) ? (isSet: true, get: _identifier) : (isSet: false, get: null);
 
   late final Pointer<sem_t> _semaphore;
 
-  get semaphore => LatePropertyAssigned<Pointer<sem_t>>(() => _semaphore) ? _semaphore : null;
-
-  // get locked i.e. the count of the semaphore
-  @override
-  bool get locked {
-    int isolates = counter.counts.isolate.get();
-    int processes = counter.counts.process.get();
-    return isolates > 0 || processes > 0;
-  }
-
-  // if we are reentrant internally
-  bool get reentrant => counter.counts.isolate.get() > 1;
+  ({bool isSet, Pointer<sem_t>? get}) get semaphore => LatePropertyAssigned<Pointer<sem_t>>(() => _semaphore) ? (isSet: true, get: _semaphore) : (isSet: false, get: null);
 
   UnixSemaphore({required String name, required CTR counter, verbose = false}) : super(name: name, counter: counter, verbose: verbose);
 
@@ -79,12 +68,11 @@ class UnixSemaphore<
   bool open() {
     if (!willAttemptOpen()) return false;
 
-    if (!LatePropertyAssigned<Pointer<Char>>(() => _identifier)) _identifier = ('/${name.replaceFirst(('/'), '')}'.toNativeUtf8()).cast();
+    if (!identifier.isSet) _identifier = ('/${name.replaceFirst(('/'), '')}'.toNativeUtf8()).cast();
 
     if (verbose) print("Attempting to [open] semaphore: ${name}");
 
-    if (!LatePropertyAssigned<Pointer<sem_t>>(() => _semaphore))
-      _semaphore = sem_open(identifier, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
+    if (!semaphore.isSet) _semaphore = sem_open(_identifier, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
 
     if (verbose) print("Semaphore open attempt response: ${semaphore}");
 
@@ -93,9 +81,9 @@ class UnixSemaphore<
 
   @override
   bool openAttemptSucceeded() {
-    (semaphore.address != UnixSemOpenMacros.SEM_FAILED.address) || (throw "${UnixSemOpenError.fromErrno(errno.value).toString()}");
+    (_semaphore.address != UnixSemOpenMacros.SEM_FAILED.address) || (throw "${UnixSemOpenError.fromErrno(errno.value).toString()}");
 
-    if (verbose) print("Successfully [opened] unix semaphore: ${name} at address: ${semaphore.address}");
+    if (verbose) print("Successfully [opened] unix semaphore: ${name} at address: ${semaphore.get?.address}");
 
     return !LatePropertyAssigned<bool>(() => hasOpened) ? hasOpened = true : opened;
   }
@@ -126,7 +114,7 @@ class UnixSemaphore<
 
     if (verbose) print("Attempting [Lock Across Processes]: IDENTITY: ${identity.uuid} BLOCKING: $blocking");
 
-    int attempt = blocking ? sem_wait(semaphore) : sem_trywait(semaphore);
+    int attempt = blocking ? sem_wait(_semaphore) : sem_trywait(_semaphore);
 
     if (verbose) print("Attempted [Lock Across Processes]: IDENTITY: ${identity.uuid} BLOCKING: $blocking ATTEMPT RESPONSE: $attempt");
 
@@ -243,7 +231,7 @@ class UnixSemaphore<
 
     if (verbose) print("Attempting [Unlock Across Processes]: IDENTITY: ${identity.uuid}");
 
-    int attempt = sem_post(semaphore);
+    int attempt = sem_post(_semaphore);
 
     if (verbose) print("Attempted [Unlock Across Processes]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt");
 
@@ -308,7 +296,6 @@ class UnixSemaphore<
 
     if (locked) {
       if (verbose) print("Failed [Will Attempt Close]: IDENTITY: ${identity.uuid} REASON: Cannot close while semaphore is locked reentrant to isolates or across the process.");
-
       return false;
     }
 
@@ -340,19 +327,25 @@ class UnixSemaphore<
 
     if (verbose) print("Attempting [Close]: IDENTITY: ${identity.uuid}");
 
-    final int attempt = sem_close(semaphore);
+    final int attempt = sem_close(_semaphore);
 
     if (verbose) print("Attempted [Close]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt");
 
     return closeAttemptSucceeded(attempt: attempt);
   }
 
+  // TODO prevent calling unlink on a semaphore that is not closed
   @override
   bool willAttemptUnlink() {
     if (verbose) print("Evaluating [Will Attempt Unlink]: IDENTITY: ${identity.uuid}");
 
     if (counter.counts.process.get() > 0) {
       if (verbose) print("Failed [ Will Attempt Unlink ]: IDENTITY: ${identity.uuid} REASON: Cannot unlink while process semaphore is locked.");
+      return false;
+    }
+
+    if (!closed) {
+      if (verbose) print("Failed [ Will Attempt Unlink ]: IDENTITY: ${identity.uuid} REASON: Cannot unlink before calling close() on the semaphore");
       return false;
     }
 

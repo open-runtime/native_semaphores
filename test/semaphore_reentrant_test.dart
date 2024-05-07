@@ -2,8 +2,7 @@ import 'dart:io' show sleep;
 import 'dart:isolate' show Isolate, ReceivePort, SendPort;
 import 'dart:math' show Random;
 
-import 'package:runtime_native_semaphores/runtime_native_semaphores.dart'
-    show NativeSemaphore, SemaphoreCounter, SemaphoreIdentity;
+import 'package:runtime_native_semaphores/runtime_native_semaphores.dart' show NativeSemaphore;
 import 'package:runtime_native_semaphores/src/native_semaphore_types.dart' show NS;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
@@ -92,8 +91,7 @@ void main() {
         expect(sem.locked, equals(true));
         expect(sem.counter.counts.process.get(), equals(1));
 
-        expect(
-            sem.counter.counts.isolate.get(), equals(currentDepth - (currentDepth - sem.counter.counts.isolate.get())));
+        expect(sem.counter.counts.isolate.get(), equals(currentDepth - (currentDepth - sem.counter.counts.isolate.get())));
 
         sleep(Duration(milliseconds: Random().nextInt(1000)));
 

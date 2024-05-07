@@ -117,10 +117,14 @@ class NativeSemaphore<
   // late final I identity = counter.identity;
 
   // get locked i.e. the count of the semaphore
-  bool get locked => throw UnimplementedError();
+  bool get locked {
+    int isolates = counter.counts.isolate.get();
+    int processes = counter.counts.process.get();
+    return isolates > 0 || processes > 0;
+  }
 
   // if we are reentrant internally
-  // bool get reentrant => throw UnimplementedError();
+  bool get reentrant => counter.counts.isolate.get() > 1;
 
   NativeSemaphore({required String this.name, required CTR this.counter, this.verbose = false});
 
