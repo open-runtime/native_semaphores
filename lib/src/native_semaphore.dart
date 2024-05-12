@@ -42,7 +42,7 @@ class NativeSemaphores<
 
   final Map<String, dynamic> _instantiations = NativeSemaphores.__instantiations;
 
-  Map<String, NS> get all => Map.unmodifiable(_instantiations as Map<String, NS>);
+  Map<String, dynamic> get all => Map.unmodifiable(_instantiations);
 
   bool has<T>({required String name}) => _instantiations.containsKey(name) && _instantiations[name] is T;
 
@@ -60,6 +60,8 @@ class NativeSemaphores<
     _instantiations.containsKey(name) || (throw Exception('Failed to delete semaphore counter for $name. It doesn\'t exist.'));
     _instantiations.remove(name);
   }
+
+  String toString() => 'NativeSemaphores(all: ${all.toString()})';
 }
 
 class NativeSemaphore<
@@ -154,7 +156,7 @@ class NativeSemaphore<
       >({required String name, I? identity, CTR? counter, bool verbose = false}) {
     if (!LatePropertyAssigned<NSS>(() => __instances)) {
       __instances = NativeSemaphores<I, IS, CU, CD, CT, CTS, CTR, CTRS, NS>();
-      if (verbose) print('Setting NativeSemaphore._instances: ${__instances}');
+      if (verbose) print('Setting NativeSemaphore._instances: ${__instances.toString()}');
     }
 
     return (__instances as NSS).has<NS>(name: name)
