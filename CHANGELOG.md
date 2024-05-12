@@ -50,3 +50,8 @@
 - TODO: @tsavo-at-pieces Implement a way to track lock requests/blocked executions across processes due to current process having yet to unlock itself
 - TODO: Prepare for the 1.0.0 release
 
+## 1.0.0-beta.6
+- Update GH Actions Steps i.e. @actions/checkout from v4.1.1 to use v4.1.4 and @dart-lang/setup-dart from v1.5.0 to use v1.6.4
+- TODO: In code dartdoc comments for pub.dev API documentation
+- TODO: GH Actions for Publishing to pub.dev
+
