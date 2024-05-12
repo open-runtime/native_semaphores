@@ -6,7 +6,7 @@ import 'package:runtime_native_semaphores/runtime_native_semaphores.dart' show N
 import 'package:runtime_native_semaphores/src/native_semaphore_types.dart' show NS;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
-import 'package:test/test.dart' show equals, everyElement, expect, group, test, TestOn;
+import 'package:test/test.dart' show equals, everyElement, expect, group, test;
 
 void main() {
   group('Testing Reentrant Semaphores within a single isolate', () {

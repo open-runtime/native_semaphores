@@ -1,14 +1,14 @@
-import 'dart:ffi';
+import 'dart:ffi' show Char, NativeType, Pointer;
 
-import 'package:ffi/ffi.dart';
+import 'package:ffi/ffi.dart' show StringUtf16Pointer, malloc;
 
 import 'native_semaphore.dart' show NativeSemaphore;
 import 'semaphore_counter.dart' show SemaphoreCount, SemaphoreCountDeletion, SemaphoreCountUpdate, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
 import 'semaphore_identity.dart' show SemaphoreIdentities, SemaphoreIdentity;
 
 import 'ffi/windows.dart'
-    show CloseHandle, CreateSemaphoreW, LPCWSTR, ReleaseSemaphore, WaitForSingleObject, WindowsCreateSemaphoreWError, WindowsCreateSemaphoreWMacros, WindowsReleaseSemaphoreError, WindowsReleaseSemaphoreMacros, WindowsWaitForSingleObjectMacros;
-import 'utils/late_property_assigned.dart';
+    show CloseHandle, CreateSemaphoreW, LPCWSTR, ReleaseSemaphore, WaitForSingleObject, WindowsCreateSemaphoreWError, WindowsCreateSemaphoreWMacros, WindowsReleaseSemaphoreMacros, WindowsWaitForSingleObjectMacros;
+import 'utils/late_property_assigned.dart' show LatePropertyAssigned;
 
 class WindowsSemaphore<
 /*  Identity */
