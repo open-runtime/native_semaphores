@@ -85,7 +85,7 @@ jobs:
         run: dart pub get
 
       - name: Test Reentrant Semaphore
-        run: dart test test/reentrant_semaphore_test.dart
+        run: dart test test/semaphore_reentrant_test.dart
 
       - name: Test Semaphore
         run: dart test test/semaphore_test.dart
