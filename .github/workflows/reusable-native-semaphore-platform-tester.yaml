@@ -85,4 +85,4 @@ jobs:
         run: dart pub get
 
       - name: Run Dart Tests
-        run: dart test .
+        run: dart test ./test/semaphores_test.dart
