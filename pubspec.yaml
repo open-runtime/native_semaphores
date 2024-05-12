@@ -1,7 +1,7 @@
 name: runtime_native_semaphores
 homepage: https://pieces.app
 repository: https://github.com/open-runtime/native_semaphores
-version: 1.0.0-beta.4
+version: 1.0.0-beta.5
 description: A library for creating and managing named semaphores in Dart using FFI across macOS, Linux, and Windows.
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -14,9 +14,9 @@ platforms:
 
 dependencies:
   ffi: ^2.1.2
-  meta: ^1.14.0
+  meta: ^1.15.0
 
 dev_dependencies:
-  test: ^1.25.4
+  test: ^1.25.5
   safe_int_id: ^1.1.1
 

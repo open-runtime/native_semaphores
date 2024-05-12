@@ -42,7 +42,7 @@ class NativeSemaphores<
 
   final Map<String, dynamic> _instantiations = NativeSemaphores.__instantiations;
 
-  Map<String, NS> get all => Map.unmodifiable(_instantiations as Map<String, NS>);
+  Map<String, dynamic> get all => Map.unmodifiable(_instantiations);
 
   bool has<T>({required String name}) => _instantiations.containsKey(name) && _instantiations[name] is T;
 
@@ -60,6 +60,8 @@ class NativeSemaphores<
     _instantiations.containsKey(name) || (throw Exception('Failed to delete semaphore counter for $name. It doesn\'t exist.'));
     _instantiations.remove(name);
   }
+
+  String toString() => 'NativeSemaphores(all: ${all.toString()})';
 }
 
 class NativeSemaphore<
@@ -117,10 +119,14 @@ class NativeSemaphore<
   // late final I identity = counter.identity;
 
   // get locked i.e. the count of the semaphore
-  bool get locked => throw UnimplementedError();
+  bool get locked {
+    int isolates = counter.counts.isolate.get();
+    int processes = counter.counts.process.get();
+    return isolates > 0 || processes > 0;
+  }
 
   // if we are reentrant internally
-  // bool get reentrant => throw UnimplementedError();
+  bool get reentrant => counter.counts.isolate.get() > 1;
 
   NativeSemaphore({required String this.name, required CTR this.counter, this.verbose = false});
 
@@ -150,7 +156,7 @@ class NativeSemaphore<
       >({required String name, I? identity, CTR? counter, bool verbose = false}) {
     if (!LatePropertyAssigned<NSS>(() => __instances)) {
       __instances = NativeSemaphores<I, IS, CU, CD, CT, CTS, CTR, CTRS, NS>();
-      if (verbose) print('Setting NativeSemaphore._instances: ${__instances}');
+      if (verbose) print('Setting NativeSemaphore._instances: ${__instances.toString()}');
     }
 
     return (__instances as NSS).has<NS>(name: name)
@@ -167,6 +173,7 @@ class NativeSemaphore<
                                 name: name,
                               ) as I,
                         ),
+                    verbose: verbose,
                   ) as NS
                 : UnixSemaphore(
                     name: name,
@@ -177,6 +184,7 @@ class NativeSemaphore<
                                 name: name,
                               ) as I,
                         ) as CTR,
+                    verbose: verbose,
                   ) as NS,
           );
   }
