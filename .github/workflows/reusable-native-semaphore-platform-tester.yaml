@@ -84,5 +84,9 @@ jobs:
       - name: Install Dart Dependencies
         run: dart pub get
 
-      - name: Run Dart Tests
+      - name: Test Reentrant Semaphore
+        run: dart test test/reentrant_semaphore_test.dart
+
+      - name: Test Semaphore
         run: dart test test/semaphore_test.dart
+
