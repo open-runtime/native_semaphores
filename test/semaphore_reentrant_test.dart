@@ -1,5 +1,3 @@
-@TestOn('mac-os && linux')
-
 import 'dart:io' show sleep;
 import 'dart:isolate' show Isolate, ReceivePort, SendPort;
 import 'dart:math' show Random;
@@ -118,7 +116,6 @@ void main() {
 
     test('Reentrant Behavior Across Several Isolates', () async {
       Future<bool> spawn_isolate(String name, int id) async {
-        // throw Exception("This is a test for the workstream pattern engine");
         // The entry point for the isolate
         void isolate_entrypoint(SendPort sender) {
           // Captures the call frame here, put right right inside the method entrypoint
