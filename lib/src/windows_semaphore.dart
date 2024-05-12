@@ -7,16 +7,7 @@ import 'semaphore_counter.dart' show SemaphoreCount, SemaphoreCountDeletion, Sem
 import 'semaphore_identity.dart' show SemaphoreIdentities, SemaphoreIdentity;
 
 import 'ffi/windows.dart'
-    show
-        CloseHandle,
-        CreateSemaphoreW,
-        LPCWSTR,
-        ReleaseSemaphore,
-        WaitForSingleObject,
-        WindowsCreateSemaphoreWError,
-        WindowsCreateSemaphoreWMacros,
-        WindowsReleaseSemaphoreMacros,
-        WindowsWaitForSingleObjectMacros;
+    show CloseHandle, CreateSemaphoreW, LPCWSTR, ReleaseSemaphore, WaitForSingleObject, WindowsCreateSemaphoreWError, WindowsCreateSemaphoreWMacros, WindowsReleaseSemaphoreError, WindowsReleaseSemaphoreMacros, WindowsWaitForSingleObjectMacros;
 import 'utils/late_property_assigned.dart';
 
 class WindowsSemaphore<
@@ -83,8 +74,7 @@ class WindowsSemaphore<
   @override
   bool openAttemptSucceeded() {
     if (_semaphore.address == WindowsCreateSemaphoreWMacros.SEM_FAILED.address) {
-      WindowsCreateSemaphoreWError error = WindowsCreateSemaphoreWError.fromErrorCode(_semaphore.address);
-      if (verbose) print("Failed [openAttemptSucceeded()] windows semaphore: ${name} with error: ${error.toString()}");
+      if (verbose) print("Failed [openAttemptSucceeded()] windows semaphore: ${name} with error: ${WindowsCreateSemaphoreWError.fromErrorCode(_semaphore.address).toString()}");
       throw Exception("CreateSemaphoreW in secondary isolate should have succeeded, got ${_semaphore.address}");
     }
 
@@ -219,8 +209,17 @@ class WindowsSemaphore<
 
     if (attempt == 0) {
       if (verbose)
+        // TODO utilize something like this in the future when this dart issue is resolved https://github.com/dart-lang/sdk/issues/38832
+        // TODO ${WindowsReleaseSemaphoreError.fromErrorCode(GetLastError()).toString()}
+        print(
+            "Failed Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt ERROR: Unavailable('UNABLE TO RETRIEVE ERROR ON WINDOWS AT THIS TIME') ");
+      return false;
+    }
+
+      if (verbose)
         print(
             "Successful Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt DETAILS: Blocked threads were waiting for the semaphore to become unlocked and one of them is now allowed to return from their sem_wait call.");
+
       // Decrement the semaphore count
       counter.counts.process.decrement();
 
@@ -228,14 +227,6 @@ class WindowsSemaphore<
         print(
             "Decremented [unlockAttemptAcrossProcessesSucceeded()] Count: IDENTITY: ${identity.uuid} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
       return true;
-    } else {
-      WindowsCreateSemaphoreWError error = WindowsCreateSemaphoreWError.fromErrorCode(attempt);
-      // TODO utilize something like this in the future
-      // UnixSemUnlockWithPostError error = UnixSemUnlockWithPostError.fromErrno(errno.value);
-      if (verbose)
-        print("Failed Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt ERROR: Unavailable('UNABLE TO RETRIEVE ERROR ON WINDOWS') ");
-      return false;
-    }
   }
 
   @override
@@ -324,8 +315,8 @@ class WindowsSemaphore<
     if (verbose) print("Evaluating [closeAttemptSucceeded()]: IDENTITY: ${identity.uuid}");
 
     if (attempt == 0) {
-      // TODO utilize something like this in the future
-      // UnixSemCloseError error = UnixSemCloseError.fromErrno(errno.value);
+      // TODO utilize something like this in the future when this dart issue is resolved https://github.com/dart-lang/sdk/issues/38832
+      // TODO ${WindowsCloseHandleError.fromErrorCode(GetLastError()).toString()}
       if (verbose)
         print(
             "Failed Evaluation [closeAttemptSucceeded()]: IDENTITY: ${identity.uuid} REASON: Close attempt resulted in non 0 response: $attempt ERROR: Unavailable('UNABLE TO RETRIEVE ERROR ON WINDOWS') ");

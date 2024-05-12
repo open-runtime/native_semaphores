@@ -331,6 +331,31 @@ class WindowsReleaseSemaphoreMacros {
   static Pointer<Never> NULL = Pointer.fromAddress(0);
 }
 
+class WindowsReleaseSemaphoreError extends Error {
+  final int code;
+  final String message;
+  final String? identifier;
+  late final String? description = toString();
+
+  WindowsReleaseSemaphoreError(this.code, this.message, this.identifier);
+
+  @override
+  String toString() =>
+      'WindowsReleaseSemaphoreMacros: [Error: $identifier Code: $code]: $message';
+
+  static WindowsReleaseSemaphoreError fromErrorCode(int code) {
+
+    if (code == WindowsReleaseSemaphoreMacros.ERROR_SEM_OVERFLOW)
+      return WindowsReleaseSemaphoreError(
+          code,
+          "The semaphore cannot be set to the specified count because it would exceed the semaphore's maximum count.",
+          'ERROR_SEM_OVERFLOW');
+
+    // Default case if none of the specific error codes match
+    return WindowsReleaseSemaphoreError(code, "Unknown error.", 'UNKNOWN');
+  }
+}
+
 class WindowsCloseHandleMacros {
   // ERROR_INVALID_HANDLE? TODO - check if this is the correct error code
   static const int INVALID_HANDLE_VALUE = -1;
