@@ -75,6 +75,7 @@ class UnixSemaphore<
     if (verbose) print("Attempting to [open()] semaphore: ${name}");
 
     if (!semaphore.isSet) _semaphore = sem_open(_identifier, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
+    identity.address = _semaphore.address;
 
     if (verbose) print("Semaphore [open()] attempt response: ${semaphore}");
 
@@ -111,7 +112,7 @@ class UnixSemaphore<
   }
 
   @override
-  bool lockAcrossProcesses({bool blocking = true}) {
+  bool lockAcrossProcesses({bool blocking = true, Duration? timeout}) {
     if (!willAttemptLockAcrossProcesses()) return false;
 
     if (verbose) print("Attempting [lockAcrossProcesses()]: IDENTITY: ${identity.uuid} BLOCKING: $blocking");

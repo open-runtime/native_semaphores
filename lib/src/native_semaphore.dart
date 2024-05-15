@@ -207,7 +207,7 @@ class NativeSemaphore<
   @protected
   bool willAttemptLockAcrossProcesses() => throw UnimplementedError();
   @protected
-  bool lockAcrossProcesses({bool blocking = true}) => throw UnimplementedError();
+  bool lockAcrossProcesses({bool blocking = true, Duration? timeout}) => throw UnimplementedError();
   @protected
   bool lockAttemptAcrossProcessesSucceeded({required int attempt}) => throw UnimplementedError();
 

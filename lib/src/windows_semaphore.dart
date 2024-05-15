@@ -104,7 +104,7 @@ class WindowsSemaphore<
   }
 
   @override
-  bool lockAcrossProcesses({bool blocking = true}) {
+  bool lockAcrossProcesses({bool blocking = true, Duration? timeout}) {
     if (!willAttemptLockAcrossProcesses()) return false;
 
     if (verbose) print("Attempting [lockAcrossProcesses()]: IDENTITY: ${identity.uuid} BLOCKING: $blocking");
