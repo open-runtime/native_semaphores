@@ -17,7 +17,7 @@ String processRequest(Map<String, dynamic> request) {
 
 void main() async {
 
-  String process_name = Platform.isWindows ?   'bin/test/primary_semaphore.exe' : 'bin/test/primary_semaphore';
+  String process_name = Platform.isWindows ?   'bin\test\primary_semaphore.exe' : 'bin/test/primary_semaphore';
 
   setUp(() async {
 
@@ -25,7 +25,7 @@ void main() async {
 
     if(!primary_semaphore_executable.existsSync()) {
 
-      ProcessResult compiling_primary_semaphore_executable = await Process.run('dart', ['compile', 'exe', 'bin/test/primary_semaphore.dart', '-o', process_name]);
+      ProcessResult compiling_primary_semaphore_executable = await Process.run('dart', ['compile', 'exe', 'bin${Platform.pathSeparator}test${Platform.pathSeparator}primary_semaphore.dart', '-o', process_name]);
 
       print('Successfully compiled primary_semaphore_executable: ${compiling_primary_semaphore_executable.stdout}');
 
@@ -50,9 +50,9 @@ void main() async {
       // The second process should take about 5 seconds to acquire the lock given the unlock delay of 4 seconds of the first process and the roughly 1 second it takes to spin up the first process
       List<ProcessResult> processes = await Future.wait([
         // Initial process with lock delay of 0 locks right away
-        Process.run(process_name, [name, /*lock delay */ '0', /* unlock delay */ '4', 'first'], runInShell: true),
+        Process.run(process_name, [name, /*lock delay */ '0', /* unlock delay */ '4', 'first']),
         // Secondary process with lock delay of 2 i.e. 2 seconds into the first processes unlock delay
-        Process.run(process_name, [name, /*lock delay */ '2', /* unlock delay */ '0', 'second'], runInShell: true)
+        Process.run(process_name, [name, /*lock delay */ '2', /* unlock delay */ '0', 'second'])
       ]);
 
       // Start with unlock delay of 2
