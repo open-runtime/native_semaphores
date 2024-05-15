@@ -10,7 +10,9 @@ main(List<String> args) async {
 
   String tracker = args.elementAt(3);
 
-  // stdout.writeln('Creating semaphore with name: $name');
+  stdout.writeln('Child Process Parameters Lock Delay: $lock_delay, Unlock Delay: $unlock_delay, Tracker: $tracker, PID: $pid, Name: $name');
+
+  stdout.writeln('Creating semaphore with name: $name');
 
   final NativeSemaphore sem = NativeSemaphore.instantiate(name: name)..open();
 
@@ -26,15 +28,15 @@ main(List<String> args) async {
 
   sem.unlock();
 
-  // stdout.writeln('Semaphore unlocked with name: $name');
+  stdout.writeln('Semaphore unlocked with name: $name');
 
   sem.close();
 
-  // stdout.writeln('Semaphore closed with name: $name');
+  stdout.writeln('Semaphore closed with name: $name');
 
   sem.unlink();
 
-  // stdout.writeln('Semaphore unlinked with name: $name');
+  stdout.writeln('Semaphore unlinked with name: $name');
 
   exit(0);
 

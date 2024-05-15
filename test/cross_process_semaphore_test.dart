@@ -17,7 +17,7 @@ String processRequest(Map<String, dynamic> request) {
 
 void main() async {
 
-  String process_name = Platform.isWindows ?   'bin\test\primary_semaphore.exe' : 'bin/test/primary_semaphore';
+  String process_name =  'bin${Platform.pathSeparator}test${Platform.pathSeparator}primary_semaphore${Platform.isWindows ? '.exe' : ''}';
 
   setUp(() async {
 
@@ -25,7 +25,7 @@ void main() async {
 
     if(!primary_semaphore_executable.existsSync()) {
 
-      ProcessResult compiling_primary_semaphore_executable = await Process.run('dart', ['compile', 'exe', 'bin${Platform.pathSeparator}test${Platform.pathSeparator}primary_semaphore.dart', '-o', process_name]);
+      ProcessResult compiling_primary_semaphore_executable = Process.runSync('dart', ['compile', 'exe', 'bin${Platform.pathSeparator}test${Platform.pathSeparator}primary_semaphore.dart', '-o', process_name]);
 
       print('Successfully compiled primary_semaphore_executable: ${compiling_primary_semaphore_executable.stdout}');
 
@@ -59,6 +59,9 @@ void main() async {
       ProcessResult running_primary_semaphore_executable = processes.first;
       // Start with unlock delay of 4
       ProcessResult running_secondary_semaphore_executable = processes.last;
+
+      print('${Platform.lineTerminator}Primary Process:${Platform.lineTerminator}${Platform.lineTerminator} ${running_primary_semaphore_executable.stdout} ${Platform.lineTerminator}');
+      print('${Platform.lineTerminator}Secondary Process:${Platform.lineTerminator}${Platform.lineTerminator} ${running_secondary_semaphore_executable.stdout} ${Platform.lineTerminator}${Platform.lineTerminator}');
 
       // use regex to parse the number [x] out of this return string "Child Process first 55852 Locking semaphore with name 44314234863597_named_sem took: [3] seconds"
       RegExp lock_time = RegExp(r"Locking semaphore with name \d+_named_sem took: \[(\d+)\] seconds");
