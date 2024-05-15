@@ -1,6 +1,6 @@
 import 'dart:async' show Future, StreamController, StreamIterator, StreamSink, StreamSubscription, StreamTransformer;
 import 'dart:convert' show jsonDecode, jsonEncode, utf8;
-import 'dart:io' show File, Process, ProcessResult, ProcessSignal, ProcessStartMode, pid, sleep, stdin, stdout;
+import 'dart:io' show File, Platform, Process, ProcessResult, ProcessSignal, ProcessStartMode, pid, sleep, stdin, stdout;
 import 'dart:isolate' show Isolate, ReceivePort, SendPort;
 import 'dart:math' show Random;
 
@@ -16,7 +16,7 @@ String processRequest(Map<String, dynamic> request) {
 
 void main() async {
 
-  String process_name = 'bin/test/primary_semaphore';
+  String process_name = Platform.isWindows ?   'bin/test/primary_semaphore.exe' : 'bin/test/primary_semaphore';
 
   setUp(() async {
 
