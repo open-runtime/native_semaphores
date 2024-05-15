@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - aot_monorepo_compat
+      - testing/cross-process-locking
   workflow_dispatch:
 
 

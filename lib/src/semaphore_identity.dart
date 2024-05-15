@@ -49,9 +49,11 @@ class SemaphoreIdentity {
   String get process => SemaphoreIdentities.process;
 
   //  Gets set when the semaphore is opened
-  late final String _address;
+  late final int _address;
 
-  String get address => _address;
+  int get address => _address;
+
+  set address(int value) => !LatePropertyAssigned<int>(() => _address) ? _address = value : _address;
 
   late final String _name;
 

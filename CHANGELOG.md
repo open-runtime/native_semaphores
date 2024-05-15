@@ -55,3 +55,6 @@
 - TODO: In code dartdoc comments for pub.dev API documentation
 - TODO: GH Actions for Publishing to pub.dev
 
+## 1.0.0-beta.7
+- Added cross process unit tests with dart AOT compiled binaries that all try to leverage the same named lock
+- FIX: Fixed a bug where the SemaphoreIdentity wasn't getting the Semaphore's address assigned to it

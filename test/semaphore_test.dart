@@ -11,12 +11,12 @@ void main() {
   group('Testing Cross-Isolate Named Semaphore', () {
     test('Several Isolates Accessing Same Named Semaphore, waiting random durations and then unlocking.', () async {
       Future<bool> spawn_isolate(String name, int id) async {
-        // throw Exception("This is a test for the workstream pattern engine");
         // The entry point for the isolate
         void isolate_entrypoint(SendPort sender) {
           // Captures the call frame here, put right right inside the method entrypoint
 
           final NS sem = NativeSemaphore.instantiate(name: name, verbose: true);
+
 
           bool opened = sem.open();
           opened || (throw Exception("Open in isolate $id should have succeeded"));
