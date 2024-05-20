@@ -155,7 +155,9 @@ class SemaphoreCounter<
   dynamic get _instances => SemaphoreCounter.__instances;
 
   late final String identifier;
+
   late final I identity;
+
   late final CTS counts;
 
   SemaphoreCounter({required String this.identifier, required I this.identity, required CTS this.counts});

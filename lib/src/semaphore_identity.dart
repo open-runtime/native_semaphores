@@ -1,5 +1,5 @@
 import 'dart:developer' show Service;
-import 'dart:io' show pid;
+import 'dart:io' show Directory, File, Platform, pid;
 import 'dart:isolate' show Isolate;
 import 'utils/late_property_assigned.dart' show LatePropertyAssigned;
 
@@ -8,7 +8,7 @@ class SemaphoreIdentities<I extends SemaphoreIdentity> {
 
   static String get isolate {
     String? _isolate = Service.getIsolateId(Isolate.current)?.toString();
-    return _isolate ?? Isolate.current.hashCode.toString();
+    return (_isolate ?? Isolate.current.hashCode.toString()).replaceFirst('isolates${Platform.pathSeparator}', '');
   }
 
   static final String process = pid.toString();
@@ -62,7 +62,7 @@ class SemaphoreIdentity {
   // helper property to know if it has been registered inside of a named semaphore instance
   late final bool _registered;
 
-  bool get registered => _registered;
+  bool get registered => !LatePropertyAssigned<int>(() => _registered) ? false : _registered;
 
   String get uuid => [name, isolate, process].join('_');
 

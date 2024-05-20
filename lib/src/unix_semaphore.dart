@@ -3,6 +3,7 @@ import 'dart:ffi' show AbiSpecificIntegerPointer, Char, Pointer;
 import 'package:ffi/ffi.dart' show StringUtf8Pointer, malloc;
 
 import 'native_semaphore.dart' show NativeSemaphore;
+import 'persisted_native_semaphore_operation.dart' show NATIVE_SEMAPHORE_OPERATION, PersistedNativeSemaphoreOperation, PersistedNativeSemaphoreOperations;
 import 'semaphore_counter.dart' show SemaphoreCount, SemaphoreCountDeletion, SemaphoreCountUpdate, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
 import 'semaphore_identity.dart' show SemaphoreIdentities, SemaphoreIdentity;
 import 'ffi/unix.dart'
@@ -40,9 +41,13 @@ class UnixSemaphore<
     /* Semaphore Counter */
     CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
     /* Semaphore Counter */
-    CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>
+    CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>,
+    /* Persisted Native Semaphore Operation */
+    PNSO extends PersistedNativeSemaphoreOperation,
+    /* Persisted Native Semaphore Operations */
+    PNSOS extends PersistedNativeSemaphoreOperations<PNSO>
     /* formatting guard comment */
-    > extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS> {
+    > extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS> {
   late final Pointer<Char> _identifier;
 
   ({bool isSet, Pointer<Char>? get}) get identifier => LatePropertyAssigned<Pointer<Char>>(() => _identifier) ? (isSet: true, get: _identifier) : (isSet: false, get: null);
@@ -55,12 +60,17 @@ class UnixSemaphore<
 
   @override
   bool willAttemptOpen() {
+
     if (verbose) print("Evaluating [willAttemptOpen()]: IDENTITY: ${identity.uuid}");
     // TODO other checks on the identifier string
     (name.replaceFirst(('/'), '').length <= UnixSemLimits.NAME_MAX_CHARACTERS) ||
         (throw ArgumentError('Identifier is too long. Must be less than or equal to ${UnixSemLimits.NAME_MAX_CHARACTERS} characters.'));
 
     identity.name == name || (throw ArgumentError('Identity name does not match the name provided to the semaphore.'));
+
+    // TODO - create a temp file with identity && uuid with file io and update the status to opening and the time stamp
+
+    persist(status: NATIVE_SEMAPHORE_OPERATION.willAttemptOpen) || (throw Exception('Failed to persist operation status to temp file.'));
 
     if (verbose) print("Proceeding to [open()] semaphore: ${name}");
     return true;
@@ -77,6 +87,10 @@ class UnixSemaphore<
     if (!semaphore.isSet) _semaphore = sem_open(_identifier, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
     identity.address = _semaphore.address;
 
+    persist(status: NATIVE_SEMAPHORE_OPERATION.open) || (throw Exception('Failed to persist operation status to temp file.'));
+
+    // TODO - update the status within the temp file to opened and verified false the time stamp
+
     if (verbose) print("Semaphore [open()] attempt response: ${semaphore}");
 
     return openAttemptSucceeded();
@@ -88,7 +102,13 @@ class UnixSemaphore<
 
     if (verbose) print("Successfully [openAttemptSucceeded()] unix semaphore: ${name} at address: ${semaphore.get?.address}");
 
-    return !LatePropertyAssigned<bool>(() => hasOpened) ? hasOpened = true : opened;
+    // TODO - update the status within the temp file to opened and verified true the time stamp
+
+    !LatePropertyAssigned<bool>(() => hasOpened) ? hasOpened = true : opened;
+
+    persist(status: NATIVE_SEMAPHORE_OPERATION.openAttemptSucceeded) || (throw Exception('Failed to persist operation status to temp file.'));
+
+    return opened;
   }
 
   @override
@@ -108,6 +128,8 @@ class UnixSemaphore<
 
     if (verbose) print("Proceeding [lockAcrossProcesses()]: IDENTITY: ${identity.uuid}");
 
+    persist(status: NATIVE_SEMAPHORE_OPERATION.willAttemptLockAcrossProcesses) || (throw Exception('Failed to persist operation status to temp file.'));
+
     return true;
   }
 
@@ -121,6 +143,8 @@ class UnixSemaphore<
 
     if (verbose) print("Attempted [lockAcrossProcesses()]: IDENTITY: ${identity.uuid} BLOCKING: $blocking ATTEMPT RESPONSE: $attempt");
 
+    persist(status: NATIVE_SEMAPHORE_OPERATION.lockAcrossProcesses) || (throw Exception('Failed to persist operation status to temp file.'));
+
     return lockAttemptAcrossProcessesSucceeded(attempt: attempt);
   }
 
@@ -132,6 +156,8 @@ class UnixSemaphore<
       if (verbose)
         print(
             "Incremented [lockAttemptAcrossProcessesSucceeded()] Count: IDENTITY: ${identity.uuid} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+
+      persist(status: NATIVE_SEMAPHORE_OPERATION.lockAttemptAcrossProcessesSucceeded) || (throw Exception('Failed to persist operation status to temp file.'));
       return true;
     }
 
@@ -149,6 +175,8 @@ class UnixSemaphore<
 
     if (verbose) print("Proceeding [lockReentrantToIsolate()]: IDENTITY: ${identity.uuid}");
 
+    persist(status: NATIVE_SEMAPHORE_OPERATION.willAttemptLockReentrantToIsolate) || (throw Exception('Failed to persist operation status to temp file.'));
+
     return true;
   }
 
@@ -157,6 +185,8 @@ class UnixSemaphore<
     if (!willAttemptLockReentrantToIsolate()) return false;
 
     if (verbose) print("Attempting [lockReentrantToIsolate()]: IDENTITY: ${identity.uuid}");
+
+    persist(status: NATIVE_SEMAPHORE_OPERATION.lockReentrantToIsolate) || (throw Exception('Failed to persist operation status to temp file.'));
 
     // We aren't actually going to do anything here and proceed to increment in the _lockAttemptReentrantToIsolateSucceeded method
     return lockAttemptReentrantToIsolateSucceeded();
@@ -169,6 +199,8 @@ class UnixSemaphore<
     if (verbose)
       print(
           "Incremented [lockAttemptReentrantToIsolateSucceeded()] Count: IDENTITY: ${identity.uuid} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+
+    persist(status: NATIVE_SEMAPHORE_OPERATION.lockAttemptReentrantToIsolateSucceeded) || (throw Exception('Failed to persist operation status to temp file.'));
 
     return true;
   }
@@ -199,6 +231,9 @@ class UnixSemaphore<
     // TODO eventually consider globally tracked processes?
 
     if (verbose) print("Proceeding to [unlock()] from [willAttemptUnlockAcrossProcesses()]: IDENTITY: ${identity.uuid}");
+
+    persist(status: NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockAcrossProcesses) || (throw Exception('Failed to persist operation status to temp file.'));
+
     return true;
   }
 
@@ -223,6 +258,8 @@ class UnixSemaphore<
       if (verbose)
         print(
             "Decremented [unlockAttemptAcrossProcessesSucceeded()] Count: IDENTITY: ${identity.uuid} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+
+      persist(status: NATIVE_SEMAPHORE_OPERATION.unlockAttemptAcrossProcessesSucceeded) || (throw Exception('Failed to persist operation status to temp file.'));
     }
 
     return true;
@@ -237,6 +274,8 @@ class UnixSemaphore<
     int attempt = sem_post(_semaphore);
 
     if (verbose) print("Attempted [unlockAcrossProcesses()]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt");
+
+    persist(status: NATIVE_SEMAPHORE_OPERATION.unlockAcrossProcesses) || (throw Exception('Failed to persist operation status to temp file.'));
 
     return unlockAttemptAcrossProcessesSucceeded(attempt: attempt);
   }
@@ -262,6 +301,8 @@ class UnixSemaphore<
     }
 
     if (verbose) print("Proceeding to [unlockReentrantToIsolate()]: IDENTITY: ${identity.uuid}");
+
+    persist(status: NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockReentrantToIsolate) || (throw Exception('Failed to persist operation status to temp file.'));
     return true;
   }
 
@@ -271,6 +312,7 @@ class UnixSemaphore<
 
     if (verbose) print("Attempting [Unlock Reentrant To Isolate]: IDENTITY: ${identity.uuid}");
 
+    persist(status: NATIVE_SEMAPHORE_OPERATION.unlockReentrantToIsolate) || (throw Exception('Failed to persist operation status to temp file.'));
     // We will do nothing here and proceed to decrement in the _unlockAttemptReentrantToIsolateSucceeded method
 
     return unlockAttemptReentrantToIsolateSucceeded();
@@ -284,6 +326,7 @@ class UnixSemaphore<
       print(
           "Decremented [Unlock Reentrant To Isolate] Count: IDENTITY: ${identity.uuid}  PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
 
+    persist(status: NATIVE_SEMAPHORE_OPERATION.unlockAttemptReentrantToIsolateSucceeded) || (throw Exception('Failed to persist operation status to temp file.'));
     return true;
   }
 
@@ -304,6 +347,7 @@ class UnixSemaphore<
 
     if (verbose) print("Proceeding to [close()]: IDENTITY: ${identity.uuid}");
 
+    persist(status: NATIVE_SEMAPHORE_OPERATION.willAttemptClose) || (throw Exception('Failed to persist operation status to temp file.'));
     return true;
   }
 
@@ -313,7 +357,11 @@ class UnixSemaphore<
 
     if (attempt == 0) {
       if (verbose) print("Successful Evaluation [Close Attempt Succeeded]: IDENTITY: ${identity.uuid}");
-      return !LatePropertyAssigned<bool>(() => hasClosed) ? hasClosed = true : closed;
+
+      !LatePropertyAssigned<bool>(() => hasClosed) ? hasClosed = true : closed;
+
+      persist(status: NATIVE_SEMAPHORE_OPERATION.closeAttemptSucceeded) || (throw Exception('Failed to persist operation status to temp file.'));
+      return closed;
     }
 
     UnixSemCloseError error = UnixSemCloseError.fromErrno(errno.value);
@@ -334,6 +382,8 @@ class UnixSemaphore<
 
     if (verbose) print("Attempted [Close]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt");
 
+    persist(status: NATIVE_SEMAPHORE_OPERATION.close) || (throw Exception('Failed to persist operation status to temp file.'));
+
     return closeAttemptSucceeded(attempt: attempt);
   }
 
@@ -353,6 +403,8 @@ class UnixSemaphore<
     }
 
     if (verbose) print("Proceeding to [unlink()]: IDENTITY: ${identity.uuid}");
+
+    persist(status: NATIVE_SEMAPHORE_OPERATION.willAttemptUnlink) || (throw Exception('Failed to persist operation status to temp file.'));
     return true;
   }
 
@@ -383,7 +435,11 @@ class UnixSemaphore<
 
     if (verbose) print("Freed memory within [unlinkAttemptSucceeded()] allocated for semaphore: ${_identifier}");
 
-    return hasUnlinked = true;
+    hasUnlinked = true;
+
+    persist(status: NATIVE_SEMAPHORE_OPERATION.unlinkAttemptSucceeded) || (throw Exception('Failed to persist operation status to temp file.'));
+
+    return unlinked;
   }
 
   @override
@@ -395,6 +451,8 @@ class UnixSemaphore<
     final int unlinked = sem_unlink(_identifier);
 
     if (verbose) print("Attempted [unlink()]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $unlinked");
+
+    persist(status: NATIVE_SEMAPHORE_OPERATION.unlink) || (throw Exception('Failed to persist operation status to temp file.'));
 
     return unlinkAttemptSucceeded(attempt: unlinked);
   }

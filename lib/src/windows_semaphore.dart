@@ -3,6 +3,7 @@ import 'dart:ffi' show Char, NativeType, Pointer;
 import 'package:ffi/ffi.dart' show StringUtf16Pointer, malloc;
 
 import 'native_semaphore.dart' show NativeSemaphore;
+import 'persisted_native_semaphore_operation.dart' show PersistedNativeSemaphoreOperation, PersistedNativeSemaphoreOperations;
 import 'semaphore_counter.dart' show SemaphoreCount, SemaphoreCountDeletion, SemaphoreCountUpdate, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
 import 'semaphore_identity.dart' show SemaphoreIdentities, SemaphoreIdentity;
 
@@ -11,24 +12,28 @@ import 'ffi/windows.dart'
 import 'utils/late_property_assigned.dart' show LatePropertyAssigned;
 
 class WindowsSemaphore<
-/*  Identity */
+    /*  Identity */
     I extends SemaphoreIdentity,
-/* Semaphore Identities */
+    /* Semaphore Identities */
     IS extends SemaphoreIdentities<I>,
-/*Count Update*/
+    /*Count Update*/
     CU extends SemaphoreCountUpdate,
-/*Count Deletion*/
+    /*Count Deletion*/
     CD extends SemaphoreCountDeletion,
-/* Semaphore Count */
+    /* Semaphore Count */
     CT extends SemaphoreCount<CU, CD>,
-/* Semaphore Counts */
+    /* Semaphore Counts */
     CTS extends SemaphoreCounts<CU, CD, CT>,
-/* Semaphore Counter */
+    /* Semaphore Counter */
     CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
-/* Semaphore Counter */
-    CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>
-/* formatting guard comment */
-    > extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS> {
+    /* Semaphore Counter */
+    CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>,
+    /* Persisted Native Semaphore Operation */
+    PNSO extends PersistedNativeSemaphoreOperation,
+    /* Persisted Native Semaphore Operations */
+    PNSOS extends PersistedNativeSemaphoreOperations<PNSO>
+    /* formatting guard comment */
+    > extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS> {
   late final LPCWSTR _identifier;
 
   ({bool isSet, LPCWSTR? get}) get identifier => LatePropertyAssigned<Pointer<Char>>(() => _identifier) ? (isSet: true, get: _identifier) : (isSet: false, get: null);
