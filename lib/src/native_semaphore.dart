@@ -116,9 +116,9 @@ class NativeSemaphore<
 
   bool waiting = false;
 
-  final Directory cache = Directory('${Directory.systemTemp.path}${Platform.pathSeparator}runtime_native_semaphores')..createSync(recursive: true);
+  late final Directory cache = Directory('${Directory.systemTemp.path}${Platform.pathSeparator}runtime_native_semaphores${Platform.pathSeparator}$name')..createSync(recursive: true);
 
-  late final File temp = File('${cache.path}${Platform.pathSeparator}${identity.uuid}.semaphore.txt')..createSync(recursive: true)..writeAsStringSync(PersistedNativeSemaphoreOperations().serialize(), flush: true);
+  late final File temp = File('${cache.path}${Platform.pathSeparator}process_${identity.process}_isolate_${identity.isolate}.semaphore.txt')..createSync(recursive: true)..writeAsStringSync(PersistedNativeSemaphoreOperations().serialize(), flush: true);
 
   @protected
   late final bool hasOpened;

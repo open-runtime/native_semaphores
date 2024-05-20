@@ -25,7 +25,7 @@ typedef NS = NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS>;
 void main() {
   group('Testing Persisted Native Semaphore from current thread', () {
     test('Create Native Semaphore, Call open(), and verify that the file exists.', () async {
-      String name = '${safeIntId.getId()}_named_sem';
+      String name = 'tested_named_sem';
 
       NativeSemaphore semaphore = NativeSemaphore.instantiate(name: name, verbose: true);
 
