@@ -189,6 +189,7 @@ class PersistedNativeSemaphoreOperation {
   bool closed;
   bool unlinked;
   bool reentrant;
+  bool waiting;
 
   PersistedNativeSemaphoreOperation(
       {required String this.uuid,
@@ -201,6 +202,7 @@ class PersistedNativeSemaphoreOperation {
       this.closed = false,
       this.unlinked = false,
       this.reentrant = false,
+      this.waiting = false,
       DateTime? timestamp,
       int? address,
       Duration? elapsed,
@@ -211,7 +213,7 @@ class PersistedNativeSemaphoreOperation {
 
   @override
   String toString() =>
-      'PersistedNativeSemaphoreOperation(name: $name, operation: $operation, timestamp: $timestamp, uuid: $uuid, address: $address, elapsed: $elapsed, hash: $hash, counts: $counts)';
+      'PersistedNativeSemaphoreOperation(name: $name, isolate: $isolate, process: $process, operation: $operation, timestamp: $timestamp, uuid: $uuid, address: $address, elapsed: $elapsed, hash: $hash, locked: $locked, closed: $closed, unlinked: $unlinked, reentrant: $reentrant, waiting: $waiting, counts: $counts)';
 
   Map<String, dynamic> asMap() => Map<String, dynamic>.fromEntries([
         MapEntry('name', name),
@@ -227,6 +229,7 @@ class PersistedNativeSemaphoreOperation {
         MapEntry('closed', closed),
         MapEntry('unlinked', unlinked),
         MapEntry('reentrant', reentrant),
+        MapEntry('waiting', waiting),
         MapEntry(
           'counts',
           Map<String, int>.fromEntries([
@@ -250,6 +253,7 @@ class PersistedNativeSemaphoreOperation {
       operation: NATIVE_SEMAPHORE_OPERATION.fromString(data['operation']),
       timestamp: DateTime.parse(data['timestamp']),
       address: data['address'],
+      waiting: data['waiting'],
       elapsed: Duration(microseconds: data['elapsed']),
       counts: (isolate: data['counts']['isolate'], process: data['counts']['process']),
       locked: data['locked'],

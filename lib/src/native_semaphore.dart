@@ -114,6 +114,8 @@ class NativeSemaphore<
 
   I get identity => counter.identity;
 
+  bool waiting = false;
+
   final Directory cache = Directory('${Directory.systemTemp.path}${Platform.pathSeparator}runtime_native_semaphores')..createSync(recursive: true);
 
   late final File temp = File('${cache.path}${Platform.pathSeparator}${identity.uuid}.semaphore.txt')..createSync(recursive: true)..writeAsStringSync(PersistedNativeSemaphoreOperations().serialize(), flush: true);
@@ -239,7 +241,7 @@ class NativeSemaphore<
 
     DateTime timestamp = DateTime.now();
 
-    temp.writeAsStringSync((_operations..add(operation: _operation = PersistedNativeSemaphoreOperation(name: name, uuid: identity.uuid, isolate: identity.isolate, process: identity.process, operation: status,timestamp: timestamp, address: opened ? identity.address : -1, elapsed: operation.isSet ? timestamp.difference(operation.get!.timestamp) : null, verbose: verbose, counts: (isolate: counter.counts.isolate.get(), process: counter.counts.process.get()), locked: locked, closed: closed, reentrant: reentrant, unlinked: unlinked) as PNSO)).serialize(), flush: true);
+    temp.writeAsStringSync((_operations..add(operation: _operation = PersistedNativeSemaphoreOperation(name: name, uuid: identity.uuid, isolate: identity.isolate, process: identity.process, operation: status,timestamp: timestamp, address: opened ? identity.address : -1, elapsed: operation.isSet ? timestamp.difference(operation.get!.timestamp) : null, verbose: verbose, counts: (isolate: counter.counts.isolate.get(), process: counter.counts.process.get()), locked: locked, closed: closed, reentrant: reentrant, unlinked: unlinked, waiting: waiting) as PNSO)).serialize(), flush: true);
 
     return persistAttemptSucceeded();
   }

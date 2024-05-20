@@ -135,11 +135,13 @@ class UnixSemaphore<
 
   @override
   bool lockAcrossProcesses({bool blocking = true, Duration? timeout}) {
+    waiting = blocking;
     if (!willAttemptLockAcrossProcesses()) return false;
 
     if (verbose) print("Attempting [lockAcrossProcesses()]: IDENTITY: ${identity.uuid} BLOCKING: $blocking");
 
     int attempt = blocking ? sem_wait(_semaphore) : sem_trywait(_semaphore);
+    waiting = false;
 
     if (verbose) print("Attempted [lockAcrossProcesses()]: IDENTITY: ${identity.uuid} BLOCKING: $blocking ATTEMPT RESPONSE: $attempt");
 
