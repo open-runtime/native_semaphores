@@ -36,9 +36,9 @@ class SemaphoreCount<CU extends SemaphoreCountUpdate, CD extends SemaphoreCountD
 
   final String forProperty;
 
-  SemaphoreCount({required String identifier, required String this.forProperty, bool this.verbose = false}) {
+  SemaphoreCount({required String identifier, required String this.forProperty, int value = 0, bool this.verbose = false}) {
     this.identifier = identifier + "_for_$forProperty";
-    update(value: 0);
+    update(value: value);
   }
 
   int get() => counts[identifier] ?? (throw Exception('Failed to get semaphore count for $identifier.'));
@@ -99,6 +99,7 @@ class SemaphoreCounts<
 }
 
 // A wrapper to track the instances of the semaphore counter
+// TODO refactor to be the same as the semaphore identity
 class SemaphoreCounters<
     /*  Identity */
     I extends SemaphoreIdentity,
@@ -150,9 +151,9 @@ class SemaphoreCounter<
     CTS extends SemaphoreCounts<CU, CD, CT>
     /* formatting guard comment */
     > {
-  static late final dynamic __instances;
+  static late final dynamic __counters;
 
-  dynamic get _instances => SemaphoreCounter.__instances;
+  SemaphoreCounters<I, CU, CD, CT, CTS, CTR> all<I extends SemaphoreIdentity, CU extends SemaphoreCountUpdate, CD extends SemaphoreCountDeletion, CT extends SemaphoreCount<CU, CD>, CTS extends SemaphoreCounts<CU, CD, CT>, CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>>() => __counters;
 
   late final String identifier;
 
@@ -160,7 +161,11 @@ class SemaphoreCounter<
 
   late final CTS counts;
 
-  SemaphoreCounter({required String this.identifier, required I this.identity, required CTS this.counts});
+  bool verbose;
+
+  bool external;
+
+  SemaphoreCounter({required String this.identifier, required I this.identity, required CTS this.counts, bool this.verbose = false, bool this.external = false});
 
   static SemaphoreCounter<I, CU, CD, CT, CTS> instantiate<
       /*  Identity */
@@ -178,22 +183,47 @@ class SemaphoreCounter<
       /* Semaphore Counters */
       CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>
       /* formatting guard comment */
-      >({required I identity}) {
-    if (!LatePropertyAssigned<CTRS>(() => __instances)) __instances = SemaphoreCounters<I, CU, CD, CT, CTS, CTR>();
+      >({required I identity, ({int process, int isolate}) counts =  (isolate: 0, process: 0), bool external = false, bool verbose = false}) {
+    if (!LatePropertyAssigned<CTRS>(() => __counters)) __counters = SemaphoreCounters<I, CU, CD, CT, CTS, CTR>();
 
-    return (__instances as CTRS).has<CTR>(identifier: identity.name)
-        ? (__instances as CTRS).get(identifier: identity.name)
-        : (__instances as CTRS).register(
-            identifier: identity.name,
+    return (__counters as CTRS).has<CTR>(identifier: identity.identifier)
+        ? (__counters as CTRS).get(identifier: identity.identifier)
+        : (__counters as CTRS).register(
+            identifier: identity.identifier,
             counter: SemaphoreCounter<I, CU, CD, CT, CTS>(
               identity: identity,
+              external: external,
               counts: (SemaphoreCounts<CU, CD, CT>(
                 // Super important to pass the forProperty as the name of the property that the counter is set on
-                isolate: SemaphoreCount(identifier: identity.name, forProperty: 'isolate') as CT,
-                process: SemaphoreCount(identifier: identity.name, forProperty: 'process') as CT,
+                isolate: SemaphoreCount(identifier: identity.identifier, forProperty: 'isolate', value: counts.isolate, verbose: verbose) as CT,
+                process: SemaphoreCount(identifier: identity.identifier, forProperty: 'process', value: counts.process, verbose: verbose) as CT,
               ) as CTS),
-              identifier: identity.name,
+              identifier: identity.identifier,
+              verbose: verbose,
             ) as CTR,
           );
   }
+
+  // track an external semaphore from a different process to this processes semaphore counters
+  SemaphoreCounter<I, CU, CD, CT, CTS> track<
+  /*  Identity */
+  I extends SemaphoreIdentity,
+  /* Count Update */
+  CU extends SemaphoreCountUpdate,
+  /* Count Deletion */
+  CD extends SemaphoreCountDeletion,
+  /* Semaphore Count */
+  CT extends SemaphoreCount<CU, CD>,
+  /* Semaphore Counts */
+  CTS extends SemaphoreCounts<CU, CD, CT>,
+  /* Semaphore Counter i.e. this class */
+  CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
+  /* Semaphore Counters */
+  CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>
+  /* formatting guard comment */
+  >({required I identity, ({int process, int isolate}) counts =  (isolate: 0, process: 0), bool verbose = false}) {
+    return instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity, counts: counts, external: true, verbose: verbose);
+  }
+
+  // TODO here
 }

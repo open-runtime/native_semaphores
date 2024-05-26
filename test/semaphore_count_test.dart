@@ -38,7 +38,7 @@ void main() {
       expect(identity, equals(SemaphoreIdentity.instantiate<I, IS>(name: name)));
 
       // Verify that the identity is registered
-      expect(SemaphoreIdentities<I>().has<SemaphoreIdentity>(name: name), equals(true));
+      expect(SemaphoreIdentities<I>().has<SemaphoreIdentity>(name: name, process: identity.process, isolate: identity.isolate), equals(true));
 
       // Verify the isolate count is 0
       expect(counter.counts.isolate.get(), equals(0));
@@ -71,6 +71,8 @@ void main() {
 
       // Verify that the identity is the same as the counter's identity
       expect(counter.identity, equals(identity));
+
+      throw Exception("This is a test for the workstream pattern engine for Benny!");
 
       // Verify the counter is a singleton
       // expect(counter, equals(SemaphoreCurrentThreadCounter<SemaphoreIdentity>(identity: identity)));
@@ -126,11 +128,11 @@ void main() {
       expect(identity_one, isNot(equals(identity_two)));
 
       // Verify that the uuids are different
-      expect(identity_one.uuid, isNot(equals(identity_two.uuid)));
+      expect(identity_one.identifier, isNot(equals(identity_two.identifier)));
 
       // Verify that the identity is registered
-      expect(SemaphoreIdentities<I>().has<SemaphoreIdentity>(name: name_one), equals(true));
-      expect(SemaphoreIdentities<I>().has<SemaphoreIdentity>(name: name_two), equals(true));
+      expect(SemaphoreIdentities<I>().has<SemaphoreIdentity>(name: name_one, isolate: identity_one.isolate, process: identity_one.process), equals(true));
+      expect(SemaphoreIdentities<I>().has<SemaphoreIdentity>(name: name_two, isolate: identity_two.isolate, process: identity_two.process), equals(true));
 
       // Verify the counter is a singleton
       expect(SemaphoreCounters<I, CU, CD, CT, CTS, CTR>().has<CTR>(identifier: name_one), equals(true));
@@ -172,7 +174,7 @@ void main() {
             if (Random().nextBool()) _counter.counts.process.increment();
           }
 
-          sender.send("${_counter.counts.isolate.get()}:${_identity.uuid}:${_counter.identity.uuid}");
+          sender.send("${_counter.counts.isolate.get()}:${_identity.identifier}:${_counter.identity.identifier}");
         }
 
         // Create a receive port to get messages from the isolate

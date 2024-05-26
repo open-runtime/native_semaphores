@@ -26,6 +26,7 @@ void main() {
       expect(sem.opened, equals(true));
       expect(sem.closed, equals(false));
 
+
       // expect sem to be locked
       expect(sem.locked, equals(false));
 
@@ -45,8 +46,8 @@ void main() {
       bool closed = sem.close();
 
       expect(closed, equals(true));
+      expect(sem.opened, equals(true));
       expect(sem.closed, equals(true));
-      expect(sem.opened, equals(false));
 
       bool unlinked = sem.unlink();
       expect(unlinked, equals(true));
@@ -129,7 +130,7 @@ void main() {
             final NS sem = NativeSemaphore.instantiate(name: _name);
 
             bool unlocked = sem.unlock();
-            unlocked || (throw Exception("Unlock in isolate $id should have succeeded ${sem.identity.uuid}"));
+            unlocked || (throw Exception("Unlock in isolate $id should have succeeded ${sem.identity.identifier}"));
 
             sem.counter.counts.isolate.get() == currentDepth - (currentDepth - sem.counter.counts.isolate.get()) ||
                 (throw Exception("Unlock in isolate $id should have succeeded"));

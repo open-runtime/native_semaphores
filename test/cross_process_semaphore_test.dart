@@ -10,11 +10,6 @@ import 'package:runtime_native_semaphores/src/native_semaphore_types.dart' show 
 import 'package:test/expect.dart';
 import 'package:test/test.dart' show Timeout, equals, everyElement, expect, group, isTrue, setUp, test;
 
-String processRequest(Map<String, dynamic> request) {
-  // Implement your logic here
-  return 'Processed from parent: ${request['data']}';
-}
-
 void main() async {
 
   String process_name =  'bin${Platform.pathSeparator}test${Platform.pathSeparator}primary_semaphore${Platform.isWindows ? '.exe' : ''}';

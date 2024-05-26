@@ -29,7 +29,7 @@ void main() {
 
           // Unlock
           bool unlocked = sem.unlock();
-          unlocked || (throw Exception("Unlock in isolate $id should have succeeded ${sem.identity.uuid}"));
+          unlocked || (throw Exception("Unlock in isolate $id should have succeeded ${sem.identity.identifier}"));
 
           // Close the semaphore
           bool closed = sem.close();

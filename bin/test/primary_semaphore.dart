@@ -22,7 +22,8 @@ main(List<String> args) async {
   sem.lock();
   stopwatch.stop();
 
-  stdout.writeln('Child Process $tracker $pid Locking semaphore with name $name took: [${stopwatch.elapsed.inSeconds}] seconds');
+  // Critical to keep for unit test. We parse out the time and assert that it is within a certain range
+  stdout.writeln('Tracker $tracker in Process $pid | Locking semaphore with name $name took: [${stopwatch.elapsed.inSeconds}] seconds');
 
   await Future.delayed(Duration(seconds: unlock_delay));
 

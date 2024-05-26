@@ -1,52 +1,63 @@
 import 'dart:developer' show Service;
-import 'dart:io' show Directory, File, Platform, pid;
+import 'dart:io' show Directory, File, FileSystemEntity, Platform, pid;
 import 'dart:isolate' show Isolate;
+import 'package:runtime_native_semaphores/runtime_native_semaphores.dart';
+
+import 'persisted_native_semaphore_operation.dart';
 import 'utils/late_property_assigned.dart' show LatePropertyAssigned;
 
 class SemaphoreIdentities<I extends SemaphoreIdentity> {
   static String prefix = 'runtime_native_semaphores';
 
-  static String get isolate {
-    String? _isolate = Service.getIsolateId(Isolate.current)?.toString();
-    return (_isolate ?? Isolate.current.hashCode.toString()).replaceFirst('isolates${Platform.pathSeparator}', '');
-  }
+  static final List<dynamic> __instances = List.empty(growable: true);
 
-  static final String process = pid.toString();
+  List<dynamic> get _instances => __instances;
 
-  static final Map<String, dynamic> __identities = {};
+  List<I> get all => List.unmodifiable(_instances);
 
-  Map<String, dynamic> get _identities => SemaphoreIdentities.__identities;
+  List<I> get external => all.where((identity) => identity.external).toList();
 
-  Map<String, I> get all => Map.unmodifiable(_identities as Map<String, I>);
+  List<I> get internal => all.where((identity) => !identity.external).toList();
 
-  bool has<T>({required String name}) => _identities.containsKey(name) && _identities[name] is T;
+  bool has<T>({required String name, required String process, required String isolate}) => _instances.any((identity) => (identity as I).name == name && identity.process == process && identity.isolate == isolate);
 
   // Returns the semaphore identity for the given identifier as a singleton
-  I get({required String name}) => _identities[name] ?? (throw Exception('Failed to get semaphore identity for $name. It doesn\'t exist.'));
+  I get({required String name, required String process, required String isolate}) => _instances.firstWhere((instance) => instance.name == name && instance.isolate == isolate && instance.process == process, orElse: () => (throw Exception('Failed to get semaphore identity for $name. It doesn\'t exist.')));
 
-  I register({required String name, required I identity}) {
-    (_identities.containsKey(name) || identity != _identities[name]) ||
-        (throw Exception('Failed to register semaphore identity for $name. It already exists or is not the same as the inbound identity being passed.'));
+  I register({required I identity}) {
+    // print("Registering semaphore identity for name: ${identity.name}, ${identity.tracer.isEmpty ? '' : 'Tracer ${identity.tracer}' }, isolate: ${identity.isolate}, process: ${identity.process}.");
 
-    return _identities.putIfAbsent(name, () => identity);
+    if(has(name: identity.name, process: identity.process, isolate: identity.isolate)) {
+      // print('Semaphore identity already registered for name: ${identity.name}, ${identity.tracer.isEmpty ? '' : 'Tracer ${identity.tracer}' }, isolate: ${identity.isolate}, process: ${identity.process}.');
+      return get(name: identity.name, process: identity.process, isolate: identity.isolate);
+    }
+
+    _instances.add(identity);
+
+    return identity;
   }
 
-  void delete({required String name}) {
-    _identities.containsKey(name) || (throw Exception('Failed to delete semaphore identity for $name. It doesn\'t exist.'));
-    _identities.remove(name);
+  void delete({required String name, required String process, required String isolate}) {
+    has(name:name, process: process, isolate: isolate) || (throw Exception('Failed to delete semaphore identity for $name. It doesn\'t exist.'));
+    _instances.remove(get(name:name, process: process, isolate: isolate));
   }
 }
 
 class SemaphoreIdentity {
-  static late final dynamic __instances;
 
-  dynamic get _instances => SemaphoreIdentity.__instances;
+  late final _isolate;
+
+  String get isolate => _isolate;
+
+  late final _process;
+
+  String get process => _process;
+
+  static late final __identities;
+
+  SemaphoreIdentities<I> instances<I extends SemaphoreIdentity>() => __identities;
 
   String get prefix => SemaphoreIdentities.prefix;
-
-  String get isolate => SemaphoreIdentities.isolate;
-
-  String get process => SemaphoreIdentities.process;
 
   //  Gets set when the semaphore is opened
   late final int _address;
@@ -59,18 +70,33 @@ class SemaphoreIdentity {
 
   String get name => _name;
 
+  late final String _tracer;
+
+  String get tracer => _tracer;
+
   // helper property to know if it has been registered inside of a named semaphore instance
   late final bool _registered;
 
   bool get registered => !LatePropertyAssigned<int>(() => _registered) ? false : _registered;
 
-  String get uuid => [name, isolate, process].join('_');
+  String get identifier => [name, isolate, process].join('_');
 
-  SemaphoreIdentity({required String name}) {
+  late final Directory cache = Directory('${Directory.systemTemp.path}${Platform.pathSeparator}runtime_native_semaphores${Platform.pathSeparator}$name')..createSync(recursive: true);
+
+  late final File temp = File('${cache.path}${Platform.pathSeparator}process_${process}_isolate_${isolate}.semaphore.txt')..createSync(recursive: true)..writeAsStringSync(PersistedNativeSemaphoreOperations().serialize(), flush: true);
+
+  bool verbose;
+
+  late final bool external;
+
+  SemaphoreIdentity({required String name, String? tracer, String? isolate, String? process, bool this.external = false, bool this.verbose = false}) {
     name = name.replaceFirst('Global\\', '').replaceFirst('Local\\', '');
     // check if identifier has invalid characters
     if (name.contains(RegExp(r'[\\/:*?"<>|]'))) throw ArgumentError('Identifier contains invalid characters.');
     _name = name;
+    _tracer = tracer ?? '';
+    _isolate = isolate ?? (Service.getIsolateId(Isolate.current)?.toString() ?? Isolate.current.hashCode.toString()).replaceFirst('isolates${Platform.pathSeparator}', '');
+    _process = process ?? pid.toString();
   }
 
   static SemaphoreIdentity instantiate<
@@ -79,11 +105,24 @@ class SemaphoreIdentity {
       /* Semaphore Identities */
       IS extends SemaphoreIdentities<I>
       /* formatting guard comment */
-      >({required String name}) {
-    if (!LatePropertyAssigned<IS>(() => __instances)) __instances = SemaphoreIdentities<I>();
+      >({required String name, String? tracer, String? isolate, String? process, bool external = false,  bool verbose = false}) {
+    if (!LatePropertyAssigned<IS>(() => __identities)) __identities = SemaphoreIdentities<I>();
 
-    return (__instances as IS).has<I>(name: name) ? (__instances as IS).get(name: name) : (__instances as IS).register(name: name, identity: SemaphoreIdentity(name: name) as I);
+    return (__identities as IS).register(identity: SemaphoreIdentity(name: name, tracer: tracer, isolate: isolate, process: process, external: external, verbose: verbose) as I);
   }
+
+  // Associates an external semaphore from a different process to this processes semaphore identities
+  SemaphoreIdentity track<
+  /*  Identity */
+  I extends SemaphoreIdentity,
+  /* Semaphore Identities */
+  IS extends SemaphoreIdentities<I>
+  /* formatting guard comment */
+  >({required String name, String? tracer, String? isolate,  String? process,  bool verbose = false}) {
+    // if(verbose) print('Tracking semaphore identity for name: $name, ${tracer?.isEmpty ?? true ? '' : 'Tracer $tracer' } isolate: $isolate, process: $process.');
+    return instantiate(name: name, tracer: tracer,  isolate: isolate, process: process, external: true, verbose: verbose);
+  }
+
 
   bool dispose() => throw UnimplementedError('Dispose not implemented');
 

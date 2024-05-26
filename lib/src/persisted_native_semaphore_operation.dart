@@ -134,7 +134,7 @@ class PersistedNativeSemaphoreOperations<PNSO extends PersistedNativeSemaphoreOp
       {required String serialized, required PNSO Function({required dynamic serialized}) rehydrate_, bool verbose = false}) {
     if (verbose)
       print(
-          'PersistedNativeSemaphoreOperations.rehydrate: serialized: ${Platform.lineTerminator}${Platform.lineTerminator} $serialized ${Platform.lineTerminator}${Platform.lineTerminator}');
+          'PersistedNativeSemaphoreOperations [rehydrate()]' /* serialized: ${Platform.lineTerminator}${Platform.lineTerminator} $serialized ${Platform.lineTerminator}${Platform.lineTerminator}*/);
 
     final Map<String, dynamic> data = JSON.decode(serialized);
 
@@ -166,10 +166,12 @@ class PersistedNativeSemaphoreOperations<PNSO extends PersistedNativeSemaphoreOp
 
 class PersistedNativeSemaphoreOperation {
   late final String name;
-  final NATIVE_SEMAPHORE_OPERATION operation;
-  late final DateTime timestamp;
 
-  late final String uuid;
+  final NATIVE_SEMAPHORE_OPERATION operation;
+
+  late final DateTime created;
+
+  late final String identifier;
 
   late final int address;
 
@@ -177,7 +179,7 @@ class PersistedNativeSemaphoreOperation {
   late Duration elapsed;
 
   // Exclude elapsed and address from hash because it may make it hard to track
-  late final String hash = xxh64.convert(Utf8.encode('$name$operation$timestamp$uuid')).hex();
+  late final String hash = xxh64.convert(Utf8.encode('$name$operation$created$identifier')).hex();
 
   String isolate;
 
@@ -185,59 +187,68 @@ class PersistedNativeSemaphoreOperation {
 
   ({int isolate, int process}) counts;
 
+  bool opened;
+
   bool locked;
+
   bool closed;
+
   bool unlinked;
+
   bool reentrant;
+
   bool waiting;
 
-  PersistedNativeSemaphoreOperation(
-      {required String this.uuid,
-      required String this.name,
-      required String this.isolate,
-      required String this.process,
-      required NATIVE_SEMAPHORE_OPERATION this.operation,
-      ({int isolate, int process}) this.counts = (isolate: 0, process: 0),
-      this.locked = false,
-      this.closed = false,
-      this.unlinked = false,
-      this.reentrant = false,
-      this.waiting = false,
-      DateTime? timestamp,
-      int? address,
-      Duration? elapsed,
-      bool verbose = false})
-      : timestamp = timestamp ?? DateTime.now(),
+  String tracer;
+
+  bool unlocked;
+
+  PersistedNativeSemaphoreOperation({
+    required String this.identifier,
+    required String this.name,
+    required String this.isolate,
+    required String this.process,
+    required NATIVE_SEMAPHORE_OPERATION this.operation,
+    ({int isolate, int process}) this.counts = (isolate: 0, process: 0),
+    this.opened = false,
+    this.locked = false,
+    this.unlocked = false,
+    this.closed = false,
+    this.unlinked = false,
+    this.reentrant = false,
+    this.waiting = false,
+    DateTime? created,
+    int? address,
+    Duration? elapsed,
+    bool verbose = false,
+    String this.tracer = '', 
+  })  : created = created ?? DateTime.now(),
         address = address ?? -1,
         elapsed = elapsed ?? Duration.zero;
 
   @override
   String toString() =>
-      'PersistedNativeSemaphoreOperation(name: $name, isolate: $isolate, process: $process, operation: $operation, timestamp: $timestamp, uuid: $uuid, address: $address, elapsed: $elapsed, hash: $hash, locked: $locked, closed: $closed, unlinked: $unlinked, reentrant: $reentrant, waiting: $waiting, counts: $counts)';
+      'PersistedNativeSemaphoreOperation(name: $name, tracer: $tracer, isolate: $isolate, process: $process, operation: $operation, created: $created, uuid: $identifier, address: $address, elapsed: $elapsed, hash: $hash, opened: $opened locked: $locked, unlocked: $unlocked closed: $closed, unlinked: $unlinked, reentrant: $reentrant, waiting: $waiting, counts: $counts)';
 
-  Map<String, dynamic> asMap() => Map<String, dynamic>.fromEntries([
-        MapEntry('name', name),
-        MapEntry('isolate', isolate),
-        MapEntry('process', process),
-        MapEntry('operation', operation.toString()),
-        MapEntry('timestamp', timestamp.toIso8601String()),
-        MapEntry('uuid', uuid),
-        MapEntry('address', address),
-        MapEntry('elapsed', elapsed.inMicroseconds),
-        MapEntry('hash', hash),
-        MapEntry('locked', locked),
-        MapEntry('closed', closed),
-        MapEntry('unlinked', unlinked),
-        MapEntry('reentrant', reentrant),
-        MapEntry('waiting', waiting),
-        MapEntry(
-          'counts',
-          Map<String, int>.fromEntries([
-            MapEntry('isolate', counts.isolate),
-            MapEntry('process', counts.process),
-          ]),
-        ),
-      ]);
+  Map<String, dynamic> asMap() => {
+        'name': name,
+        'tracer': tracer,
+        'isolate': isolate,
+        'process': process,
+        'operation': operation.toString(),
+        'created': created.toIso8601String(),
+        'identifier': identifier,
+        'address': address,
+        'elapsed': elapsed.inMicroseconds,
+        'counts': {'isolate': counts.isolate, 'process': counts.process},
+        'opened': opened,
+        'locked': locked,
+        'unlocked': unlocked,
+        'closed': closed,
+        'unlinked': unlinked,
+        'reentrant': reentrant,
+        'waiting': waiting,
+      };
 
   String serialize() => JSON.encode(asMap());
 
@@ -246,17 +257,20 @@ class PersistedNativeSemaphoreOperation {
     final Map<String, dynamic> data = serialized is String ? JSON.decode(serialized) : serialized;
 
     return PersistedNativeSemaphoreOperation(
-      uuid: data['uuid'],
+      identifier: data['identifier'],
       name: data['name'],
+      tracer: data['tracer'],
       isolate: data['isolate'],
       process: data['process'],
       operation: NATIVE_SEMAPHORE_OPERATION.fromString(data['operation']),
-      timestamp: DateTime.parse(data['timestamp']),
+      created: DateTime.parse(data['created']),
       address: data['address'],
       waiting: data['waiting'],
       elapsed: Duration(microseconds: data['elapsed']),
       counts: (isolate: data['counts']['isolate'], process: data['counts']['process']),
+      opened: data['opened'],
       locked: data['locked'],
+      unlocked: data['unlocked'],
       closed: data['closed'],
       unlinked: data['unlinked'],
       reentrant: data['reentrant'],
