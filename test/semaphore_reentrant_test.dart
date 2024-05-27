@@ -2,6 +2,7 @@ import 'dart:io' show sleep;
 import 'dart:isolate' show Isolate, ReceivePort, SendPort;
 import 'dart:math' show Random;
 
+import 'package:chalkdart/chalk.dart';
 import 'package:runtime_native_semaphores/runtime_native_semaphores.dart' show NativeSemaphore;
 import 'package:runtime_native_semaphores/src/native_semaphore_types.dart' show NS;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
@@ -56,6 +57,22 @@ void main() {
     });
 
     test('Testing top level semaphore behavior as baseline.', () {
+      List<Chalk> colors = [
+        chalk.blue,
+        chalk.cyan,
+        chalk.green,
+        chalk.magenta,
+        chalk.yellow,
+        chalk.brightBlue,
+        chalk.brightCyan,
+        chalk.brightGreen,
+        chalk.brightMagenta,
+        chalk.brightRed,
+        chalk.brightYellow,
+        chalk.brightWhite,
+        chalk.brightBlack
+      ];
+
       int depth = 4; // i.e. one process lock and 3 reentrant locks
       String name = '${safeIntId.getId()}_named_sem';
       // SemaphoreIdentity identity = SemaphoreIdentity.instantiate(name: name);
@@ -63,14 +80,17 @@ void main() {
 
       // Function to unlock and close the semaphore
       void _recursiveUnlockAndClose(String name, int currentDepth) {
-        if (currentDepth <= 0) return;
+        if (currentDepth == 0) return;
 
-        final NS sem = NativeSemaphore.instantiate(name: name);
+        String tracer = colors[currentDepth]('Semaphore at depth $currentDepth');
+        print(tracer);
+        final NS sem = NativeSemaphore.instantiate(name: name, tracer: tracer);
 
         bool unlocked = sem.unlock();
         expect(unlocked, equals(true));
 
         bool closed = sem.close();
+        print(closed);
         expect(closed, equals(currentDepth == depth ? true : false));
         expect(sem.closed, equals(currentDepth == depth ? true : false));
 
@@ -81,9 +101,19 @@ void main() {
 
       // Recursive function to open, lock, and then call itself if depth > 0
       void _recursiveOpenAndLock(String name, int currentDepth) {
-        if (currentDepth <= 0) return;
+        if (currentDepth == 0) return;
 
-        final NS sem = NativeSemaphore.instantiate(name: name);
+        String tracer = colors[currentDepth]('Semaphore at depth $currentDepth');
+        final NS sem = NativeSemaphore.instantiate(name: name, tracer: tracer);
+        // sem.statuses.identity.tracer = tracer;
+        // sem.statuses.open.tracer = tracer;
+        // sem.statuses.lock.tracer = tracer;
+        // sem.statuses.unlock.tracer = tracer;
+        // sem.statuses.close.tracer = tracer;
+
+        // print('Semaphore: ${sem.opened}');
+        print('$tracer Semaphore: ${sem.locked}');
+
         bool opened = sem.open();
         expect(opened, equals(true));
 
@@ -107,7 +137,16 @@ void main() {
       // Start the recursive locking and unlocking process
       _recursiveOpenAndLock(name, depth);
 
-      final NS sem = NativeSemaphore.instantiate(name: name);
+      String tracer = chalk.brightMagenta('Root Semaphore');
+      print(tracer);
+      final NS sem = NativeSemaphore.instantiate(name: name, tracer: tracer);
+      // sem.statuses.identity.tracer = tracer;
+      // sem.statuses.open.tracer = tracer;
+      // sem.statuses.lock.tracer = tracer;
+      // sem.statuses.unlock.tracer = tracer;
+      // sem.statuses.close.tracer = tracer;
+
+
       expect(sem.counter.counts.process.get(), equals(0));
       expect(sem.counter.counts.isolate.get(), equals(0));
       expect(sem.locked, equals(false));

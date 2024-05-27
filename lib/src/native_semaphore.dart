@@ -1,6 +1,6 @@
-import 'dart:async';
+import 'dart:async' show Completer, Future, FutureOr, Stream, StreamController, StreamSubscription;
 import 'dart:ffi' show Finalizable;
-import 'dart:io' show File, FileSystemEntity, Platform;
+import 'dart:io' show File, FileSystemEntity, Platform, stderr;
 
 import 'package:meta/meta.dart' show protected;
 import 'package:runtime_native_semaphores/src/persisted_native_semaphore_metadata.dart' show PersistedNativeSemaphoreAccessor, PersistedNativeSemaphoreMetadata;
@@ -21,32 +21,22 @@ import 'persisted_native_semaphore_operation.dart' show NATIVE_SEMAPHORE_OPERATI
 
 // A wrapper to track the instances of the native semaphore
 class NativeSemaphores<
-/*  Identity */
     I extends SemaphoreIdentity,
-/* Semaphore Identities */
     IS extends SemaphoreIdentities<I>,
-/* Count Update */
     CU extends SemaphoreCountUpdate,
-/* Count Deletion */
     CD extends SemaphoreCountDeletion,
-/* Semaphore Count */
     CT extends SemaphoreCount<CU, CD>,
-/* Semaphore Counts */
     CTS extends SemaphoreCounts<CU, CD, CT>,
-/* Semaphore Counter */
     CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
-/* Semaphore Counter */
     CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>,
-/* Persisted Native Semaphore Operation */
     PNSO extends PersistedNativeSemaphoreOperation,
-/* Persisted Native Semaphore Operations */
     PNSOS extends PersistedNativeSemaphoreOperations<PNSO>,
-/* Persisted Native Semaphore Accessor */
     PNSA extends PersistedNativeSemaphoreAccessor,
-/* Native Semaphore */
-    NS extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA>
-/* formatting guard comment */
-    > {
+    PNSM extends PersistedNativeSemaphoreMetadata<PNSA>,
+    NSPOSS extends NativeSemaphoreProcessOperationStatusState,
+    NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>,
+    NSPOSES extends NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>,
+    NS extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA, NSPOSS, NSPOS, NSPOSES>> {
   static final Map<String, dynamic> __instantiations = {};
 
   final Map<String, dynamic> _instantiations = NativeSemaphores.__instantiations;
@@ -74,30 +64,20 @@ class NativeSemaphores<
 }
 
 class NativeSemaphore<
-/*  Identity */
     I extends SemaphoreIdentity,
-/* Semaphore Identities */
     IS extends SemaphoreIdentities<I>,
-/* Count Update */
     CU extends SemaphoreCountUpdate,
-/* Count Deletion */
     CD extends SemaphoreCountDeletion,
-/* Semaphore Count */
     CT extends SemaphoreCount<CU, CD>,
-/* Semaphore Counts */
     CTS extends SemaphoreCounts<CU, CD, CT>,
-/* Semaphore Counter */
     CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
-/* Semaphore Counter */
     CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>,
-/* Persisted Native Semaphore Operation */
     PNSO extends PersistedNativeSemaphoreOperation,
-/* Persisted Native Semaphore Operations  */
     PNSOS extends PersistedNativeSemaphoreOperations<PNSO>,
-/* Persisted Native Semaphore Accessor */
-    PNSA extends PersistedNativeSemaphoreAccessor
-/* formatting guard comment */
-    > implements Finalizable {
+    PNSA extends PersistedNativeSemaphoreAccessor,
+    NSPOSS extends NativeSemaphoreProcessOperationStatusState,
+    NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>,
+    NSPOSES extends NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>> implements Finalizable {
   static late final dynamic __semaphores;
 
   late PNSOS _operations;
@@ -108,7 +88,9 @@ class NativeSemaphore<
 
   ({bool isSet, PNSO? get}) get operation => LatePropertyAssigned<PNSO>(() => _operation) ? (isSet: true, get: _operation) : (isSet: false, get: null);
 
-  NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA> all<
+  late final NSPOSES statuses = NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>(identity: identity) as NSPOSES;
+
+  NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA, NSPOSS, NSPOS, NSPOSES> all<
           I extends SemaphoreIdentity,
           IS extends SemaphoreIdentities<I>,
           CU extends SemaphoreCountUpdate,
@@ -120,7 +102,10 @@ class NativeSemaphore<
           PNSO extends PersistedNativeSemaphoreOperation,
           PNSOS extends PersistedNativeSemaphoreOperations<PNSO>,
           PNSA extends PersistedNativeSemaphoreAccessor,
-          NS extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA>>() =>
+          NSPOSS extends NativeSemaphoreProcessOperationStatusState,
+          NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>,
+          NSPOSES extends NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>,
+          NS extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA, NSPOSS, NSPOS, NSPOSES>>() =>
       __semaphores;
 
   // Log Stream for the semaphore
@@ -190,44 +175,32 @@ class NativeSemaphore<
   NativeSemaphore({required CTR this.counter, this.verbose = false});
 
   // TODO maybe a rehydrate method? or instantiate takes in a "from process" flag i.e. to attempt to find and rehydrate the semaphore from another process/all processes
-  static NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA> instantiate<
-      /*  Identity */
-      I extends SemaphoreIdentity,
-      /* Semaphore Identities */
-      IS extends SemaphoreIdentities<I>,
-      /* Count Update */
-      CU extends SemaphoreCountUpdate,
-      /* Count Deletion */
-      CD extends SemaphoreCountDeletion,
-      /* Semaphore Count */
-      CT extends SemaphoreCount<CU, CD>,
-      /* Semaphore Counts */
-      CTS extends SemaphoreCounts<CU, CD, CT>,
-      /* Semaphore Counter i.e. this class */
-      CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
-      /* Semaphore Counters */
-      CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>,
-      /* Persisted Native Semaphore Operation */
-      PNSO extends PersistedNativeSemaphoreOperation,
-      /* Persisted Native Semaphore Operations  */
-      PNSOS extends PersistedNativeSemaphoreOperations<PNSO>,
-      /* Persisted Native Semaphore Accessor */
-      PNSA extends PersistedNativeSemaphoreAccessor,
-      /* Persisted Native Semaphore Metadata */
-      PNSM extends PersistedNativeSemaphoreMetadata<PNSA>,
-      /* Native Semaphore */
-      NS extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA>,
-      /*Native Semaphores*/
-      NSS extends NativeSemaphores<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA, NS>
-      /* formatting guard comment */
-      >({required String name, String tracer = '', I? identity, CTR? counter, bool verbose = false}) {
+  static NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA, NSPOSS, NSPOS, NSPOSES> instantiate<
+          I extends SemaphoreIdentity,
+          IS extends SemaphoreIdentities<I>,
+          CU extends SemaphoreCountUpdate,
+          CD extends SemaphoreCountDeletion,
+          CT extends SemaphoreCount<CU, CD>,
+          CTS extends SemaphoreCounts<CU, CD, CT>,
+          CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
+          CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>,
+          PNSO extends PersistedNativeSemaphoreOperation,
+          PNSOS extends PersistedNativeSemaphoreOperations<PNSO>,
+          PNSA extends PersistedNativeSemaphoreAccessor,
+          PNSM extends PersistedNativeSemaphoreMetadata<PNSA>,
+          NSPOSS extends NativeSemaphoreProcessOperationStatusState,
+          NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>,
+          NSPOSES extends NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>,
+          NS extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA, NSPOSS, NSPOS, NSPOSES>,
+          NSS extends NativeSemaphores<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA, PNSM, NSPOSS, NSPOS, NSPOSES, NS>>(
+      {required String name, String tracer = '', I? identity, CTR? counter, bool verbose = false}) {
     if (!LatePropertyAssigned<NSS>(() => __semaphores)) {
-      __semaphores = NativeSemaphores<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA, NS>();
+      __semaphores = NativeSemaphores<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA, PNSM, NSPOSS, NSPOS, NSPOSES, NS>();
       if (verbose) print('Setting NativeSemaphore._instances: ${__semaphores.toString()}');
     }
 
     return (__semaphores as NSS).has<NS>(name: name)
-        ? (__semaphores as NSS).get(name: name)
+        ? ((__semaphores as NSS).get(name: name)..identity.tracer = tracer)
         : (__semaphores as NSS).register(
             name: name,
             semaphore: Platform.isWindows
@@ -291,7 +264,6 @@ class NativeSemaphore<
             (__operation.operation == NATIVE_SEMAPHORE_OPERATION.willAttemptLockAcrossProcesses ||
                 __operation.operation == NATIVE_SEMAPHORE_OPERATION.lockAttemptAcrossProcessesSucceeded))
         .indexed) {
-
       if (__operation.name != identity.name) throw Exception('The semaphore name ${__operation.name} does not match the current semaphore name ${identity.name}.');
 
       CTR _counter = counter.track<I, CU, CD, CT, CTS, CTR, CTRS>(
@@ -479,4 +451,251 @@ class NativeSemaphore<
   bool unlink() => throw UnimplementedError();
 
   String toString() => throw UnimplementedError();
+}
+
+class NativeSemaphoreProcessOperationStatusState {
+  final Completer<NativeSemaphoreProcessOperationStatusState> completer = Completer<NativeSemaphoreProcessOperationStatusState>();
+
+  final FutureOr<void> Function(NativeSemaphoreProcessOperationStatusState event)? callback;
+  void Function(NativeSemaphoreProcessOperationStatusState _state)? finalizer;
+
+  late final StreamController<NativeSemaphoreProcessOperationStatusState> _controller = StreamController<NativeSemaphoreProcessOperationStatusState>(sync: true);
+
+  late final Stream<NativeSemaphoreProcessOperationStatusState> _broadcast =
+      _controller.stream.asBroadcastStream();
+
+  late final StreamSubscription<NativeSemaphoreProcessOperationStatusState> notifications;
+
+  final String tracer;
+  final String name;
+  final String process;
+  final String isolate;
+
+  late final bool _completed;
+
+  ({bool isSet, bool? get}) get completed =>
+      LatePropertyAssigned<bool>(() => _completed) ? (isSet: true, get: _completed) : (isSet: false, get: null);
+
+  // late Completer<NativeSemaphoreProcessOperationStatusState> _completer;
+  //
+  // ({bool isSet, Completer<NativeSemaphoreProcessOperationStatusState>? get}) get completer =>
+  //     LatePropertyAssigned<Completer<NativeSemaphoreProcessOperationStatusState>>(() => _completer) ? (isSet: true, get: _completer) : (isSet: false, get: null);
+
+  late List<({DateTime timestamp, dynamic value, Completer<NativeSemaphoreProcessOperationStatusState> completer})> synchronizations = [];
+
+  late DateTime timestamp;
+
+  late final Duration took;
+
+  dynamic value;
+
+  late final NATIVE_SEMAPHORE_OPERATION _operation;
+
+  ({bool isSet, NATIVE_SEMAPHORE_OPERATION? get}) get operation =>
+      LatePropertyAssigned<NATIVE_SEMAPHORE_OPERATION>(() => _operation) ? (isSet: true, get: _operation) : (isSet: false, get: null);
+
+  NativeSemaphoreProcessOperationStatusState(
+      {required String this.tracer,
+      required String this.name,
+      required String this.process,
+      required String this.isolate,
+      required void Function(NativeSemaphoreProcessOperationStatusState _state) this.callback,
+      void Function(NativeSemaphoreProcessOperationStatusState _state)? this.finalizer}) {
+    notifications = _broadcast.listen(callback, onError: stderr.writeln, onDone: () => finalizer is Function ? finalizer!(this) : null, cancelOnError: true);
+  }
+
+  Future<NSPOS> synchronize<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>>({required NATIVE_SEMAPHORE_OPERATION operation, dynamic value = null, DateTime? timestamp, required NSPOS status, ({NSPOS status , NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_value})? verification, R Function<R>(NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_value)? verifier}) {
+    if(this.operation.isSet && _operation != operation) throw Exception('The operation $operation is set and does not match the current operation $_operation.');
+    !this.operation.isSet ? _operation = operation : null;
+
+    synchronizations.add((timestamp: timestamp ?? DateTime.now(), value: value, completer: Completer<NativeSemaphoreProcessOperationStatusState>()));
+
+    //  TODO add completer here?
+    _controller.add(this..timestamp = synchronizations.last.timestamp..value = synchronizations.last.value);
+
+    // print('$tracer ${operation} $isolate Synchronizations Length: ${synchronizations.length}');
+    // TODO resolve previous state when the value is true and
+    // print('$tracer Synchronized: ${operation} $isolate $value ${synchronizations.length}');
+
+    if(verification != null && verifier != null) verifier(verification.status, verification.expected_operation, verification.expected_value);
+    return Future.value(status);
+  }
+
+  Future<NSPOS> complete<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>>({required NATIVE_SEMAPHORE_OPERATION operation, dynamic value = null, DateTime? timestamp, required NSPOS status, ({NSPOS status , NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_value})? verification, R Function<R>(NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_value)? verifier}) async {
+    completed.isSet && completed.get is bool ? throw Exception('$tracer The operation $operation is already completed. ${synchronizations.length}') : _completed = true;
+    // print('$tracer Completing: ${operation} $isolate $value');
+    if (_controller.isClosed) throw Exception('$tracer The controller is closed.');
+    if (completer.isCompleted) throw Exception('$tracer The completer is completed.');
+    synchronize(operation: operation, value: value, timestamp: timestamp, status: status, verification: verification, verifier: verifier);
+    await Future.wait([(completer..complete(this)).future, _controller.close(), notifications.cancel()]);
+    return status;
+  }
+
+  @override
+  toString() =>
+      'NativeSemaphoreProcessOperationStatusState(tracer: $tracer, name: $name, process: $process, isolate: $isolate, timestamp: $timestamp, value: $value, operation: $operation, completer.isComplete: ${completer.isCompleted}, controller.isClosed: ${_controller.isClosed})';
+}
+
+class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState> {
+  late final I identity;
+
+  late NativeSemaphoreProcessOperationStatusState _previous;
+
+  ({bool isSet, NativeSemaphoreProcessOperationStatusState? get}) get previous =>
+      LatePropertyAssigned<NativeSemaphoreProcessOperationStatusState>(() => _previous) ? (isSet: true, get: _previous) : (isSet: false, get: null);
+
+  late NativeSemaphoreProcessOperationStatusState _current;
+
+  ({bool isSet, NativeSemaphoreProcessOperationStatusState? get}) get current =>
+      LatePropertyAssigned<NativeSemaphoreProcessOperationStatusState>(() => _current) ? (isSet: true, get: _current) : (isSet: false, get: null);
+
+  late final void Function(NativeSemaphoreProcessOperationStatusState _state) callback = (NativeSemaphoreProcessOperationStatusState _state) {
+    if (current.isSet) _previous = _current;
+    _current = _state;
+    // TODO resolve previous state when the value is true and
+  };
+
+  late final void Function(NativeSemaphoreProcessOperationStatusState _state) finalizer = (NativeSemaphoreProcessOperationStatusState _state) {
+    // print('$tracer Finalizer: ${_state.toString()}');
+  };
+
+  late String tracer = identity.tracer;
+  late final String name = identity.name;
+  late final String process = identity.process;
+  late final String isolate = identity.isolate;
+
+  late final NSPOSS willAttempt =
+      NativeSemaphoreProcessOperationStatusState(tracer: tracer, name: name, process: process, isolate: isolate, callback: callback, finalizer: finalizer) as NSPOSS;
+  late final NSPOSS attempting =
+      NativeSemaphoreProcessOperationStatusState(tracer: tracer, name: name, process: process, isolate: isolate, callback: callback, finalizer: finalizer) as NSPOSS;
+  late final NSPOSS attempted =
+      NativeSemaphoreProcessOperationStatusState(tracer: tracer, name: name, process: process, isolate: isolate, callback: callback, finalizer: finalizer) as NSPOSS;
+  late final NSPOSS attemptSucceeded =
+      NativeSemaphoreProcessOperationStatusState(tracer: tracer, name: name, process: process, isolate: isolate, callback: callback, finalizer: finalizer) as NSPOSS;
+
+  NativeSemaphoreProcessOperationStatus(
+      {required I this.identity, NSPOSS? willAttempt = null, NSPOSS? attempting = null, NSPOSS? attempted = null, NSPOSS? attemptSucceeded = null});
+}
+
+class NativeSemaphoreProcessOperationStatuses<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState,
+    NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>> {
+  static late final dynamic instance;
+
+  late final I identity;
+
+  late final StreamController<NativeSemaphoreProcessOperationStatusState> _notifications = StreamController<NativeSemaphoreProcessOperationStatusState>(sync: true);
+
+  late final Stream<NativeSemaphoreProcessOperationStatusState> _broadcast = _notifications.stream.asBroadcastStream();
+
+  Stream<NativeSemaphoreProcessOperationStatusState> get notifications => _broadcast;
+
+  Map<NATIVE_SEMAPHORE_OPERATION, NSPOSS> synchronizations = {};
+
+  late final NSPOS open = NativeSemaphoreProcessOperationStatus<I, NSPOSS>(identity: identity) as NSPOS;
+  late final Future<List<NSPOSS>> opened = Future.wait<NSPOSS>([open.willAttempt.completer.future as Future<NSPOSS>, open.attempting.completer.future  as Future<NSPOSS>, open.attempted.completer.future  as Future<NSPOSS>, open.attemptSucceeded.completer.future  as Future<NSPOSS>]);
+
+  late final NSPOS lock = NativeSemaphoreProcessOperationStatus<I, NSPOSS>(identity: identity) as NSPOS;
+  late final Future<List<NSPOSS>> locked = Future.wait<NSPOSS>([lock.willAttempt.completer.future as Future<NSPOSS>, lock.attempting.completer.future  as Future<NSPOSS>, lock.attempted.completer.future  as Future<NSPOSS>, lock.attemptSucceeded.completer.future  as Future<NSPOSS>]);
+
+  late final NSPOS unlock = NativeSemaphoreProcessOperationStatus<I, NSPOSS>(identity: identity) as NSPOS;
+  late final Future<List<NSPOSS>> unlocked = Future.wait<NSPOSS>([unlock.willAttempt.completer.future as Future<NSPOSS>, unlock.attempting.completer.future  as Future<NSPOSS>, unlock.attempted.completer.future  as Future<NSPOSS>, unlock.attemptSucceeded.completer.future  as Future<NSPOSS>]);
+
+  late final NSPOS close = NativeSemaphoreProcessOperationStatus<I, NSPOSS>(identity: identity) as NSPOS;
+  late final Future<List<NSPOSS>> closed = Future.wait<NSPOSS>([close.willAttempt.completer.future as Future<NSPOSS>, close.attempting.completer.future  as Future<NSPOSS>, close.attempted.completer.future  as Future<NSPOSS>, close.attemptSucceeded.completer.future  as Future<NSPOSS>]);
+
+  late final NSPOS unlink = NativeSemaphoreProcessOperationStatus<I, NSPOSS>(identity: identity) as NSPOS;
+  late final Future<List<NSPOSS>> unlinked = Future.wait<NSPOSS>([unlink.willAttempt.completer.future as Future<NSPOSS>, unlink.attempting.completer.future  as Future<NSPOSS>, unlink.attempted.completer.future  as Future<NSPOSS>, unlink.attemptSucceeded.completer.future  as Future<NSPOSS>]);
+
+  late final Future<List<NSPOSS>> all = Future.wait<List<NSPOSS>>([opened, locked, unlocked, closed, unlinked]).then((List<List<NSPOSS>> values) => values.expand((List<NSPOSS> value) => value).toList());
+
+  Future<NSPOS> synchronize({required NATIVE_SEMAPHORE_OPERATION operation, dynamic value = null, ({NSPOS status , NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_value})? verification, R Function<R>(NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_value)? verifier}) async {
+    // print('${identity.tracer} Synchronizing: $operation $value');
+    Future<NSPOS> Function(
+            {required NATIVE_SEMAPHORE_OPERATION operation,
+            dynamic value,
+            DateTime? timestamp,
+              R Function<R>(NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_value)? verifier,
+              ({NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_value})? verification,
+              required Future<NSPOS> Function<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>>({required NATIVE_SEMAPHORE_OPERATION operation, dynamic value, DateTime? timestamp, required NSPOS status, ({NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_value})? verification, R Function<R>(NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_value)? verifier}) synchronizer,
+              required NSPOS status}) _call =
+        (
+            {required NATIVE_SEMAPHORE_OPERATION operation,
+            dynamic value,
+            DateTime? timestamp,
+              R Function<R>(NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_value)? verifier,
+              ({NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_value})? verification,
+               required Future<NSPOS> Function<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>>({required NATIVE_SEMAPHORE_OPERATION operation, dynamic value, DateTime? timestamp, required NSPOS status, ({NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_value})? verification, R Function<R>(NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_value)? verifier}) synchronizer,
+            required NSPOS status}) => synchronizer<I, NSPOSS, NSPOS>(operation: operation, value: value, timestamp: timestamp, status: status);
+
+    switch (operation) {
+      case NATIVE_SEMAPHORE_OPERATION.willAttemptOpen:
+        // If open will attempt then we can complete the
+        return _call(operation: operation, value: value, synchronizer: open.willAttempt.synchronize, status: open, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.attemptingOpen:
+        return _call(operation: operation, value: value, synchronizer: open.attempting.synchronize, status: open, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.attemptedOpen:
+        return _call(operation: operation, value: value, synchronizer: open.attempted.synchronize, status: open, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.openAttemptSucceeded:
+        /* calling complete */ // TODO - call completer for other functions depending on the perceived state of value i.e. true then call complete, if false call synchronize
+        return _call(operation: operation, value: value, synchronizer: open.attemptSucceeded.complete, status: open, verification: verification, verifier: verifier ??verify);
+
+      case NATIVE_SEMAPHORE_OPERATION.willAttemptLockAcrossProcesses:
+        return _call(operation: operation, value: value, synchronizer: lock.willAttempt.synchronize, status: lock, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.attemptingLockAcrossProcesses:
+        return _call(operation: operation, value: value, synchronizer: lock.attempting.synchronize, status: lock, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.attemptedLockAcrossProcesses:
+        return _call(operation: operation, value: value, synchronizer: lock.attempted.synchronize, status: lock, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.lockAttemptAcrossProcessesSucceeded:
+        /* calling complete */
+        return _call(operation: operation, value: value, synchronizer: lock.attemptSucceeded.complete, status: lock, verification: verification, verifier: verifier ??verify);
+
+      case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockAcrossProcesses:
+        return _call(operation: operation, value: value, synchronizer: unlock.willAttempt.synchronize, status: unlock, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.attemptingUnlockAcrossProcesses:
+        return _call(operation: operation, value: value, synchronizer: unlock.attempting.synchronize, status: unlock, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.attemptedUnlockAcrossProcesses:
+        return _call(operation: operation, value: value, synchronizer: unlock.attempted.synchronize, status: unlock, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.unlockAttemptAcrossProcessesSucceeded:
+        /* calling complete */
+        return _call(operation: operation, value: value, synchronizer: unlock.attemptSucceeded.complete, status: unlock, verification: verification, verifier: verifier ??verify);
+
+      case NATIVE_SEMAPHORE_OPERATION.willAttemptClose:
+        return _call(operation: operation, value: value, synchronizer: close.willAttempt.synchronize, status: close, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.attemptingClose:
+        return _call(operation: operation, value: value, synchronizer: close.attempting.synchronize, status: close, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.attemptedClose:
+        return _call(operation: operation, value: value, synchronizer: close.attempted.synchronize, status: close, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.closeAttemptSucceeded:
+        /* calling complete */
+        return _call(operation: operation, value: value, synchronizer: close.attemptSucceeded.complete, status: close, verification: verification, verifier: verifier ??verify);
+
+      case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlink:
+        return _call(operation: operation, value: value, synchronizer: unlink.willAttempt.synchronize, status: unlink, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.attemptingUnlink:
+        return _call(operation: operation, value: value, synchronizer: unlink.attempting.synchronize, status: unlink, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.attemptedUnlink:
+        return _call(operation: operation, value: value, synchronizer: unlink.attempted.synchronize, status: unlink, verification: verification, verifier: verifier ??verify);
+      case NATIVE_SEMAPHORE_OPERATION.unlinkAttemptSucceeded:
+        /* calling complete */
+        return _call(operation: operation, value: value, synchronizer: unlink.attemptSucceeded.complete, status: unlink, verification: verification, verifier: verifier ??verify);
+      default:
+        throw Exception('Operation $operation is not supported on this instance.');
+    }
+  }
+
+
+  R verify<R>(NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_value) {
+    if (status.current.isSet && status.current.get!.operation.get != expected_operation) throw Exception('The current operation ${status.current.get!.operation.get} does not match the expected operation $expected_operation previous is ${status.previous.get!.operation.get}.');
+    if (status.current.isSet && status.current.get!.value != expected_value) throw Exception('The current value ${status.current.get!.value} does not match the expected value $expected_value.');
+    return expected_value;
+  }
+
+  NativeSemaphoreProcessOperationStatuses({required I this.identity});
+
+  // static NSPOSES instantiate<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>,
+  //     NSPOSES extends NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>>({required I identity}) {
+  //   return !LatePropertyAssigned<NSPOSES>(() => NativeSemaphoreProcessOperationStatuses.instance as NSPOSES)
+  //       ? NativeSemaphoreProcessOperationStatuses.instance = NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>(identity: identity) as NSPOSES
+  //       : NativeSemaphoreProcessOperationStatuses.instance as NSPOSES;
+  // }
 }

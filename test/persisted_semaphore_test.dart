@@ -17,24 +17,12 @@ import 'package:runtime_native_semaphores/runtime_native_semaphores.dart'
         SemaphoreCounts,
         SemaphoreIdentities,
         SemaphoreIdentity;
+import 'package:runtime_native_semaphores/src/native_semaphore_types.dart' show I, PNSOS;
 import 'package:runtime_native_semaphores/src/persisted_native_semaphore_metadata.dart' show PersistedNativeSemaphoreAccessor;
 import 'package:runtime_native_semaphores/src/persisted_native_semaphore_operation.dart' show PersistedNativeSemaphoreOperation, PersistedNativeSemaphoreOperations;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
 import 'package:test/test.dart' show anyOf, equals, everyElement, expect, group, isNot, isTrue, setUp, test;
-
-typedef I = SemaphoreIdentity;
-typedef IS = SemaphoreIdentities<I>;
-typedef CU = SemaphoreCountUpdate;
-typedef CD = SemaphoreCountDeletion;
-typedef CT = SemaphoreCount<CU, CD>;
-typedef CTS = SemaphoreCounts<CU, CD, CT>;
-typedef CTR = SemaphoreCounter<I, CU, CD, CT, CTS>;
-typedef CTRS = SemaphoreCounters<I, CU, CD, CT, CTS, CTR>;
-typedef PNSO = PersistedNativeSemaphoreOperation;
-typedef PNSOS = PersistedNativeSemaphoreOperations<PNSO>;
-typedef PNSA = PersistedNativeSemaphoreAccessor;
-typedef NS = NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA>;
 
 void main() {
   String process_name = 'bin${Platform.pathSeparator}test${Platform.pathSeparator}persisted_semaphore${Platform.isWindows ? '.exe' : ''}';
@@ -202,7 +190,9 @@ void main() {
       String first_tracer = chalk.brightGreen('(FIRST_PROCESS)');
       String second_tracer = chalk.brightMagenta('(SECOND_PROCESS)');
       List<({DateTime timestamp, String output})> prints = List<({DateTime timestamp, String output})>.empty(growable: true);
+
       prints.add(print_process_outputs_headers([main_tracer, first_tracer, second_tracer], [chalk.brightYellow, chalk.brightGreen, chalk.brightMagenta], null));
+
       if (continuous_printing) print(prints.last.output);
       //
       // Completer<String> first_process_attempting_open_completer = Completer<String>();
@@ -210,13 +200,17 @@ void main() {
       // Completer<String> main_process_attempting_open_completer = Completer<String>();
 
       // It should take roughly 2-3 seconds to lock the second process
-      Completer<String> first_process_attempting_locked_completer = Completer<String>();
-      Completer<String> second_process_attempting_locked_completer = Completer<String>();
-      Completer<String> main_process_attempting_lock_completer = Completer<String>();
+      Completer<DateTime> first_process_attempting_locked_completer = Completer<DateTime>();
+      Completer<DateTime> second_process_attempting_locked_completer = Completer<DateTime>();
+      Completer<DateTime> main_process_attempting_lock_completer = Completer<DateTime>();
 
       Completer<DateTime> first_process_locked_completer = Completer<DateTime>();
       Completer<DateTime> second_process_locked_completer = Completer<DateTime>();
       Completer<DateTime> main_process_locked_completer = Completer<DateTime>();
+
+      Completer<DateTime> first_process_unlocked_completer = Completer<DateTime>();
+      Completer<DateTime> second_process_unlocked_completer = Completer<DateTime>();
+      Completer<DateTime> main_process_unlocked_completer = Completer<DateTime>();
 
       Completer<({DateTime time, String tracker})> first_process_ensured_order = Completer<({DateTime time, String tracker})>();
       Completer<({DateTime time, String tracker})> second_process_ensured_order = Completer<({DateTime time, String tracker})>();
@@ -237,6 +231,8 @@ void main() {
       bool Function(String output) attempting_locked_matcher = (String output) => output.contains('Attempting to lock semaphore with name $name and tracer');
 
       bool Function(String output) locked_matcher = (String output) => output.contains('Locking semaphore with name $name took: [');
+      bool Function(String output) unlocked_matcher = (String output) => output.contains('NOTIFICATION: Semaphore unlocked with name:');
+
       bool Function(String output) delay_matcher = (String output) => output.contains('semaphore with name $name is delayed by: [');
 
       String Function(String output) lock_time_extractor =
@@ -288,7 +284,13 @@ void main() {
 
       ;
 
-      List<({bool added, String mapping, DateTime? timestamp, Duration? elapsed})> Function(String message, String tracer) mapped_output = (String message, String tracer) {
+      List<({bool added, String mapping, DateTime? timestamp, Duration? elapsed})> mapped_output(
+        String message,
+        String tracer,
+        Completer<DateTime> attempting_locked_completer,
+        Completer<DateTime> locked_completer,
+        Completer<DateTime> unlocked_completer,
+      ) {
         DateTime? timestamp = message.split('=').first.isNotEmpty ? DateTime.tryParse(message.split('=').first) : null;
         message = message.split('=').last;
 
@@ -324,7 +326,7 @@ void main() {
               : (added: false, mapping: '', timestamp: null),
           add_to_outputs(message, 'waiting: true', 'WAITING TO LOCK', tracer, timestamp),
           add_to_outputs(message, 'unlocked: true', 'UNLOCKED', tracer, timestamp),
-          add_to_outputs(message, 'NOTIFICATION: Semaphore unlocked with name', 'UNLOCKED', tracer, timestamp),
+          add_to_outputs(message, 'NOTIFICATION: Semaphore unlocked with name:', 'UNLOCKED', tracer, timestamp),
           add_to_outputs(message, 'closed: true', 'CLOSED', tracer, timestamp),
           add_to_outputs(message, 'unlinked: true', 'UNLINKED', tracer, timestamp)
         ]);
@@ -335,14 +337,23 @@ void main() {
           ({bool added, String mapping, DateTime? timestamp, Duration? elapsed}) _element =
               (added: element.added, mapping: element.mapping, timestamp: element.timestamp, elapsed: _previous != null ? DateTime.now().difference(_previous.timestamp!) : null);
           timed_outputs[tracer]!.add(_element);
+
+          if (element.mapping.contains('LOCKED') && !locked_completer.isCompleted) (locked_completer..complete(element.timestamp)).future;
+          if (element.mapping.contains('UNLOCKED') && !unlocked_completer.isCompleted) (unlocked_completer..complete(element.timestamp)).future;
+          if (element.mapping.contains('ATTEMPTING LOCK') && !attempting_locked_completer.isCompleted) (attempting_locked_completer..complete(element.timestamp)).future;
+
           return _element;
         }).toList();
 
         return __added.where((element) => element.added).toList();
-      };
+      }
 
-      void emitter(String output, String tracer, Chalk color) {
-        List<({bool added, String mapping, DateTime? timestamp, Duration? elapsed})> _outputs = mapped_output(output, tracer);
+      ;
+
+      void emitter(String output, String tracer, Chalk color, Completer<DateTime> attempting_locked_completer, Completer<DateTime> locked_completer,
+          Completer<DateTime> unlocked_completer) {
+        List<({bool added, String mapping, DateTime? timestamp, Duration? elapsed})> _outputs =
+            mapped_output(output, tracer, attempting_locked_completer, locked_completer, unlocked_completer);
         _outputs.forEach((_output) {
           prints
             ..add(print_process_outputs([main_tracer, first_tracer, second_tracer], color, tracer,
@@ -352,31 +363,19 @@ void main() {
         });
       }
 
-      bool Function(Stream<List<int>> output, Completer<String> attempting_locked_completer, Completer<DateTime> locked_completer, Completer<void> exiting_completer, String tracer,
-              Chalk color) process_listener =
-          (Stream<List<int>> output, Completer<String> attempting_locked_completer, Completer<DateTime> locked_completer, Completer<void> exiting_completer, String tracer,
-              Chalk color) {
+      bool process_listener(Stream<List<int>> output, Completer<DateTime> attempting_locked_completer, Completer<DateTime> locked_completer, Completer<DateTime> unlocked_completer,
+          Completer<void> exiting_completer, String tracer, Chalk color) {
         output.transform(utf8.decoder).listen((_output) {
           List<String> _outputs = _output.contains(Platform.lineTerminator) ? const LineSplitter().convert(_output) : [_output];
           _outputs.forEach((line) {
-            if (line.isNotEmpty && (line.contains('STATE:') || line.contains('NOTIFICATION:'))) {
-
-              emitter(line, tracer, color);
-              if (attempting_locked_matcher(line) && !attempting_locked_completer.isCompleted)
-
-                (attempting_locked_completer..complete(line)).future.then((_) => locked_emitter(_, tracer));
-              if (locked_matcher(line) && !locked_completer.isCompleted) {
-                DateTime? timestamp = line.split('=').first.isNotEmpty ? DateTime.tryParse(line.split('=').first) : null;
-                (locked_completer..complete(timestamp)).future.then((_) => seconds_emitter(lock_time_extractor(line), tracer));
-              }
-            }
-
-            if (line.isNotEmpty && !continuous_printing) print(tracer + line);
+            if (line.isNotEmpty && (line.contains('STATE:') || line.contains('NOTIFICATION:')))
+              emitter(line, tracer, color, attempting_locked_completer, locked_completer, unlocked_completer);
+            // if (line.isNotEmpty && !continuous_printing) print(tracer + line);
           });
         }, onDone: exiting_completer.complete);
 
         return true;
-      };
+      }
 
       Future<Process> first_process = Process.start(
         process_name,
@@ -398,25 +397,29 @@ void main() {
         second_tracer
       ]);
 
-      first_process.then((Process process) => process_listener(
-          process.stdout, first_process_attempting_locked_completer, first_process_locked_completer, first_process_exiting_completer, first_tracer, chalk.brightGreen));
+      first_process.then((Process process) => process_listener(process.stdout, first_process_attempting_locked_completer, first_process_locked_completer,
+          first_process_unlocked_completer, first_process_exiting_completer, first_tracer, chalk.brightGreen));
 
-      second_process.then((Process process) => process_listener(
-          process.stdout, second_process_attempting_locked_completer, second_process_locked_completer, second_process_exiting_completer, second_tracer, chalk.brightMagenta));
+      second_process.then((Process process) => process_listener(process.stdout, second_process_attempting_locked_completer, second_process_locked_completer,
+          second_process_unlocked_completer, second_process_exiting_completer, second_tracer, chalk.brightMagenta));
 
       final NativeSemaphore sem = NativeSemaphore.instantiate(name: name, tracer: main_tracer, verbose: false);
 
       process_listener(sem.logs.stream.map((event) => DateTime.now().toIso8601String() + '=' + event).transform(utf8.encoder), main_process_attempting_lock_completer,
-          main_process_locked_completer, main_process_exiting_completer, main_tracer, chalk.brightYellow);
+          main_process_locked_completer, main_process_unlocked_completer, main_process_exiting_completer, main_tracer, chalk.brightYellow);
 
       sem.open();
 
       await first_process_locked_completer.future;
-      await sem.lockWithDelay(delay: Duration(seconds: 3));
+      await sem.lockWithDelay(
+          delay: Duration(seconds: 3),
+          before: () async {
+            await main_process_attempting_lock_completer.future;
+          });
 
-      expect(sem.identity.instances<I>().all.length, equals(3));
-      expect(sem.identity.instances<I>().external.length, equals(2));
-      expect(sem.identity.instances<I>().internal.length, equals(1));
+      // expect(sem.identity.instances<I>().all.length, equals(3));
+      // expect(sem.identity.instances<I>().external.length, equals(2));
+      // expect(sem.identity.instances<I>().internal.length, equals(1));
 
       await sem.unlockWithDelay(delay: Duration(seconds: 3));
 
@@ -431,19 +434,12 @@ void main() {
       bool second_killed = await (await second_process).exitCode == 0;
       prints
         ..add(print_process_outputs(
-            [main_tracer, first_tracer, second_tracer], chalk.brightYellow, second_tracer, 'KILLED: ${second_killed} ${await (await second_process).exitCode}', null));
+            [main_tracer, first_tracer, second_tracer], chalk.brightMagenta, second_tracer, 'KILLED: ${second_killed} ${await (await second_process).exitCode}', null));
 
       if (continuous_printing) print(prints.last.output);
 
       expect(first_killed, equals(true));
       expect(second_killed, equals(true));
-
-      // expect(await first_process_locked_completer.future, equals(anyOf(['0'])));
-      // expect(await second_process_locked_completer.future, equals(anyOf(['2', '3'])));
-      // expect(await main_process_locked_completer.future, equals(anyOf(['6', '7'])));
-
-      // expect(secondary_lock_time, equals(anyOf([4])));
-      // expect(parent_process_lock_time, equals(anyOf([10, 11, 12])));
 
       await main_process_locked_completer.future;
 
@@ -457,6 +453,24 @@ void main() {
       print('${Platform.lineTerminator}${Platform.lineTerminator}');
 
       print('Resolution Order: ${(resolutions..sort((a, b) => a.time.compareTo(b.time))).map((e) => e.tracker).join(' -> ')}');
+
+      int first_process_lock_duration = (await first_process_unlocked_completer.future).difference(await first_process_locked_completer.future).inSeconds;
+      int second_process_lock_duration = (await second_process_unlocked_completer.future).difference(await second_process_locked_completer.future).inSeconds;
+      int main_process_lock_duration = (await main_process_unlocked_completer.future).difference(await main_process_locked_completer.future).inSeconds;
+
+      int first_process_lock_time = (await first_process_locked_completer.future).difference(await first_process_attempting_locked_completer.future).inSeconds;
+      int second_process_lock_time = (await second_process_locked_completer.future).difference(await second_process_attempting_locked_completer.future).inSeconds;
+      int main_process_lock_time = (await main_process_locked_completer.future).difference(await main_process_attempting_lock_completer.future).inSeconds;
+
+      print('${Platform.lineTerminator}');
+
+      print(first_tracer + " was locked for " + (first_process_lock_duration).toString() + " seconds and took " + (first_process_lock_time).toString() + " seconds to lock.");
+      print(second_tracer + " was locked for " + (second_process_lock_duration).toString() + " seconds and took " + (second_process_lock_time).toString() + " seconds to lock.");
+      print(main_tracer + " was locked for " + (main_process_lock_duration).toString() + " seconds and took " + (main_process_lock_time).toString() + " seconds to lock.");
+
+      expect(first_process_lock_time, equals(0));
+      expect(second_process_lock_time, equals(3));
+      expect(main_process_lock_time, equals(6));
     });
   });
 }

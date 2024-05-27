@@ -5,26 +5,61 @@ import 'package:runtime_native_semaphores/src/utils/XXHash64.dart';
 
 enum NATIVE_SEMAPHORE_OPERATION {
   willAttemptOpen,
+  attemptingOpen,
   open,
+  attemptedOpen,
+  // TODO
+  // willAttemptOpenAcrossProcesses,
+  // attemptingOpenAcrossProcesses,
+  // openAcrossProcesses,
+  // attemptedOpenAcrossProcesses,
+  // openAttemptAcrossProcessesSucceeded,
+
   openAttemptSucceeded,
   willAttemptLockReentrantToIsolate,
   lockReentrantToIsolate,
   lockAttemptReentrantToIsolateSucceeded,
   willAttemptLockAcrossProcesses,
+  attemptingLockAcrossProcesses,
   lockAcrossProcesses,
+  attemptedLockAcrossProcesses,
   lockAttemptAcrossProcessesSucceeded,
   willAttemptUnlockAcrossProcesses,
+  attemptingUnlockAcrossProcesses,
   unlockAcrossProcesses,
+  attemptedUnlockAcrossProcesses,
   unlockAttemptAcrossProcessesSucceeded,
-  willAttemptClose,
-  closeAttemptSucceeded,
-  willAttemptUnlink,
-  unlinkAttemptSucceeded,
   willAttemptUnlockReentrantToIsolate,
   unlockReentrantToIsolate,
   unlockAttemptReentrantToIsolateSucceeded,
+
+
+  willAttemptClose,
+  attemptingClose,
   close,
+  attemptedClose,
+  closeAttemptSucceeded,
+
+  // TODO
+  // willAttemptCloseAcrossProcesses,
+  // attemptingCloseAcrossProcesses,
+  // closeAcrossProcesses,
+  // attemptedCloseAcrossProcesses,
+  // closeAttemptAcrossProcessesSucceeded,
+
+  willAttemptUnlink,
+  attemptingUnlink,
   unlink,
+  attemptedUnlink,
+  unlinkAttemptSucceeded,
+
+  // TODO
+  // willAttemptUnlinkAcrossProcesses,
+  // attemptingUnlinkAcrossProcesses,
+  // unlinkAcrossProcesses,
+  // attemptedUnlinkAcrossProcesses,
+  // unlinkAttemptAcrossProcessesSucceeded,
+
   unknown;
 
   @override
@@ -32,8 +67,12 @@ enum NATIVE_SEMAPHORE_OPERATION {
     switch (this) {
       case NATIVE_SEMAPHORE_OPERATION.willAttemptOpen:
         return 'willAttemptOpen()';
+      case NATIVE_SEMAPHORE_OPERATION.attemptingOpen:
+        return 'attemptingOpen()';
       case NATIVE_SEMAPHORE_OPERATION.open:
         return 'open()';
+      case NATIVE_SEMAPHORE_OPERATION.attemptedOpen:
+        return 'attemptedOpen()';
       case NATIVE_SEMAPHORE_OPERATION.openAttemptSucceeded:
         return 'openAttemptSucceeded()';
       case NATIVE_SEMAPHORE_OPERATION.willAttemptLockReentrantToIsolate:
@@ -44,14 +83,22 @@ enum NATIVE_SEMAPHORE_OPERATION {
         return 'lockAttemptReentrantToIsolateSucceeded()';
       case NATIVE_SEMAPHORE_OPERATION.willAttemptLockAcrossProcesses:
         return 'willAttemptLockAcrossProcesses()';
+      case NATIVE_SEMAPHORE_OPERATION.attemptingLockAcrossProcesses:
+        return 'attemptingLockAcrossProcesses()';
       case NATIVE_SEMAPHORE_OPERATION.lockAcrossProcesses:
         return 'lockAcrossProcesses()';
+      case NATIVE_SEMAPHORE_OPERATION.attemptedLockAcrossProcesses:
+        return 'attemptedLockAcrossProcesses()';
       case NATIVE_SEMAPHORE_OPERATION.lockAttemptAcrossProcessesSucceeded:
         return 'lockAttemptAcrossProcessesSucceeded()';
       case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockAcrossProcesses:
         return 'willAttemptUnlockAcrossProcesses()';
+      case NATIVE_SEMAPHORE_OPERATION.attemptingUnlockAcrossProcesses:
+        return 'attemptingUnlockAcrossProcesses()';
       case NATIVE_SEMAPHORE_OPERATION.unlockAcrossProcesses:
         return 'unlockAcrossProcesses()';
+      case NATIVE_SEMAPHORE_OPERATION.attemptedUnlockAcrossProcesses:
+        return 'attemptedUnlockAcrossProcesses()';
       case NATIVE_SEMAPHORE_OPERATION.unlockAttemptAcrossProcessesSucceeded:
         return 'unlockAttemptAcrossProcessesSucceeded()';
       case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockReentrantToIsolate:
@@ -62,14 +109,22 @@ enum NATIVE_SEMAPHORE_OPERATION {
         return 'unlockAttemptReentrantToIsolateSucceeded()';
       case NATIVE_SEMAPHORE_OPERATION.willAttemptClose:
         return 'willAttemptClose()';
+      case NATIVE_SEMAPHORE_OPERATION.attemptingClose:
+        return 'attemptingClose()';
       case NATIVE_SEMAPHORE_OPERATION.close:
         return 'close()';
+      case NATIVE_SEMAPHORE_OPERATION.attemptedClose:
+        return 'attemptedClose()';
       case NATIVE_SEMAPHORE_OPERATION.closeAttemptSucceeded:
         return 'closeAttemptSucceeded()';
       case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlink:
         return 'willAttemptUnlink()';
+      case NATIVE_SEMAPHORE_OPERATION.attemptingUnlink:
+        return 'attemptingUnlink()';
       case NATIVE_SEMAPHORE_OPERATION.unlink:
         return 'unlink()';
+      case NATIVE_SEMAPHORE_OPERATION.attemptedUnlink:
+        return 'attemptedUnlink()';
       case NATIVE_SEMAPHORE_OPERATION.unlinkAttemptSucceeded:
         return 'unlinkAttemptSucceeded()';
       case NATIVE_SEMAPHORE_OPERATION.unknown:
@@ -83,8 +138,12 @@ enum NATIVE_SEMAPHORE_OPERATION {
     switch (value) {
       case 'willAttemptOpen()':
         return NATIVE_SEMAPHORE_OPERATION.willAttemptOpen;
+      case 'attemptingOpen()':
+        return NATIVE_SEMAPHORE_OPERATION.attemptingOpen;
       case 'open()':
         return NATIVE_SEMAPHORE_OPERATION.open;
+      case 'attemptedOpen()':
+        return NATIVE_SEMAPHORE_OPERATION.attemptedOpen;
       case 'openAttemptSucceeded()':
         return NATIVE_SEMAPHORE_OPERATION.openAttemptSucceeded;
       case 'willAttemptLockReentrantToIsolate()':
@@ -95,8 +154,12 @@ enum NATIVE_SEMAPHORE_OPERATION {
         return NATIVE_SEMAPHORE_OPERATION.lockAttemptReentrantToIsolateSucceeded;
       case 'willAttemptLockAcrossProcesses()':
         return NATIVE_SEMAPHORE_OPERATION.willAttemptLockAcrossProcesses;
+      case 'attemptingLockAcrossProcesses()':
+        return NATIVE_SEMAPHORE_OPERATION.attemptingLockAcrossProcesses;
       case 'lockAcrossProcesses()':
         return NATIVE_SEMAPHORE_OPERATION.lockAcrossProcesses;
+      case 'attemptedLockAcrossProcesses()':
+        return NATIVE_SEMAPHORE_OPERATION.attemptedLockAcrossProcesses;
       case 'lockAttemptAcrossProcessesSucceeded()':
         return NATIVE_SEMAPHORE_OPERATION.lockAttemptAcrossProcessesSucceeded;
       case 'willAttemptUnlockReentrantToIsolate()':
@@ -107,20 +170,33 @@ enum NATIVE_SEMAPHORE_OPERATION {
         return NATIVE_SEMAPHORE_OPERATION.unlockAttemptReentrantToIsolateSucceeded;
       case 'willAttemptUnlockAcrossProcesses()':
         return NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockAcrossProcesses;
+      case 'attemptingUnlockAcrossProcesses()':
+        return NATIVE_SEMAPHORE_OPERATION.attemptingUnlockAcrossProcesses;
+      case 'attemptedUnlockAcrossProcesses()':
+        return NATIVE_SEMAPHORE_OPERATION.attemptedUnlockAcrossProcesses;
       case 'unlockAcrossProcesses()':
         return NATIVE_SEMAPHORE_OPERATION.unlockAcrossProcesses;
       case 'unlockAttemptAcrossProcessesSucceeded()':
         return NATIVE_SEMAPHORE_OPERATION.unlockAttemptAcrossProcessesSucceeded;
       case 'willAttemptClose()':
         return NATIVE_SEMAPHORE_OPERATION.willAttemptClose;
+      case 'attemptingClose()':
+        return NATIVE_SEMAPHORE_OPERATION.attemptingClose;
       case 'close()':
         return NATIVE_SEMAPHORE_OPERATION.close;
+      case 'attemptedClose()':
+        return NATIVE_SEMAPHORE_OPERATION.attemptedClose;
+
       case 'closeAttemptSucceeded()':
         return NATIVE_SEMAPHORE_OPERATION.closeAttemptSucceeded;
       case 'willAttemptUnlink()':
         return NATIVE_SEMAPHORE_OPERATION.willAttemptUnlink;
+      case 'attemptingUnlink()':
+        return NATIVE_SEMAPHORE_OPERATION.attemptingUnlink;
       case 'unlink()':
         return NATIVE_SEMAPHORE_OPERATION.unlink;
+      case 'attemptedUnlink()':
+        return NATIVE_SEMAPHORE_OPERATION.attemptedUnlink;
       case 'unlinkAttemptSucceeded()':
         return NATIVE_SEMAPHORE_OPERATION.unlinkAttemptSucceeded;
       default:
@@ -221,7 +297,7 @@ class PersistedNativeSemaphoreOperation {
     int? address,
     Duration? elapsed,
     bool verbose = false,
-    String this.tracer = '', 
+    String this.tracer = '',
   })  : created = created ?? DateTime.now(),
         address = address ?? -1,
         elapsed = elapsed ?? Duration.zero;

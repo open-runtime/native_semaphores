@@ -70,9 +70,7 @@ class SemaphoreIdentity {
 
   String get name => _name;
 
-  late final String _tracer;
-
-  String get tracer => _tracer;
+  late String tracer;
 
   // helper property to know if it has been registered inside of a named semaphore instance
   late final bool _registered;
@@ -94,7 +92,7 @@ class SemaphoreIdentity {
     // check if identifier has invalid characters
     if (name.contains(RegExp(r'[\\/:*?"<>|]'))) throw ArgumentError('Identifier contains invalid characters.');
     _name = name;
-    _tracer = tracer ?? '';
+    this.tracer = tracer ?? '';
     _isolate = isolate ?? (Service.getIsolateId(Isolate.current)?.toString() ?? Isolate.current.hashCode.toString()).replaceFirst('isolates${Platform.pathSeparator}', '');
     _process = process ?? pid.toString();
   }

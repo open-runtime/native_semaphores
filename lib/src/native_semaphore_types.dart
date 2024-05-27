@@ -1,6 +1,5 @@
-
-import 'native_semaphore.dart' show NativeSemaphore;
-import 'persisted_native_semaphore_metadata.dart' show PersistedNativeSemaphoreAccessor;
+import 'native_semaphore.dart' show NativeSemaphore, NativeSemaphoreProcessOperationStatus, NativeSemaphoreProcessOperationStatusState, NativeSemaphoreProcessOperationStatuses, NativeSemaphores;
+import 'persisted_native_semaphore_metadata.dart' show PersistedNativeSemaphoreAccessor, PersistedNativeSemaphoreMetadata;
 import 'persisted_native_semaphore_operation.dart' show PersistedNativeSemaphoreOperation, PersistedNativeSemaphoreOperations;
 import 'semaphore_counter.dart' show SemaphoreCount, SemaphoreCountDeletion, SemaphoreCountUpdate, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
 import 'semaphore_identity.dart' show SemaphoreIdentities, SemaphoreIdentity;
@@ -16,4 +15,8 @@ typedef CTRS = SemaphoreCounters<I, CU, CD, CT, CTS, CTR>;
 typedef PNSO = PersistedNativeSemaphoreOperation;
 typedef PNSOS = PersistedNativeSemaphoreOperations<PNSO>;
 typedef PNSA = PersistedNativeSemaphoreAccessor;
-typedef NS = NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA>;
+typedef PNSM = PersistedNativeSemaphoreMetadata<PNSA>;
+typedef NSPOSS = NativeSemaphoreProcessOperationStatusState;
+typedef NSPOS = NativeSemaphoreProcessOperationStatus<I, NSPOSS>;
+typedef NSPOSES = NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>;
+typedef NS = NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA, NSPOSS, NSPOS, NSPOSES>;

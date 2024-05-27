@@ -2,7 +2,7 @@ import 'dart:io' show sleep;
 import 'dart:isolate' show Isolate, ReceivePort, SendPort;
 import 'dart:math' show Random;
 
-import 'package:runtime_native_semaphores/runtime_native_semaphores.dart' show NativeSemaphore;
+import 'package:runtime_native_semaphores/runtime_native_semaphores.dart' show NativeSemaphore, NativeSemaphoreProcessOperationStatusState;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 import 'package:runtime_native_semaphores/src/native_semaphore_types.dart' show NS;
 import 'package:test/test.dart' show equals, everyElement, expect, group, test;
@@ -12,14 +12,21 @@ void main() {
     test('Several Isolates Accessing Same Named Semaphore, waiting random durations and then unlocking.', () async {
       Future<bool> spawn_isolate(String name, int id) async {
         // The entry point for the isolate
-        void isolate_entrypoint(SendPort sender) {
+        void isolate_entrypoint(SendPort sender) async {
           // Captures the call frame here, put right right inside the method entrypoint
 
-          final NS sem = NativeSemaphore.instantiate(name: name, verbose: true);
+          final NS sem = NativeSemaphore.instantiate(name: name);
 
+
+          // sem.statuses.notifications.listen((NativeSemaphoreProcessOperationStatusState event) {
+          //   print('Notification from Isolate $id: ${event.toString()}');
+          // }, onDone: () {
+          //   print('Isolate $id: Done');
+          // });
 
           bool opened = sem.open();
           opened || (throw Exception("Open in isolate $id should have succeeded"));
+
 
           // Lock
           bool locked = sem.lock();
@@ -38,6 +45,11 @@ void main() {
           // Unlink the semaphore
           bool unlink = sem.unlink();
           unlink || (throw Exception("Unlink in isolate $id should have succeeded"));
+
+          // print((await sem.statuses.unlink.willAttempt.completer.future));
+          // print((await sem.statuses.unlink.attempting.completer.future));
+          // print((await sem.statuses.unlink.attempted.completer.future));
+          print((await sem.statuses.unlink.attemptSucceeded.completer.future));
 
           sender.send(true);
         }

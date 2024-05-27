@@ -22,13 +22,16 @@ main(List<String> args) async {
   Completer<void> closed_completer = Completer<void>();
   Completer<void> unlinked_completer = Completer<void>();
 
-  bool Function(String output) attempting_locked_matcher = (String output) => output.contains('Attempting to lock semaphore with name $name and tracer');
+  bool Function(String output) attempting_locked_matcher = (String output) => output.contains('Attempting to lock semaphore with name');
   bool Function(String output) locked_matcher = (String output) => output.contains('Locking semaphore with name $name took: [');
+  bool Function(String output) unlocked_matcher = (String output) => output.contains('Unlocking semaphore with name $name took: [');
+
   bool Function(String output) delay_matcher = (String output) => output.contains('semaphore with name $name is delayed by: [');
   // bool Function(String output) attempting_open_matcher = (String output) => output.contains('Attempting to open semaphore with name $name');
   late StreamSubscription<String> subscription;
   emit(NativeSemaphore sem) {
     subscription = sem.logs.stream.listen((log) {
+      // if(log.contains("Attempting to lock semaphore with name")&& !attempting_lock_completer.isCompleted) attempting_lock_completer.complete((DateTime.now().toIso8601String() + '=' + log));
       // stdout.writeln(log);
       // if(attempting_open_matcher(log) && !attempting_open_completer.isCompleted) attempting_open_completer.complete(stdout..writeln(log));
       if(log.contains("NOTIFICATION: Predecessors")) stdout.writeln(DateTime.now().toIso8601String() + '=' + log);
@@ -40,7 +43,7 @@ main(List<String> args) async {
       if (log.contains("unlinked: true") && !unlinked_completer.isCompleted) unlinked_completer.complete(stdout..writeln((DateTime.now().toIso8601String() + '=' + log)));
       if ( log.contains("waiting: true") && !waiting_completer.isCompleted) waiting_completer.complete(stdout..writeln((DateTime.now().toIso8601String() + '=' + log)));
       if (log.contains("unlocked: true") && !unlocked_completer.isCompleted) unlocked_completer.complete(stdout..writeln((DateTime.now().toIso8601String() + '=' + log)));
-      if (attempting_locked_matcher(log) && !attempting_lock_completer.isCompleted) attempting_lock_completer.complete((DateTime.now().toIso8601String() + '=' + log));
+      if (attempting_locked_matcher(log) && !attempting_lock_completer.isCompleted) attempting_lock_completer.complete(stdout..writeln((DateTime.now().toIso8601String() + '=' + log)));
       if (locked_matcher(log) && !lock_acquired_completer.isCompleted) lock_acquired_completer.complete(stdout..writeln((DateTime.now().toIso8601String() + '=' + log)));
       if (log.contains('Locking semaphore with name') && delay_matcher(log) && !lock_delay_completer.isCompleted) lock_delay_completer.complete(stdout..writeln((DateTime.now().toIso8601String() + '=' + log)));
       if (log.contains('Unlocking semaphore with name') &&  delay_matcher(log) && !unlock_delay_completer.isCompleted) unlock_delay_completer.complete(stdout..writeln((DateTime.now().toIso8601String() + '=' + log)));
@@ -60,7 +63,9 @@ main(List<String> args) async {
 
   await stdout.flush();
 
-  await sem.lockWithDelay(delay: Duration(seconds: lock_delay));
+  await sem.lockWithDelay(delay: Duration(seconds: lock_delay), before: () async {
+    await attempting_lock_completer.future;
+  });
 
   await locked_completer.future;
 
