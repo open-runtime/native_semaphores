@@ -523,7 +523,7 @@ class NativeSemaphoreProcessOperationStatusState {
 
   Future<NSPOS> complete<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>>({required NATIVE_SEMAPHORE_OPERATION operation, dynamic value = null, DateTime? timestamp, required NSPOS status, ({NSPOS status , NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_value})? verification, R Function<R>(NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_value)? verifier}) async {
     completed.isSet && completed.get is bool ? throw Exception('$tracer The operation $operation is already completed. ${synchronizations.length}') : _completed = true;
-    // print('$tracer Completing: ${operation} $isolate $value');
+    print('$tracer Completing: ${operation} $isolate $value ${timestamp?.minute.toString()}m ${timestamp?.second.toString()}s  ${timestamp?.millisecond.toString()}ms');
     if (_controller.isClosed) throw Exception('$tracer The controller is closed.');
     if (completer.isCompleted) throw Exception('$tracer The completer is completed.');
     synchronize(operation: operation, value: value, timestamp: timestamp, status: status, verification: verification, verifier: verifier);
@@ -608,8 +608,9 @@ class NativeSemaphoreProcessOperationStatuses<I extends SemaphoreIdentity, NSPOS
 
   late final Future<List<NSPOSS>> all = Future.wait<List<NSPOSS>>([opened, locked, unlocked, closed, unlinked]).then((List<List<NSPOSS>> values) => values.expand((List<NSPOSS> value) => value).toList());
 
-  Future<NSPOS> synchronize({required NATIVE_SEMAPHORE_OPERATION operation, dynamic value = null, ({NSPOS status , NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_value})? verification, R Function<R>(NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_value)? verifier}) async {
+  Future<NSPOS> synchronize({required NATIVE_SEMAPHORE_OPERATION operation, dynamic value = null, DateTime? timestamp, ({NSPOS status , NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_value})? verification, R Function<R>(NSPOS status ,NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_value)? verifier}) async {
     // print('${identity.tracer} Synchronizing: $operation $value');
+    timestamp ??= DateTime.now();
     Future<NSPOS> Function(
             {required NATIVE_SEMAPHORE_OPERATION operation,
             dynamic value,
@@ -630,54 +631,54 @@ class NativeSemaphoreProcessOperationStatuses<I extends SemaphoreIdentity, NSPOS
     switch (operation) {
       case NATIVE_SEMAPHORE_OPERATION.willAttemptOpen:
         // If open will attempt then we can complete the
-        return _call(operation: operation, value: value, synchronizer: open.willAttempt.synchronize, status: open, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value, timestamp: timestamp, synchronizer: open.willAttempt.synchronize, status: open, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.attemptingOpen:
-        return _call(operation: operation, value: value, synchronizer: open.attempting.synchronize, status: open, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value, timestamp: timestamp, synchronizer: open.attempting.synchronize, status: open, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.attemptedOpen:
-        return _call(operation: operation, value: value, synchronizer: open.attempted.synchronize, status: open, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value, timestamp: timestamp, synchronizer: open.attempted.synchronize, status: open, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.openAttemptSucceeded:
         /* calling complete */ // TODO - call completer for other functions depending on the perceived state of value i.e. true then call complete, if false call synchronize
-        return _call(operation: operation, value: value, synchronizer: open.attemptSucceeded.complete, status: open, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value,timestamp: timestamp,  synchronizer: open.attemptSucceeded.complete, status: open, verification: verification, verifier: verifier ??verify);
 
       case NATIVE_SEMAPHORE_OPERATION.willAttemptLockAcrossProcesses:
-        return _call(operation: operation, value: value, synchronizer: lock.willAttempt.synchronize, status: lock, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value, timestamp: timestamp, synchronizer: lock.willAttempt.synchronize, status: lock, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.attemptingLockAcrossProcesses:
-        return _call(operation: operation, value: value, synchronizer: lock.attempting.synchronize, status: lock, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value, timestamp: timestamp, synchronizer: lock.attempting.synchronize, status: lock, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.attemptedLockAcrossProcesses:
-        return _call(operation: operation, value: value, synchronizer: lock.attempted.synchronize, status: lock, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value,timestamp: timestamp,  synchronizer: lock.attempted.synchronize, status: lock, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.lockAttemptAcrossProcessesSucceeded:
         /* calling complete */
-        return _call(operation: operation, value: value, synchronizer: lock.attemptSucceeded.complete, status: lock, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value,timestamp: timestamp,  synchronizer: lock.attemptSucceeded.complete, status: lock, verification: verification, verifier: verifier ??verify);
 
       case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockAcrossProcesses:
-        return _call(operation: operation, value: value, synchronizer: unlock.willAttempt.synchronize, status: unlock, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value, timestamp: timestamp, synchronizer: unlock.willAttempt.synchronize, status: unlock, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.attemptingUnlockAcrossProcesses:
-        return _call(operation: operation, value: value, synchronizer: unlock.attempting.synchronize, status: unlock, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value,timestamp: timestamp,  synchronizer: unlock.attempting.synchronize, status: unlock, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.attemptedUnlockAcrossProcesses:
-        return _call(operation: operation, value: value, synchronizer: unlock.attempted.synchronize, status: unlock, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value,timestamp: timestamp,  synchronizer: unlock.attempted.synchronize, status: unlock, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.unlockAttemptAcrossProcessesSucceeded:
         /* calling complete */
-        return _call(operation: operation, value: value, synchronizer: unlock.attemptSucceeded.complete, status: unlock, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value,timestamp: timestamp,  synchronizer: unlock.attemptSucceeded.complete, status: unlock, verification: verification, verifier: verifier ??verify);
 
       case NATIVE_SEMAPHORE_OPERATION.willAttemptClose:
-        return _call(operation: operation, value: value, synchronizer: close.willAttempt.synchronize, status: close, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value, timestamp: timestamp, synchronizer: close.willAttempt.synchronize, status: close, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.attemptingClose:
-        return _call(operation: operation, value: value, synchronizer: close.attempting.synchronize, status: close, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value, timestamp: timestamp, synchronizer: close.attempting.synchronize, status: close, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.attemptedClose:
-        return _call(operation: operation, value: value, synchronizer: close.attempted.synchronize, status: close, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value,timestamp: timestamp,  synchronizer: close.attempted.synchronize, status: close, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.closeAttemptSucceeded:
         /* calling complete */
-        return _call(operation: operation, value: value, synchronizer: close.attemptSucceeded.complete, status: close, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value,timestamp: timestamp,  synchronizer: close.attemptSucceeded.complete, status: close, verification: verification, verifier: verifier ??verify);
 
       case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlink:
-        return _call(operation: operation, value: value, synchronizer: unlink.willAttempt.synchronize, status: unlink, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value, timestamp: timestamp, synchronizer: unlink.willAttempt.synchronize, status: unlink, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.attemptingUnlink:
-        return _call(operation: operation, value: value, synchronizer: unlink.attempting.synchronize, status: unlink, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value,timestamp: timestamp,  synchronizer: unlink.attempting.synchronize, status: unlink, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.attemptedUnlink:
-        return _call(operation: operation, value: value, synchronizer: unlink.attempted.synchronize, status: unlink, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value,timestamp: timestamp,  synchronizer: unlink.attempted.synchronize, status: unlink, verification: verification, verifier: verifier ??verify);
       case NATIVE_SEMAPHORE_OPERATION.unlinkAttemptSucceeded:
         /* calling complete */
-        return _call(operation: operation, value: value, synchronizer: unlink.attemptSucceeded.complete, status: unlink, verification: verification, verifier: verifier ??verify);
+        return _call(operation: operation, value: value, timestamp: timestamp,  synchronizer: unlink.attemptSucceeded.complete, status: unlink, verification: verification, verifier: verifier ??verify);
       default:
         throw Exception('Operation $operation is not supported on this instance.');
     }

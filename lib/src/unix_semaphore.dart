@@ -71,6 +71,7 @@ class UnixSemaphore<
 
   @override
   bool open() {
+    // TODO Note to self - we should probably have openAcrossProcesses and openReentrantToIsolate methods
     if(opened) {
       print("${identity.tracer} already opened and is reentrant $reentrant");
     }
@@ -272,7 +273,7 @@ class UnixSemaphore<
 
   @override
   bool unlockAcrossProcesses() {
-    if (!willAttemptUnlockAcrossProcesses()) return false;
+    if (!willAttemptUnlockAcrossProcesses()) return false; // TODO perhaps call completers.complete here? & Synchronize within the hook itself?
 
     bool value = true;
     // persist(status: NATIVE_SEMAPHORE_OPERATION.attemptingUnlockAcrossProcesses) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -371,6 +372,7 @@ class UnixSemaphore<
   // Closing has no reentrant effect
   @override
   bool close() {
+    // TODO Note to self - we should probably have closeAcrossProcesses and closeReentrantToIsolate methods
     if(closed) {
       print("${identity.tracer} already closed and is reentrant $reentrant");
     }
@@ -451,6 +453,7 @@ class UnixSemaphore<
 
   @override
   bool unlink() {
+    // TODO Note to self - we should probably have unlinkAcrossProcesses and unlinkReentrantToIsolate methods
     if(unlinked) {
       print("${identity.tracer} already unlinked and is reentrant $reentrant");
     }
