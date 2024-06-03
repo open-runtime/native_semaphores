@@ -4,6 +4,7 @@ import 'dart:io' show File, Platform, Process, ProcessResult, ProcessSignal, Pro
 import 'dart:isolate' show Isolate, ReceivePort, SendPort;
 import 'dart:math' show Random;
 
+import 'package:chalkdart/chalk.dart';
 import 'package:runtime_native_semaphores/runtime_native_semaphores.dart' show NativeSemaphore;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 import 'package:runtime_native_semaphores/src/native_semaphore_types.dart' show NS;
@@ -35,7 +36,7 @@ void main() async {
     test('Several Processes Coordinated Leveraging Named Locks', () async {
       String name = '${safeIntId.getId()}_named_sem';
 
-      final NativeSemaphore sem = NativeSemaphore.instantiate(name: name)
+      final NativeSemaphore sem = NativeSemaphore.instantiate(name: name, verbose: true, tracerFn: () => chalk.blue('Semaphore'))
         ..open()
         ..lock();
 

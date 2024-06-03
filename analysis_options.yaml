@@ -1,0 +1,4 @@
+analyzer:
+linter:
+formatter:
+  line-length: 1000

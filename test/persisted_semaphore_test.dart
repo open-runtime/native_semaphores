@@ -121,7 +121,7 @@ void main() {
     test('Create Native Semaphore, Call open(), and verify that the file exists.', () async {
       String name = 'tested_named_sem';
 
-      NativeSemaphore semaphore = NativeSemaphore.instantiate(name: name, verbose: true);
+      NativeSemaphore semaphore = NativeSemaphore.instantiate(name: name, verbose: true, tracerFn: () => chalk.blue('Semaphore'));
 
       // Expect the cache directory to exist
       expect(semaphore.identity.cache.existsSync(), equals(true));
@@ -403,7 +403,7 @@ void main() {
       second_process.then((Process process) => process_listener(process.stdout, second_process_attempting_locked_completer, second_process_locked_completer,
           second_process_unlocked_completer, second_process_exiting_completer, second_tracer, chalk.brightMagenta));
 
-      final NativeSemaphore sem = NativeSemaphore.instantiate(name: name, tracer: main_tracer, verbose: false);
+      final NativeSemaphore sem = NativeSemaphore.instantiate(name: name, tracerFn: () => main_tracer, verbose: false);
 
       process_listener(sem.logs.stream.map((event) => DateTime.now().toIso8601String() + '=' + event).transform(utf8.encoder), main_process_attempting_lock_completer,
           main_process_locked_completer, main_process_unlocked_completer, main_process_exiting_completer, main_tracer, chalk.brightYellow);

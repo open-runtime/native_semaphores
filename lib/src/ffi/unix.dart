@@ -2,6 +2,8 @@ import 'dart:ffi'
     show Abi, AbiSpecificInteger, AbiSpecificIntegerMapping, Char, Int, Native, Pointer, Uint16, Uint32, Uint64, Uint8, UnsignedInt, UnsignedLong, UnsignedShort, VarArgs;
 import 'dart:io' show Platform;
 
+import '../native_semaphore.dart';
+
 // in C the sizeof(sem_t) = 4 bytes on MacOS Arm64 and x86_64 and on Linux it seems to be the same case!
 typedef sem_t = Int;
 
@@ -299,17 +301,12 @@ class UnixSemOpenMacros {
   static int VALUE_RECOMMENDED = 1;
 }
 
-class UnixSemError extends Error {
-  final bool critical;
-  final int code;
-  final String message;
-  final String? identifier;
-  late final String? description = toString();
-
-  UnixSemError(this.code, this.message, this.identifier, [this.critical = true]);
+class UnixSemError extends NativeSemError {
+  UnixSemError(super.code, super.message, super.identifier, [super.critical = true]);
 
   @override
   String toString() => 'UnixSemError: [Critical: $critical Error: $identifier Code: $code]: $message';
+
 }
 
 class UnixSemOpenError extends UnixSemError {
@@ -402,6 +399,7 @@ class UnixSemCloseError extends UnixSemError {
     else
       return UnixSemCloseError(errno, "Unknown error.", 'UNKNOWN');
   }
+
 }
 
 class UnixSemUnlinkMacros {

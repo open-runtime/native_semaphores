@@ -1,4 +1,5 @@
-import 'native_semaphore.dart' show NativeSemaphore, NativeSemaphoreProcessOperationStatus, NativeSemaphoreProcessOperationStatusState, NativeSemaphoreProcessOperationStatuses, NativeSemaphores;
+import 'native_semaphore.dart' show NativeSemaphore;
+import 'native_semaphore_operations.dart' show NativeSemaphoreProcessOperationStatus, NativeSemaphoreProcessOperationStatusState, NativeSemaphoreProcessOperationStatuses;
 import 'persisted_native_semaphore_metadata.dart' show PersistedNativeSemaphoreAccessor, PersistedNativeSemaphoreMetadata;
 import 'persisted_native_semaphore_operation.dart' show PersistedNativeSemaphoreOperation, PersistedNativeSemaphoreOperations;
 import 'semaphore_counter.dart' show SemaphoreCount, SemaphoreCountDeletion, SemaphoreCountUpdate, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
@@ -10,13 +11,14 @@ typedef CU = SemaphoreCountUpdate;
 typedef CD = SemaphoreCountDeletion;
 typedef CT = SemaphoreCount<CU, CD>;
 typedef CTS = SemaphoreCounts<CU, CD, CT>;
-typedef CTR = SemaphoreCounter<I, CU, CD, CT, CTS>;
-typedef CTRS = SemaphoreCounters<I, CU, CD, CT, CTS, CTR>;
+typedef NSPOSS = NativeSemaphoreProcessOperationStatusState;
+typedef NSPOS = NativeSemaphoreProcessOperationStatus<I, NSPOSS>;
+typedef NSPOSES = NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>;
+typedef CTR = SemaphoreCounter<I, CU, CD, CT, CTS, NSPOSS, NSPOS, NSPOSES>;
+typedef CTRS = SemaphoreCounters<I, CU, CD, CT, CTS, NSPOSS, NSPOS, NSPOSES, CTR>;
 typedef PNSO = PersistedNativeSemaphoreOperation;
 typedef PNSOS = PersistedNativeSemaphoreOperations<PNSO>;
 typedef PNSA = PersistedNativeSemaphoreAccessor;
 typedef PNSM = PersistedNativeSemaphoreMetadata<PNSA>;
-typedef NSPOSS = NativeSemaphoreProcessOperationStatusState;
-typedef NSPOS = NativeSemaphoreProcessOperationStatus<I, NSPOSS>;
-typedef NSPOSES = NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>;
-typedef NS = NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA, NSPOSS, NSPOS, NSPOSES>;
+
+typedef NS = NativeSemaphore<I, IS, CU, CD, CT, CTS, NSPOSS, NSPOS, NSPOSES, CTR, CTRS, PNSO, PNSOS, PNSA>;

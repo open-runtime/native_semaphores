@@ -1,8 +1,5 @@
-import 'dart:convert' show JsonDecoder, JsonEncoder;
-import 'dart:io';
-
-import 'package:runtime_native_semaphores/src/persisted_native_semaphore_operation.dart';
-import 'package:runtime_native_semaphores/src/utils/XXHash64.dart';
+import 'package:runtime_native_semaphores/src/utils/XXHash64.dart' show JSON;
+import 'native_semaphore_operations.dart' show NATIVE_SEMAPHORE_OPERATION;
 
 class PersistedNativeSemaphoreAccessor {
   /* The isolate ID */

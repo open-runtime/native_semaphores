@@ -2,59 +2,31 @@ import 'dart:ffi' show Char, NativeType, Pointer;
 
 import 'package:ffi/ffi.dart' show StringUtf16Pointer, malloc;
 
-import 'native_semaphore.dart' show NativeSemaphore, NativeSemaphoreProcessOperationStatus, NativeSemaphoreProcessOperationStatusState, NativeSemaphoreProcessOperationStatuses;
+import 'ffi/windows.dart' show CloseHandle, CreateSemaphoreW, LPCWSTR, ReleaseSemaphore, WaitForSingleObject, WindowsCreateSemaphoreWError, WindowsCreateSemaphoreWMacros, WindowsReleaseSemaphoreMacros, WindowsWaitForSingleObjectMacros;
+import 'native_semaphore.dart' show NativeSemError, NativeSemaphore;
+import 'native_semaphore_operations.dart' show NativeSemaphoreProcessOperationStatus, NativeSemaphoreProcessOperationStatusState, NativeSemaphoreProcessOperationStatuses;
 import 'persisted_native_semaphore_metadata.dart' show PersistedNativeSemaphoreAccessor, PersistedNativeSemaphoreMetadata;
 import 'persisted_native_semaphore_operation.dart' show PersistedNativeSemaphoreOperation, PersistedNativeSemaphoreOperations;
 import 'semaphore_counter.dart' show SemaphoreCount, SemaphoreCountDeletion, SemaphoreCountUpdate, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
 import 'semaphore_identity.dart' show SemaphoreIdentities, SemaphoreIdentity;
-
-import 'ffi/windows.dart'
-    show
-        CloseHandle,
-        CreateSemaphoreW,
-        LPCWSTR,
-        ReleaseSemaphore,
-        WaitForSingleObject,
-        WindowsCreateSemaphoreWError,
-        WindowsCreateSemaphoreWMacros,
-        WindowsReleaseSemaphoreMacros,
-        WindowsWaitForSingleObjectMacros;
 import 'utils/late_property_assigned.dart' show LatePropertyAssigned;
 
-class WindowsSemaphore<
-        I extends SemaphoreIdentity,
-        IS extends SemaphoreIdentities<I>,
-        CU extends SemaphoreCountUpdate,
-        CD extends SemaphoreCountDeletion,
-        CT extends SemaphoreCount<CU, CD>,
-        CTS extends SemaphoreCounts<CU, CD, CT>,
-        CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
-        CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>,
-        PNSO extends PersistedNativeSemaphoreOperation,
-        PNSOS extends PersistedNativeSemaphoreOperations<PNSO>,
-        PNSA extends PersistedNativeSemaphoreAccessor,
-        PNSM extends PersistedNativeSemaphoreMetadata<PNSA>,
-        NSPOSS extends NativeSemaphoreProcessOperationStatusState,
-        NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>,
-        NSPOSES extends NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>>
-    extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS, PNSO, PNSOS, PNSA, NSPOSS, NSPOS, NSPOSES> {
+class WindowsSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentities<I>, CU extends SemaphoreCountUpdate, CD extends SemaphoreCountDeletion, CT extends SemaphoreCount<CU, CD>, CTS extends SemaphoreCounts<CU, CD, CT>, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>, NSPOSES extends NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>, CTR extends SemaphoreCounter<I, CU, CD, CT, CTS, NSPOSS, NSPOS, NSPOSES>, CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, NSPOSS, NSPOS, NSPOSES, CTR>, PNSO extends PersistedNativeSemaphoreOperation, PNSOS extends PersistedNativeSemaphoreOperations<PNSO>, PNSA extends PersistedNativeSemaphoreAccessor, PNSM extends PersistedNativeSemaphoreMetadata<PNSA>> extends NativeSemaphore<I, IS, CU, CD, CT, CTS, NSPOSS, NSPOS, NSPOSES, CTR, CTRS, PNSO, PNSOS, PNSA> {
   late final LPCWSTR _identifier;
 
   ({bool isSet, LPCWSTR? get}) get identifier => LatePropertyAssigned<Pointer<Char>>(() => _identifier) ? (isSet: true, get: _identifier) : (isSet: false, get: null);
 
   late final Pointer<NativeType> _semaphore;
 
-  ({bool isSet, Pointer<NativeType>? get}) get semaphore =>
-      LatePropertyAssigned<Pointer<NativeType>>(() => _semaphore) ? (isSet: true, get: _semaphore) : (isSet: false, get: null);
+  ({bool isSet, Pointer<NativeType>? get}) get semaphore => LatePropertyAssigned<Pointer<NativeType>>(() => _semaphore) ? (isSet: true, get: _semaphore) : (isSet: false, get: null);
 
-  WindowsSemaphore({required CTR counter, verbose = false}) : super(counter: counter, verbose: verbose);
+  WindowsSemaphore({required String Function() tracerFn, required CTR counter, verbose = false}) : super(tracerFn: () => tracerFn(), counter: counter, verbose: verbose);
 
   @override
   bool willAttemptOpen() {
     if (verbose) print("Evaluating [willAttemptOpen()]: IDENTITY: ${identity.identifier}");
     // TODO other checks on the identifier string
-    (identity.name.length <= WindowsCreateSemaphoreWMacros.MAX_PATH) ||
-        (throw ArgumentError('Identifier is too long. Must be less than or equal to ${WindowsCreateSemaphoreWMacros.MAX_PATH} characters.'));
+    (identity.name.get.length <= WindowsCreateSemaphoreWMacros.MAX_PATH) || (throw ArgumentError('Identifier is too long. Must be less than or equal to ${WindowsCreateSemaphoreWMacros.MAX_PATH} characters.'));
 
     if (verbose) print("Proceeding to [open()] semaphore: ${identity.name}");
     return true;
@@ -68,9 +40,7 @@ class WindowsSemaphore<
 
     if (verbose) print("Attempting to [open()] semaphore: ${identity.name}");
 
-    if (!semaphore.isSet)
-      _semaphore = Pointer.fromAddress(CreateSemaphoreW(WindowsCreateSemaphoreWMacros.NULL.address, WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
-          WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED, _identifier));
+    if (!semaphore.isSet) _semaphore = Pointer.fromAddress(CreateSemaphoreW(WindowsCreateSemaphoreWMacros.NULL.address, WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED, WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED, _identifier));
 
     if (verbose) print("Semaphore [open()] attempt response: ${semaphore}");
     if (verbose) print("Proceeding to [openAttemptSucceeded()] semaphore: ${identity.name}");
@@ -81,18 +51,17 @@ class WindowsSemaphore<
   @override
   bool openAttemptSucceeded() {
     if (_semaphore.address == WindowsCreateSemaphoreWMacros.SEM_FAILED.address) {
-      if (verbose)
-        print("Failed [openAttemptSucceeded()] windows semaphore: ${identity.name} with error: ${WindowsCreateSemaphoreWError.fromErrorCode(_semaphore.address).toString()}");
+      if (verbose) print("Failed [openAttemptSucceeded()] windows semaphore: ${identity.name} with error: ${WindowsCreateSemaphoreWError.fromErrorCode(_semaphore.address).toString()}");
       throw Exception("CreateSemaphoreW in secondary isolate should have succeeded, got ${_semaphore.address}");
     }
 
     if (verbose) print("Successfully [openAttemptSucceeded()] windows semaphore: ${identity.name} at address: ${semaphore.get?.address}");
 
-    return !LatePropertyAssigned<bool>(() => hasOpened) ? hasOpened = true : opened;
+    return false;
   }
 
   @override
-  bool willAttemptLockAcrossProcesses() {
+  bool willAttemptLockAcrossProcesses({bool? state}) {
     if (verbose) print("Evaluating [willAttemptLockAcrossProcesses()]: IDENTITY: ${identity.identifier}");
 
     if (opened == false) {
@@ -101,7 +70,7 @@ class WindowsSemaphore<
       throw Exception('Failed [willAttemptLockAcrossProcesses()]: IDENTITY: ${identity.identifier} REASON: Cannot lock semaphore that has not been opened.');
     }
 
-    if (counter.counts.process.get() > 0) {
+    if (counter.counts.process_locks.get() > 0) {
       if (verbose) print("Failed [willAttemptLockAcrossProcesses()]: IDENTITY: ${identity.identifier} REASON: Current Process already locked semaphore.");
       return false;
     }
@@ -117,9 +86,7 @@ class WindowsSemaphore<
 
     if (verbose) print("Attempting [lockAcrossProcesses()]: IDENTITY: ${identity.identifier} BLOCKING: $blocking");
 
-    int attempt = blocking
-        ? WaitForSingleObject(_semaphore.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED)
-        : WaitForSingleObject(_semaphore.address, WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO);
+    int attempt = blocking ? WaitForSingleObject(_semaphore.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED) : WaitForSingleObject(_semaphore.address, WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO);
 
     if (verbose) print("Attempted [lockAcrossProcesses()]: IDENTITY: ${identity.identifier} BLOCKING: $blocking ATTEMPT RESPONSE: $attempt");
 
@@ -127,35 +94,28 @@ class WindowsSemaphore<
   }
 
   @override
-  bool lockAttemptAcrossProcessesSucceeded({required int attempt}) {
+  bool lockAttemptAcrossProcessesSucceeded<E extends NativeSemError>({required int attempt, bool? state, E? error}) {
     if (attempt == WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0) {
       if (verbose) print("Successful [lockAttemptAcrossProcessesSucceeded()] [WaitForSingleObject] Attempt: IDENTITY: ${identity.identifier} ATTEMPT RESULT: $attempt");
-      counter.counts.process.increment();
-      if (verbose)
-        print(
-            "Incremented [lockAttemptAcrossProcessesSucceeded()] Count: IDENTITY: ${identity.identifier} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+      counter.counts.process_locks.increment();
+      if (verbose) print("Incremented [lockAttemptAcrossProcessesSucceeded()] Count: IDENTITY: ${identity.identifier} PROCESS COUNT: ${counter.counts.process_locks.get()} ISOLATE COUNT: ${counter.counts.isolate_locks.get()}");
       return true;
     }
 
-    if (attempt == WindowsWaitForSingleObjectMacros.WAIT_ABANDONED && verbose)
-      print("Failed [lockAttemptAcrossProcessesSucceeded()] [WaitForSingleObject] Attempt was abandoned: IDENTITY: ${identity.identifier} ATTEMPT RESULT: $attempt");
+    if (attempt == WindowsWaitForSingleObjectMacros.WAIT_ABANDONED && verbose) print("Failed [lockAttemptAcrossProcessesSucceeded()] [WaitForSingleObject] Attempt was abandoned: IDENTITY: ${identity.identifier} ATTEMPT RESULT: $attempt");
 
-    if (attempt == WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT && verbose)
-      print("Failed [lockAttemptAcrossProcessesSucceeded()] [WaitForSingleObject] Attempt timed out: IDENTITY: ${identity.identifier} ATTEMPT RESULT: $attempt");
+    if (attempt == WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT && verbose) print("Failed [lockAttemptAcrossProcessesSucceeded()] [WaitForSingleObject] Attempt timed out: IDENTITY: ${identity.identifier} ATTEMPT RESULT: $attempt");
 
-    if (attempt == WindowsWaitForSingleObjectMacros.WAIT_FAILED && verbose)
-      print("Failed [lockAttemptAcrossProcessesSucceeded()] [WaitForSingleObject] Attempt failed: IDENTITY: ${identity.identifier} ATTEMPT RESULT: $attempt");
+    if (attempt == WindowsWaitForSingleObjectMacros.WAIT_FAILED && verbose) print("Failed [lockAttemptAcrossProcessesSucceeded()] [WaitForSingleObject] Attempt failed: IDENTITY: ${identity.identifier} ATTEMPT RESULT: $attempt");
 
     return false;
   }
 
   @override
-  bool willAttemptLockReentrantToIsolate() {
+  bool willAttemptLockReentrantToIsolate({bool? state, bool persisted = false}) {
     if (verbose) print("Evaluating [willAttemptLockReentrantToIsolate()]: IDENTITY: ${identity.identifier}");
 
-    counter.counts.process.get() > 0 ||
-        (throw Exception(
-            'Failed [willAttemptLockReentrantToIsolate()]: IDENTITY: ${identity.identifier} REASON: Cannot lock reentrant to isolate while outer process is unlocked locked.'));
+    counter.counts.process_locks.get() > 0 || (throw Exception('Failed [willAttemptLockReentrantToIsolate()]: IDENTITY: ${identity.identifier} REASON: Cannot lock reentrant to isolate while outer process is unlocked locked.'));
 
     if (verbose) print("Proceeding [willAttemptLockReentrantToIsolate()]: IDENTITY: ${identity.identifier}");
 
@@ -173,34 +133,30 @@ class WindowsSemaphore<
   }
 
   @override
-  bool lockAttemptReentrantToIsolateSucceeded() {
-    counter.counts.isolate.increment();
+  bool lockAttemptReentrantToIsolateSucceeded({bool? state, bool persisted = false}) {
+    counter.counts.isolate_locks.increment();
 
-    if (verbose)
-      print(
-          "Incremented [lockAttemptReentrantToIsolateSucceeded()] Count: IDENTITY: ${identity.identifier} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+    if (verbose) print("Incremented [lockAttemptReentrantToIsolateSucceeded()] Count: IDENTITY: ${identity.identifier} PROCESS COUNT: ${counter.counts.process_locks.get()} ISOLATE COUNT: ${counter.counts.isolate_locks.get()}");
 
     return true;
   }
 
   @override
-  bool lock({bool blocking = true}) {
+  bool lock({bool blocking = true, Duration? timeout}) {
     if (verbose) print("Attempting [lock()]: IDENTITY: ${identity.identifier} BLOCKING: $blocking");
 
     bool processes = lockAcrossProcesses(blocking: blocking);
     bool isolates = processes || lockReentrantToIsolate();
 
-    return (locked == (processes || isolates)) ||
-        (throw Exception(
-            'Failed [lock()] IDENTITY: ${identity.identifier} REASON: Mismatched lock statuses. ISOLATES STATUS: $isolates PROCESSES STATUS: $processes LOCKED STATUS: $locked'));
+    return (locked == (processes || isolates)) || (throw Exception('Failed [lock()] IDENTITY: ${identity.identifier} REASON: Mismatched lock statuses. ISOLATES STATUS: $isolates PROCESSES STATUS: $processes LOCKED STATUS: $locked'));
   }
 
   @override
-  bool willAttemptUnlockAcrossProcesses() {
+  bool willAttemptUnlockAcrossProcesses({bool? state, bool persisted = true}) {
     if (verbose) print("Evaluating [willAttemptUnlockAcrossProcesses()]: IDENTITY: ${identity.identifier}");
-    if (verbose) print("Process Counts [willAttemptUnlockAcrossProcesses()]: ${counter.counts.process.get()} locked $locked Isolate Counts: ${counter.counts.isolate.get()}");
+    if (verbose) print("Process Counts [willAttemptUnlockAcrossProcesses()]: ${counter.counts.process_locks.get()} locked $locked Isolate Counts: ${counter.counts.isolate_locks.get()}");
 
-    if (locked && counter.counts.isolate.get() > 0) {
+    if (locked && counter.counts.isolate_locks.get() > 0) {
       if (verbose) print("Failed [willAttemptUnlockAcrossProcesses()]: IDENTITY: ${identity.identifier} REASON: Semaphore already locked across processes");
       return false;
     }
@@ -212,28 +168,23 @@ class WindowsSemaphore<
   }
 
   @override
-  bool unlockAttemptAcrossProcessesSucceeded({required int attempt}) {
+  bool unlockAttemptAcrossProcessesSucceeded<E extends NativeSemError>({required int attempt, bool? state, E? error}) {
     if (verbose) print("Evaluating [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.identifier}");
 
     if (attempt == 0) {
       if (verbose)
         // TODO utilize something like this in the future when this dart issue is resolved https://github.com/dart-lang/sdk/issues/38832
         // TODO ${WindowsReleaseSemaphoreError.fromErrorCode(GetLastError()).toString()}
-        print(
-            "Failed Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.identifier} ATTEMPT RESPONSE: $attempt ERROR: Unavailable('UNABLE TO RETRIEVE ERROR ON WINDOWS AT THIS TIME') ");
+        print("Failed Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.identifier} ATTEMPT RESPONSE: $attempt ERROR: Unavailable('UNABLE TO RETRIEVE ERROR ON WINDOWS AT THIS TIME') ");
       return false;
     }
 
-    if (verbose)
-      print(
-          "Successful Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.identifier} ATTEMPT RESPONSE: $attempt DETAILS: Blocked threads were waiting for the semaphore to become unlocked and one of them is now allowed to return from their sem_wait call.");
+    if (verbose) print("Successful Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.identifier} ATTEMPT RESPONSE: $attempt DETAILS: Blocked threads were waiting for the semaphore to become unlocked and one of them is now allowed to return from their sem_wait call.");
 
     // Decrement the semaphore count
-    counter.counts.process.decrement();
+    counter.counts.process_locks.decrement();
 
-    if (verbose)
-      print(
-          "Decremented [unlockAttemptAcrossProcessesSucceeded()] Count: IDENTITY: ${identity.identifier} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+    if (verbose) print("Decremented [unlockAttemptAcrossProcessesSucceeded()] Count: IDENTITY: ${identity.identifier} PROCESS COUNT: ${counter.counts.process_locks.get()} ISOLATE COUNT: ${counter.counts.isolate_locks.get()}");
     return true;
   }
 
@@ -252,22 +203,16 @@ class WindowsSemaphore<
   }
 
   @override
-  bool willAttemptUnlockReentrantToIsolate() {
-    if (verbose)
-      print(
-          "Evaluating [willAttemptUnlockReentrantToIsolate()]: IDENTITY: ${identity.identifier} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+  bool willAttemptUnlockReentrantToIsolate({bool? state, bool persisted = false}) {
+    if (verbose) print("Evaluating [willAttemptUnlockReentrantToIsolate()]: IDENTITY: ${identity.identifier} PROCESS COUNT: ${counter.counts.process_locks.get()} ISOLATE COUNT: ${counter.counts.isolate_locks.get()}");
 
-    if (counter.counts.process.get() == 0) {
-      if (verbose)
-        print(
-            "Failed [willAttemptUnlockReentrantToIsolate()]: IDENTITY: ${identity.identifier} REASON: Cannot reentrantly unlock semaphore that is not locked reentrant to isolates.");
+    if (counter.counts.process_locks.get() == 0) {
+      if (verbose) print("Failed [willAttemptUnlockReentrantToIsolate()]: IDENTITY: ${identity.identifier} REASON: Cannot reentrantly unlock semaphore that is not locked reentrant to isolates.");
       return false;
     }
 
-    if (counter.counts.isolate.get() == 0 && counter.counts.process.get() > 0) {
-      if (verbose)
-        print(
-            "Failed [willAttemptUnlockReentrantToIsolate()]: IDENTITY: ${identity.identifier} REASON: Cannot reentrantly unlock semaphore that is not locked reentrant to isolates.");
+    if (counter.counts.isolate_locks.get() == 0 && counter.counts.process_locks.get() > 0) {
+      if (verbose) print("Failed [willAttemptUnlockReentrantToIsolate()]: IDENTITY: ${identity.identifier} REASON: Cannot reentrantly unlock semaphore that is not locked reentrant to isolates.");
       return false;
     }
 
@@ -283,16 +228,14 @@ class WindowsSemaphore<
 
     // We will do nothing here and proceed to decrement in the _unlockAttemptReentrantToIsolateSucceeded method
 
-    return unlockAttemptReentrantToIsolateSucceeded();
+    return unlockAttemptReentrantToIsolateSucceeded(state: true);
   }
 
   @override
-  bool unlockAttemptReentrantToIsolateSucceeded() {
-    counter.counts.isolate.decrement();
+  bool unlockAttemptReentrantToIsolateSucceeded({bool state = true, bool persisted = false}) {
+    counter.counts.isolate_locks.decrement();
 
-    if (verbose)
-      print(
-          "Decremented [unlockReentrantToIsolate()] Count: IDENTITY: ${identity.identifier}  PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+    if (verbose) print("Decremented [unlockReentrantToIsolate()] Count: IDENTITY: ${identity.identifier}  PROCESS COUNT: ${counter.counts.process_locks.get()} ISOLATE COUNT: ${counter.counts.isolate_locks.get()}");
 
     return true;
   }
@@ -308,8 +251,7 @@ class WindowsSemaphore<
     if (verbose) print("Evaluating [willAttemptClose()]: IDENTITY: ${identity.identifier}");
 
     if (locked) {
-      if (verbose)
-        print("Failed [willAttemptClose()]: IDENTITY: ${identity.identifier} REASON: Cannot close while semaphore is locked reentrant to isolates or across the process.");
+      if (verbose) print("Failed [willAttemptClose()]: IDENTITY: ${identity.identifier} REASON: Cannot close while semaphore is locked reentrant to isolates or across the process.");
 
       return false;
     }
@@ -326,14 +268,12 @@ class WindowsSemaphore<
     if (attempt == 0) {
       // TODO utilize something like this in the future when this dart issue is resolved https://github.com/dart-lang/sdk/issues/38832
       // TODO ${WindowsCloseHandleError.fromErrorCode(GetLastError()).toString()}
-      if (verbose)
-        print(
-            "Failed Evaluation [closeAttemptSucceeded()]: IDENTITY: ${identity.identifier} REASON: Close attempt resulted in non 0 response: $attempt ERROR: Unavailable('UNABLE TO RETRIEVE ERROR ON WINDOWS') ");
+      if (verbose) print("Failed Evaluation [closeAttemptSucceeded()]: IDENTITY: ${identity.identifier} REASON: Close attempt resulted in non 0 response: $attempt ERROR: Unavailable('UNABLE TO RETRIEVE ERROR ON WINDOWS') ");
 
       return false;
     } else {
       if (verbose) print("Successful Evaluation [closeAttemptSucceeded()]: IDENTITY: ${identity.identifier}");
-      return !LatePropertyAssigned<bool>(() => hasClosed) ? hasClosed = true : closed;
+      return closed;
     }
   }
 
@@ -356,7 +296,7 @@ class WindowsSemaphore<
   bool willAttemptUnlink() {
     if (verbose) print("Evaluating [willAttemptUnlink()]: IDENTITY: ${identity.identifier}");
 
-    if (counter.counts.process.get() > 0) {
+    if (counter.counts.process_locks.get() > 0) {
       if (verbose) print("Failed [willAttemptUnlink()]: IDENTITY: ${identity.identifier} REASON: Cannot unlink while process semaphore is locked.");
       return false;
     }
@@ -381,7 +321,7 @@ class WindowsSemaphore<
 
     if (verbose) print("Freed memory within [unlinkAttemptSucceeded()] allocated for semaphore: ${_identifier}");
 
-    return hasUnlinked = true;
+    return unlinked;
   }
 
   @override
