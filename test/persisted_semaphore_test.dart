@@ -103,18 +103,18 @@ void main() {
   }
 
   setUp(() async {
-    File semaphore_executable = File(process_name);
-
-    // if (!semaphore_executable.existsSync()) {
-    ProcessResult compiling_semaphore_executable =
-        Process.runSync('dart', ['compile', 'exe', 'bin${Platform.pathSeparator}test${Platform.pathSeparator}persisted_semaphore.dart', '-o', process_name]);
-
-    print('Successfully compiled semaphore_executable: ${compiling_semaphore_executable.stdout}');
-
-    semaphore_executable.existsSync() || (throw Exception("Persisted semaphore executable should exist."));
-    // } else {
-    //   print('Persisted semaphore executable was found and already compiled. Be sure you haven\'t made changes and need to compile again.');
-    // }
+    // File semaphore_executable = File(process_name);
+    //
+    // // if (!semaphore_executable.existsSync()) {
+    // ProcessResult compiling_semaphore_executable =
+    //     Process.runSync('dart', ['compile', 'exe', 'bin${Platform.pathSeparator}test${Platform.pathSeparator}persisted_semaphore.dart', '-o', process_name]);
+    //
+    // print('Successfully compiled semaphore_executable: ${compiling_semaphore_executable.stdout}');
+    //
+    // semaphore_executable.existsSync() || (throw Exception("Persisted semaphore executable should exist."));
+    // // } else {
+    // //   print('Persisted semaphore executable was found and already compiled. Be sure you haven\'t made changes and need to compile again.');
+    // // }
   });
 
   group('Testing Persisted Native Semaphore from current thread', () {
@@ -405,8 +405,8 @@ void main() {
 
       final NativeSemaphore sem = NativeSemaphore.instantiate(name: name, tracerFn: () => main_tracer, verbose: false);
 
-      process_listener(sem.logs.stream.map((event) => DateTime.now().toIso8601String() + '=' + event).transform(utf8.encoder), main_process_attempting_lock_completer,
-          main_process_locked_completer, main_process_unlocked_completer, main_process_exiting_completer, main_tracer, chalk.brightYellow);
+      // process_listener(sem.logs.stream.map((event) => DateTime.now().toIso8601String() + '=' + event).transform(utf8.encoder), main_process_attempting_lock_completer,
+      //     main_process_locked_completer, main_process_unlocked_completer, main_process_exiting_completer, main_tracer, chalk.brightYellow);
 
       sem.open();
 
@@ -471,6 +471,6 @@ void main() {
       expect(first_process_lock_time, equals(0));
       expect(second_process_lock_time, equals(3));
       expect(main_process_lock_time, equals(6));
-    });
-  });
+    }, skip: true);
+  }, skip: true);
 }

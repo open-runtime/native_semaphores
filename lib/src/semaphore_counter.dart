@@ -215,6 +215,7 @@ class SemaphoreCounter<
       CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, NSPOSS, NSPOS, NSPOSES, CTR>
       /* formatting guard comment */
       >({required I identity, required String Function() tracerFn, ({int instantiated, int process_locks, int isolate_locks, int reentrant, int opened, int closed, int unlinked}) counts = (isolate_locks: 0, process_locks: 0, reentrant: 0, opened: 0, closed: 0, unlinked: 0, instantiated: 0), bool external = false, bool verbose = false}) {
+
     if (!LatePropertyAssigned<CTRS>(() => __counters)) __counters = SemaphoreCounters<I, CU, CD, CT, CTS, NSPOSS, NSPOS, NSPOSES, CTR>();
 
     return (__counters as CTRS).has<CTR>(identity: identity)
@@ -264,6 +265,4 @@ class SemaphoreCounter<
       >({required I identity, required String Function() tracerFn, ({int instantiated, int process_locks, int isolate_locks, int reentrant, int opened, int closed, int unlinked}) counts = (isolate_locks: 0, process_locks: 0, reentrant: 0, opened: 0, closed: 0, unlinked: 0, instantiated: 0), bool external = false, bool verbose = false}) {
     return instantiate<I, CU, CD, CT, CTS, NSPOSS, NSPOS, NSPOSES, CTR, CTRS>(identity: identity, counts: counts, external: true, verbose: verbose, tracerFn: () => tracerFn());
   }
-
-// TODO here
 }

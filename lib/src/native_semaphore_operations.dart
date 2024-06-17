@@ -336,6 +336,7 @@ class NativeSemaphoreProcessOperationStatusState {
   final String isolate;
 
   String get identifier => [name, isolate, process].join('_');
+
   final bool reentrant;
 
   late final Duration took;
@@ -373,9 +374,7 @@ class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS 
 
   late final void Function(NativeSemaphoreProcessOperationStatusState _state) callback = (NativeSemaphoreProcessOperationStatusState _state) => {};
 
-  late final void Function(List<NativeSemaphoreProcessOperationStatusState?> _state) finalizer = (List<NativeSemaphoreProcessOperationStatusState?> _state) {
-    // print('$tracer Finalizer: ${_state.toString()}');
-  };
+  late final void Function(List<NativeSemaphoreProcessOperationStatusState?> _state) finalizer = (List<NativeSemaphoreProcessOperationStatusState?> _state) {};
 
   late String Function() tracerFn;
 
@@ -387,26 +386,37 @@ class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS 
 
   Map<String, Future<NativeSemaphoreProcessOperationStatusState>> memoized_completers = {};
 
-  Future<NativeSemaphoreProcessOperationStatusState> future({required NATIVE_SEMAPHORE_OPERATION operation, required String hash}) {
-    String key = [hash, operation.name].join('_');
-    return memoized_completers.containsKey(key) ? memoized_completers[key]! : memoized_completers.putIfAbsent(key, () => _broadcast.firstWhere((NativeSemaphoreProcessOperationStatusState state) => state.hash == hash && state.completed.get));
-  }
+  Future<NativeSemaphoreProcessOperationStatusState> getFuture({required NATIVE_SEMAPHORE_OPERATION operation, required String hash}) => Future.sync(() => [hash, operation.name].join('_')).then((key) => memoized_completers.containsKey(key) ? memoized_completers[key]! : memoized_completers.putIfAbsent(key, () => _broadcast.firstWhere((NativeSemaphoreProcessOperationStatusState state) => state.hash == hash && state.completed.get)));
 
+  /// Synchronizes the state of semaphore operations, ensuring correct tracking and completion of each operation.
+  ///
+  /// This method manages the lifecycle of semaphore operations by creating a new status state for each operation,
+  /// adding it to the list of synchronizations, and handling the completion of previous operations. It supports
+  /// various semaphore operations such as instantiate, open, lock, unlock, close, and unlink, including their
+  /// reentrant and cross-process variants.
+  ///
+  /// The method ensures that operations are marked as completed when appropriate, and it updates the state
+  /// transitions accordingly. For operations that end with "Succeeded", it finds the initial status state that
+  /// started the operation and marks it as completed. For "instantiate" operations, it marks the status state
+  /// as completed immediately. This synchronization mechanism is crucial for maintaining the integrity and
+  /// consistency of semaphore operations, especially in complex scenarios involving nested or reentrant operations.
+  ///
+  /// - **hash:** The unique operation identifier.
+  /// - **operation:** The type of semaphore operation.
+  /// - **state:** Optional state associated with the operation.
+  /// - **reentrant:** Whether the operation is reentrant (default: false).
+  /// - **timestamp:** Optional timestamp of the operation.
+  /// - **status:** The current operation status.
+  /// - **verification:** An optional verification function.
+  /// - **verifier:** An optional verifier function.
+
+  /// Returns the provided [status] after synchronization.
   NSPOS synchronize<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>>({required String hash, required NATIVE_SEMAPHORE_OPERATION operation, dynamic state = null, bool reentrant = false, DateTime? timestamp, required NSPOS status, ({NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_state})? verification, R Function<R>(NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_state)? verifier}) {
-    // print(Platform.lineTerminator);
-    // print(Platform.lineTerminator);
-    // print(Platform.lineTerminator);
-
-    // print('$tracer Previous: ${previous.nullable}');
-    // print('$tracer Current: ${current.nullable}');
-    // print('$tracer Synchronizing $hash $operation');
-
     NativeSemaphoreProcessOperationStatusState inbound_status_state = NativeSemaphoreProcessOperationStatusState(tracer: tracer, name: name, process: process, isolate: isolate, operation: operation, hash: hash, state: state, reentrant: true) as NSPOSS;
 
     synchronizations.add(inbound_status_state);
 
-    // if (verification != null && verifier != null) verifier(verification.status, verification.expected_operation, verification.expected_state);
-
+    // get the previous status state for the same hash that is not completed
     NativeSemaphoreProcessOperationStatusState incomplete_previous_status_state = synchronizations.firstWhere((synchronization) => synchronization.hash == hash && !synchronization.completed.isSet, orElse: () => inbound_status_state);
 
     if (incomplete_previous_status_state != inbound_status_state) {
@@ -417,22 +427,15 @@ class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS 
       _controller.add(inbound_status_state);
       memoized_completers.putIfAbsent([hash, incomplete_previous_status_state.operation.name].join('_'), () => incomplete_previous_status_state.completer.future);
       _controller.add(incomplete_previous_status_state);
-      // print('$tracer Completed Incomplete Operation ${incomplete_previous_status_state.hash} ${incomplete_previous_status_state.operation} ${incomplete_previous_status_state.took.inMilliseconds / 1000}s');
     }
 
     if (inbound_status_state.operation.name.endsWith('Succeeded')) {
-      // print('$tracer Completing');
-
       NativeSemaphoreProcessOperationStatusState completed_initial_status_state = synchronizations.firstWhere((synchronization) => synchronization.hash == hash && synchronization.operation.name.startsWith("attempting"), orElse: () => inbound_status_state);
-
-      print('$tracer $completed_initial_status_state');
-
       if (completed_initial_status_state != inbound_status_state) {
         inbound_status_state.completed.set(true);
         inbound_status_state.took = inbound_status_state.timestamp.difference(completed_initial_status_state.timestamp);
         inbound_status_state.completer.complete(inbound_status_state);
         memoized_completers.putIfAbsent([hash, inbound_status_state.operation.name].join('_'), () => inbound_status_state.completer.future);
-        // print('$tracer Completed ${inbound_status_state.hash} ${inbound_status_state.operation} ${inbound_status_state.took.inMilliseconds / 1000}s ${inbound_status_state.completed}');
         _controller.add(inbound_status_state);
       }
     }
@@ -442,20 +445,15 @@ class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS 
       inbound_status_state.took = DateTime.now().difference(inbound_status_state.timestamp);
       inbound_status_state.completer.complete(inbound_status_state);
       memoized_completers.putIfAbsent([hash, inbound_status_state.operation.name].join('_'), () => inbound_status_state.completer.future);
-      // print('$tracer Completed Instantiate ${synchronizations.where((element) => element.operation.name.startsWith('instantiate')).length} ${inbound_status_state.hash} ${inbound_status_state.operation} ${inbound_status_state.took.inMilliseconds / 1000}s ${inbound_status_state.completed}');
       _controller.add(inbound_status_state);
     }
-
-    // print(Platform.lineTerminator);
-    // print(Platform.lineTerminator);
-    // print(Platform.lineTerminator);
 
     return status;
   }
 
   Map<String, bool> memoized_completions = {};
 
-  bool completed({required String hash, required List<NATIVE_SEMAPHORE_OPERATION> operations}) {
+  bool isCompleted({required String hash, required List<NATIVE_SEMAPHORE_OPERATION> operations}) {
     String key = [hash, ...operations.map((operation) => operation.name)].join('_');
 
     if (memoized_completions.containsKey(key) && memoized_completions[hash] is bool) return memoized_completions[hash]!;
@@ -471,7 +469,7 @@ class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS 
 
   Map<String, bool> memoized_reentrancies = {};
 
-  bool reentrant({required String hash, required int depth}) {
+  bool isReentrant({required String hash, required int depth}) {
     String key = [hash, NATIVE_SEMAPHORE_OPERATION.instantiate.name].join('_');
     if (memoized_reentrancies.containsKey(key) && memoized_reentrancies[hash] is bool) return memoized_reentrancies[hash]!;
 
@@ -480,7 +478,6 @@ class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS 
     });
 
     bool _completed = (reentrancies.length > 1 && depth > 0) && reentrancies.isNotEmpty && reentrancies.every((status) => status.completed.get);
-    // print('$tracer depth ${depth} isReentrant and Completed: $hash $_completed total reentrancies is at ${reentrancies.length - 1} (one subtracted for the root)');
     return _completed ? memoized_reentrancies.putIfAbsent(key, () => _completed) : _completed;
   }
 
@@ -606,8 +603,6 @@ class NativeSemaphoreProcessOperationStatuses<I extends SemaphoreIdentity, NSPOS
             Platform.lineTerminator * 2 +
             usage));
 
-    // print('Statuses: Depth: ${(((instantiations + opens) / 2) - ((closes + unlinks) / 2)).toInt()}  instantiations ${instantiations} opens $opens locks $locks unlocks $unlocks closes $closes unlinks $unlinks');
-
     return (((instantiations + opens) / 2) - ((closes + unlinks) / 2)).toInt();
   }
 
@@ -646,13 +641,13 @@ class NativeSemaphoreProcessOperationStatuses<I extends SemaphoreIdentity, NSPOS
     throw Exception('Unknown operation $operation');
   }
 
-  void synchronize({required String hash, required NATIVE_SEMAPHORE_OPERATION operation, dynamic state = null, bool reentrant = false, DateTime? timestamp, ({NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_state})? verification, R Function<R>(NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_state)? verifier}) => all.add(lookup(operation).synchronize<I, NSPOSS, NSPOS>(hash: hash, operation: operation, state: state, timestamp: timestamp ?? DateTime.now(), reentrant: reentrant, status: lookup(operation), verification: verification, verifier: verifier ?? verify).synchronizations.last);
+  void synchronize({required String hash, required NATIVE_SEMAPHORE_OPERATION operation, dynamic state = null, bool reentrant = false, DateTime? timestamp, /*({NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_state})? verification, R Function<R>(NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_state)? verifier*/}) => all.add(lookup(operation).synchronize<I, NSPOSS, NSPOS>(hash: hash, operation: operation, state: state, timestamp: timestamp ?? DateTime.now(), reentrant: reentrant, status: lookup(operation), /*verification: verification, verifier: verifier ?? verify*/).synchronizations.last);
 
-  R verify<R>(NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_state) {
-    // if (status.current.isSet && status.current.get.operation != expected_operation) throw Exception('The current operation ${status.current.get.operation} does not match the expected operation $expected_operation previous is ${status.previous.get.operation}.');
-    // if (status.current.isSet && status.current.get.state != expected_state) throw Exception('The current state ${status.current.get.state} does not match the expected state $expected_state.');
-    return expected_state;
-  }
+  // R verify<R>(NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_state) {
+  //   // if (status.current.isSet && status.current.get.operation != expected_operation) throw Exception('The current operation ${status.current.get.operation} does not match the expected operation $expected_operation previous is ${status.previous.get.operation}.');
+  //   // if (status.current.isSet && status.current.get.state != expected_state) throw Exception('The current state ${status.current.get.state} does not match the expected state $expected_state.');
+  //   return expected_state;
+  // }
 
   NativeSemaphoreProcessOperationStatuses({required I this.identity, required String Function() this.tracerFn});
 }
