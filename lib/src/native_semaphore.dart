@@ -5,7 +5,7 @@ import 'dart:io' show Platform;
 import 'package:meta/meta.dart' show protected, visibleForTesting;
 import 'package:runtime_native_semaphores/src/persisted_native_semaphore_metadata.dart' show PersistedNativeSemaphoreAccessor, PersistedNativeSemaphoreMetadata;
 
-import 'native_semaphore_operations.dart' show NATIVE_SEMAPHORE_OPERATION, NativeSemaphoreProcessOperationStatus, NativeSemaphoreProcessOperationStatusState, NativeSemaphoreProcessOperationStatuses;
+import 'native_semaphore_operations.dart' show NATIVE_SEMAPHORE_OPERATIONS, NativeSemaphoreProcessOperationStatus, NativeSemaphoreProcessOperationStatusState, NativeSemaphoreProcessOperationStatuses;
 import 'native_semaphores.dart' show NativeSemaphores;
 import 'persisted_native_semaphore_operation.dart' show PersistedNativeSemaphoreOperation, PersistedNativeSemaphoreOperations;
 import 'semaphore_counter.dart' show SemaphoreCount, SemaphoreCountDeletion, SemaphoreCountUpdate, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
@@ -69,33 +69,33 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
 
   /* Use caution as an unknown or never resolving future can occur i.e. you await future(unlockedAcrossIsolateSucceeded) but that never happens as you might be reentrant use unlockedFuture or similar instead */
   @protected
-  Future<NSPOSS> future(NATIVE_SEMAPHORE_OPERATION operation) => statuses.lookup(operation).getFuture(hash: hash, operation: operation) as Future<NSPOSS>;
+  Future<NSPOSS> future(NATIVE_SEMAPHORE_OPERATIONS operation) => statuses.lookup(operation).getFuture(hash: hash, operation: operation) as Future<NSPOSS>;
 
   // If the semaphore is currently reentrant
   bool get reentrant => statuses.instantiated.isReentrant(hash: hash, depth: depth);
 
   // If the semaphore has been opened
-  bool get opened => statuses.opened.isCompleted(hash: hash, operations: [NATIVE_SEMAPHORE_OPERATION.openAttemptReentrantToIsolateSucceeded, NATIVE_SEMAPHORE_OPERATION.openAttemptAcrossProcessesSucceeded]);
+  bool get opened => statuses.opened.isCompleted(hash: hash, operations: [NATIVE_SEMAPHORE_OPERATIONS.openAttemptReentrantToIsolateSucceeded, NATIVE_SEMAPHORE_OPERATIONS.openAttemptAcrossProcessesSucceeded]);
 
   // If the semaphore is currently locked
-  bool get locked => !unlocked && statuses.locked.isCompleted(hash: hash, operations: [NATIVE_SEMAPHORE_OPERATION.lockAttemptReentrantToIsolateSucceeded, NATIVE_SEMAPHORE_OPERATION.lockAttemptAcrossProcessesSucceeded]);
+  bool get locked => !unlocked && statuses.locked.isCompleted(hash: hash, operations: [NATIVE_SEMAPHORE_OPERATIONS.lockAttemptReentrantToIsolateSucceeded, NATIVE_SEMAPHORE_OPERATIONS.lockAttemptAcrossProcessesSucceeded]);
 
   // Note that this will only be true when the process is locked
-  bool get unlocked => statuses.unlocked.isCompleted(hash: hash, operations: [NATIVE_SEMAPHORE_OPERATION.unlockAttemptAcrossProcessesSucceeded, NATIVE_SEMAPHORE_OPERATION.unlockAttemptReentrantToIsolateSucceeded]);
+  bool get unlocked => statuses.unlocked.isCompleted(hash: hash, operations: [NATIVE_SEMAPHORE_OPERATIONS.unlockAttemptAcrossProcessesSucceeded, NATIVE_SEMAPHORE_OPERATIONS.unlockAttemptReentrantToIsolateSucceeded]);
 
   // If the semaphore has been closed
-  bool get closed => statuses.closed.isCompleted(hash: hash, operations: [NATIVE_SEMAPHORE_OPERATION.closeAttemptReentrantToIsolateSucceeded, NATIVE_SEMAPHORE_OPERATION.closeAttemptAcrossProcessesSucceeded]);
+  bool get closed => statuses.closed.isCompleted(hash: hash, operations: [NATIVE_SEMAPHORE_OPERATIONS.closeAttemptReentrantToIsolateSucceeded, NATIVE_SEMAPHORE_OPERATIONS.closeAttemptAcrossProcessesSucceeded]);
 
   // If the semaphore has been unlinked
-  bool get unlinked => statuses.unlinked.isCompleted(hash: hash, operations: [NATIVE_SEMAPHORE_OPERATION.unlinkAttemptReentrantToIsolateSucceeded, NATIVE_SEMAPHORE_OPERATION.unlinkAttemptAcrossProcessesSucceeded]);
+  bool get unlinked => statuses.unlinked.isCompleted(hash: hash, operations: [NATIVE_SEMAPHORE_OPERATIONS.unlinkAttemptReentrantToIsolateSucceeded, NATIVE_SEMAPHORE_OPERATIONS.unlinkAttemptAcrossProcessesSucceeded]);
 
   // statuses.lookup(reentrant ? NATIVE_SEMAPHORE_OPERATION.openAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATION.openAttemptAcrossProcessesSucceeded).getFuture(hash: hash, operation: reentrant ? NATIVE_SEMAPHORE_OPERATION.openAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATION.openAttemptAcrossProcessesSucceeded) as Future<NSPOSS>
   ({Future<NSPOSS> opened, Future<NSPOSS> locked, Future<NSPOSS> unlocked, Future<NSPOSS> closed, Future<NSPOSS> unlinked}) get futures => (
-        opened: statuses.lookup(reentrant ? NATIVE_SEMAPHORE_OPERATION.openAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATION.openAttemptAcrossProcessesSucceeded).getFuture(hash: hash, operation: reentrant ? NATIVE_SEMAPHORE_OPERATION.openAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATION.openAttemptAcrossProcessesSucceeded) as Future<NSPOSS>,
-        locked: statuses.lookup(reentrant ? NATIVE_SEMAPHORE_OPERATION.lockAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATION.lockAttemptAcrossProcessesSucceeded).getFuture(hash: hash, operation: reentrant ? NATIVE_SEMAPHORE_OPERATION.lockAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATION.lockAttemptAcrossProcessesSucceeded) as Future<NSPOSS>,
-        unlocked: statuses.lookup(reentrant ? NATIVE_SEMAPHORE_OPERATION.unlockAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATION.unlockAttemptAcrossProcessesSucceeded).getFuture(hash: hash, operation: reentrant ? NATIVE_SEMAPHORE_OPERATION.unlockAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATION.unlockAttemptAcrossProcessesSucceeded) as Future<NSPOSS>,
-        closed: statuses.lookup(reentrant ? NATIVE_SEMAPHORE_OPERATION.closeAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATION.closeAttemptAcrossProcessesSucceeded).getFuture(hash: hash, operation: reentrant ? NATIVE_SEMAPHORE_OPERATION.closeAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATION.closeAttemptAcrossProcessesSucceeded) as Future<NSPOSS>,
-        unlinked: statuses.lookup(reentrant ? NATIVE_SEMAPHORE_OPERATION.unlinkAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATION.unlinkAttemptAcrossProcessesSucceeded).getFuture(hash: hash, operation: reentrant ? NATIVE_SEMAPHORE_OPERATION.unlinkAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATION.unlinkAttemptAcrossProcessesSucceeded) as Future<NSPOSS>
+        opened: statuses.lookup(reentrant ? NATIVE_SEMAPHORE_OPERATIONS.openAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATIONS.openAttemptAcrossProcessesSucceeded).getFuture(hash: hash, operation: reentrant ? NATIVE_SEMAPHORE_OPERATIONS.openAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATIONS.openAttemptAcrossProcessesSucceeded) as Future<NSPOSS>,
+        locked: statuses.lookup(reentrant ? NATIVE_SEMAPHORE_OPERATIONS.lockAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATIONS.lockAttemptAcrossProcessesSucceeded).getFuture(hash: hash, operation: reentrant ? NATIVE_SEMAPHORE_OPERATIONS.lockAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATIONS.lockAttemptAcrossProcessesSucceeded) as Future<NSPOSS>,
+        unlocked: statuses.lookup(reentrant ? NATIVE_SEMAPHORE_OPERATIONS.unlockAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATIONS.unlockAttemptAcrossProcessesSucceeded).getFuture(hash: hash, operation: reentrant ? NATIVE_SEMAPHORE_OPERATIONS.unlockAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATIONS.unlockAttemptAcrossProcessesSucceeded) as Future<NSPOSS>,
+        closed: statuses.lookup(reentrant ? NATIVE_SEMAPHORE_OPERATIONS.closeAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATIONS.closeAttemptAcrossProcessesSucceeded).getFuture(hash: hash, operation: reentrant ? NATIVE_SEMAPHORE_OPERATIONS.closeAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATIONS.closeAttemptAcrossProcessesSucceeded) as Future<NSPOSS>,
+        unlinked: statuses.lookup(reentrant ? NATIVE_SEMAPHORE_OPERATIONS.unlinkAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATIONS.unlinkAttemptAcrossProcessesSucceeded).getFuture(hash: hash, operation: reentrant ? NATIVE_SEMAPHORE_OPERATIONS.unlinkAttemptReentrantToIsolateSucceeded : NATIVE_SEMAPHORE_OPERATIONS.unlinkAttemptAcrossProcessesSucceeded) as Future<NSPOSS>
       );
 
   NativeSemaphore({required String Function() this.tracerFn, required CTR this.counter, this.verbose = false}) {
@@ -238,7 +238,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
 
   @protected
   bool instantiation({bool state = true, bool persisted = false}) {
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.instantiate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.instantiate;
     /* TODO Move inside of synchronize */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.opened, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -252,7 +252,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool willAttemptOpenReentrantToIsolate({bool? state, bool persisted = false}) {
     state = state ?? !opened || /* we may or may not be reentrant yet as this is evaluated based on lock counts */ reentrant;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.willAttemptOpenReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.willAttemptOpenReentrantToIsolate;
     /* TODO Move inside of synchronize */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.opened, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -263,7 +263,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool attemptingOpenReentrantToIsolate({bool? state, bool persisted = false}) {
     state = state ?? true;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptingOpenReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptingOpenReentrantToIsolate;
     /* TODO Move inside of synchronize */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.opened, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -283,7 +283,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool attemptedOpenReentrantToIsolate({bool? state, bool persisted = false}) {
     state = state ?? true;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptedOpenReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptedOpenReentrantToIsolate;
     /*TODO Move inside of synchronize */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.opened, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -297,7 +297,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
       counter.counts
         ..opened.increment()
         ..reentrant.increment();
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.openAttemptReentrantToIsolateSucceeded;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.openAttemptReentrantToIsolateSucceeded;
     /*TODO Move inside of synchronize */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.opened, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -309,7 +309,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   bool willAttemptOpenAcrossProcesses({bool? state, bool persisted = true}) {
     // state is either passed or true if not opened yet
     state = state ?? !opened && !reentrant;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.willAttemptOpenAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.willAttemptOpenAcrossProcesses;
     /*TODO Move inside of synchronize */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.opened, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -320,7 +320,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool attemptingOpenAcrossProcesses({bool? state, bool persisted = true}) {
     state = state ?? !opened && !reentrant;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptingOpenAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptingOpenAcrossProcesses;
     /*TODO Move inside of synchronize */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.opened, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -335,7 +335,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool attemptedOpenAcrossProcesses({bool? state, bool persisted = false}) {
     state = state ?? true;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptedOpenAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptedOpenAcrossProcesses;
     /*TODO Move inside of synchronize */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.opened, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -348,7 +348,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   bool openAttemptAcrossProcessesSucceeded({bool? state, bool persisted = true}) {
     state = state ?? true;
     if (state) counter.counts.opened.increment();
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.openAttemptAcrossProcessesSucceeded;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.openAttemptAcrossProcessesSucceeded;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.opened, expected_operation: operation, expected_state: state) */);
     // if (state) persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -364,7 +364,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   bool willAttemptLockReentrantToIsolate({bool? state, bool persisted = false}) {
     // if we're above 0 then we can lock reentrant to isolate and we are reentrant
     state = state ?? !locked;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.willAttemptLockReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.willAttemptLockReentrantToIsolate;
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.locked, expected_operation: operation, expected_state: state) */);
     return state;
@@ -372,7 +372,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
 
   @protected
   bool attemptingLockReentrantToIsolate({required bool state, bool persisted = false}) {
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptingLockReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptingLockReentrantToIsolate;
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     statuses.synchronize(hash: hash, operation: operation, state: true /* verification: (status: statuses.locked, expected_operation: operation, expected_state: true) */);
     return true;
@@ -380,7 +380,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
 
   @protected
   bool attemptedLockReentrantToIsolate({required bool state, bool persisted = false}) {
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptedLockReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptedLockReentrantToIsolate;
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     statuses.synchronize(hash: hash, operation: operation, state: true /* verification: (status: statuses.locked, expected_operation: operation, expected_state: true) */);
     return true;
@@ -397,7 +397,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool lockAttemptReentrantToIsolateSucceeded({bool state = true, bool persisted = false}) {
     if (state) counter.counts.isolate_locks.increment();
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.lockAttemptReentrantToIsolateSucceeded;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.lockAttemptReentrantToIsolateSucceeded;
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.locked, expected_operation: operation, expected_state: state) */);
     return state;
@@ -408,7 +408,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
     if (!opened) throw Exception('Failed [willAttemptLockAcrossProcesses()]: IDENTITY: ${identity.identifier} REASON: Cannot lock semaphore that has not been opened.');
     /* if the process counts is zero then we will attempt lock across processes */
     state = state ?? counter.counts.process_locks.get() == 0;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.willAttemptLockAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.willAttemptLockAcrossProcesses;
     /* Persist if state is true */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.locked, expected_operation: operation, expected_state: state) */);
     // !state || persist(operation: operation, sync: true) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -418,7 +418,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool attemptingLockAcrossProcesses({bool? state}) {
     state = state ?? true;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptingLockAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptingLockAcrossProcesses;
     /* Persist if state is true */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.locked, expected_operation: operation, expected_state: state) */);
     // !state || persist(operation: operation, sync: true) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -431,7 +431,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool attemptedLockAcrossProcesses({required int attempt, bool? state}) {
     state = state ?? true;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptedLockAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptedLockAcrossProcesses;
     /* Persist if state is true */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.locked, expected_operation: operation, expected_state: state) */);
     // !state || persist(operation: operation, sync: true) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -443,7 +443,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   bool lockAttemptAcrossProcessesSucceeded<E extends NativeSemError>({required int attempt, bool? state, E? error}) {
     state = state ?? true;
     counter.counts.process_locks.increment();
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.lockAttemptAcrossProcessesSucceeded;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.lockAttemptAcrossProcessesSucceeded;
     // TODO probably should persist and sync based on not only the operation name but also operation state
     /* Persist if state is true */
     // !state || persist(operation: operation, sync: true) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -462,7 +462,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool willAttemptUnlockAcrossProcesses({bool? state}) {
     state = state ?? locked && !reentrant;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlockAcrossProcesses;
     /* If the state is true we persist */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlocked, expected_operation: operation, expected_state: state) */);
     // !state || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -473,7 +473,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool attemptingUnlockAcrossProcesses({bool? state, bool persisted = false}) {
     state = state ?? locked && !reentrant;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptingUnlockAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptingUnlockAcrossProcesses;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlocked, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -487,7 +487,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool attemptedUnlockAcrossProcesses({required int attempt, bool? state, bool persisted = false}) {
     state = state ?? true;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptedUnlockAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptedUnlockAcrossProcesses;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlocked, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -499,7 +499,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   bool unlockAttemptAcrossProcessesSucceeded<E extends NativeSemError>({required int attempt, bool? state, E? error}) {
     state = state ?? false;
     if (state) counter.counts.process_locks.decrement();
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.unlockAttemptAcrossProcessesSucceeded;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.unlockAttemptAcrossProcessesSucceeded;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlocked, expected_operation: operation, expected_state: state) */);
     // if (state) persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -509,7 +509,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool willAttemptUnlockReentrantToIsolate({bool? state, bool persisted = false}) {
     state = state ?? locked && reentrant;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlockReentrantToIsolate;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlocked, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -518,7 +518,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @visibleForTesting
   @protected
   bool attemptingUnlockReentrantToIsolate({required bool state, bool persisted = false}) {
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptingUnlockReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptingUnlockReentrantToIsolate;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlocked, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -536,7 +536,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @visibleForTesting
   @protected
   bool attemptedUnlockReentrantToIsolate({required bool state, bool persisted = false}) {
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptedUnlockReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptedUnlockReentrantToIsolate;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlocked, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -546,7 +546,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool unlockAttemptReentrantToIsolateSucceeded({bool state = true, bool persisted = false}) {
     if (state) counter.counts.isolate_locks.decrement();
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.unlockAttemptReentrantToIsolateSucceeded;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.unlockAttemptReentrantToIsolateSucceeded;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlocked, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -571,7 +571,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   bool willAttemptCloseAcrossProcesses({bool? state}) {
     !locked || (throw Exception('Failed [willAttemptCloseAcrossProcesses()]: IDENTITY: ${identity.identifier} REASON: Cannot close semaphore that has not been unlocked.'));
     state = state ?? !locked && !closed && !reentrant;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.willAttemptCloseAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.willAttemptCloseAcrossProcesses;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.closed, expected_operation: operation, expected_state: state) */);
     // !state || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -580,7 +580,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @visibleForTesting
   @protected
   bool attemptingCloseAcrossProcesses({required bool state, bool persisted = true}) {
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptingCloseAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptingCloseAcrossProcesses;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.closed, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -589,7 +589,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool attemptedCloseAcrossProcesses({required int attempt, bool? state}) {
     state = state ?? true;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptedCloseAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptedCloseAcrossProcesses;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.closed, expected_operation: operation, expected_state: state) */);
     // if (state) persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -600,7 +600,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   bool closeAttemptAcrossProcessesSucceeded<E extends NativeSemError>({required int attempt, bool? state, E? error}) {
     state = state ?? true;
     if (state) counter.counts.closed.increment();
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.closeAttemptAcrossProcessesSucceeded;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.closeAttemptAcrossProcessesSucceeded;
     statuses.synchronize(hash: hash, operation: operation, state: true /* verification: (status: statuses.closed, expected_operation: operation, expected_state: true) */);
     // if (state) persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -609,7 +609,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool willAttemptCloseReentrantToIsolate({bool? state, bool persisted = false}) {
     state = state ?? !locked && !closed && reentrant;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.willAttemptCloseReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.willAttemptCloseReentrantToIsolate;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.closed, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -617,7 +617,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
 
   @protected
   bool attemptingCloseReentrantToIsolate({required bool state, bool persisted = false}) {
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptingCloseReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptingCloseReentrantToIsolate;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.closed, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -625,7 +625,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
 
   @protected
   bool attemptedCloseReentrantToIsolate({required bool state, bool persisted = false}) {
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptedCloseReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptedCloseReentrantToIsolate;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.closed, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -634,7 +634,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool closeAttemptReentrantToIsolateSucceeded({bool state = true, bool persisted = false}) {
     if (state) counter.counts.closed.increment();
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.closeAttemptReentrantToIsolateSucceeded;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.closeAttemptReentrantToIsolateSucceeded;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.closed, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -647,7 +647,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   bool willAttemptUnlinkAcrossProcesses({bool? state}) {
     closed || (throw Exception('Failed [willAttemptUnlinkAcrossProcesses()]: IDENTITY: ${identity.identifier} REASON: Cannot unlink semaphore that has not been closed.'));
     state = state ?? closed && !unlinked && !reentrant;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.willAttemptUnlinkAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlinkAcrossProcesses;
     /* if the state is true we will persist it */
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlinked, expected_operation: operation, expected_state: state) */);
     // !state || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
@@ -656,7 +656,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
 
   @protected
   bool attemptingUnlinkAcrossProcesses({required bool state, bool persisted = false}) {
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptingUnlinkAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptingUnlinkAcrossProcesses;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlinked, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -668,7 +668,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool attemptedUnlinkAcrossProcesses({required int attempt, bool? state}) {
     state = state ?? true;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptedUnlinkAcrossProcesses;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptedUnlinkAcrossProcesses;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlinked, expected_operation: operation, expected_state: state) */);
     // !state || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -677,7 +677,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool unlinkAttemptAcrossProcessesSucceeded<E extends NativeSemError>({required int attempt, bool? state, E? error}) {
     state = state ?? true;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.unlinkAttemptAcrossProcessesSucceeded;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.unlinkAttemptAcrossProcessesSucceeded;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlinked, expected_operation: operation, expected_state: state) */);
     // !state || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -686,7 +686,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
   @protected
   bool willAttemptUnlinkReentrantToIsolate({bool? state, bool persisted = false}) {
     state = state ?? closed && reentrant;
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.willAttemptUnlinkReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlinkReentrantToIsolate;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlinked, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -694,7 +694,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
 
   @protected
   bool attemptingUnlinkReentrantToIsolate({required bool state, bool persisted = false}) {
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptingUnlinkReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptingUnlinkReentrantToIsolate;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlinked, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -710,7 +710,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
 
   @protected
   bool attemptedUnlinkReentrantToIsolate({required bool state, bool persisted = false}) {
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.attemptedUnlinkReentrantToIsolate;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.attemptedUnlinkReentrantToIsolate;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlinked, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;
@@ -718,7 +718,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
 
   @protected
   bool unlinkAttemptReentrantToIsolateSucceeded({bool state = true, bool persisted = false}) {
-    NATIVE_SEMAPHORE_OPERATION operation = NATIVE_SEMAPHORE_OPERATION.unlinkAttemptReentrantToIsolateSucceeded;
+    NATIVE_SEMAPHORE_OPERATIONS operation = NATIVE_SEMAPHORE_OPERATIONS.unlinkAttemptReentrantToIsolateSucceeded;
     statuses.synchronize(hash: hash, operation: operation, state: state /* verification: (status: statuses.unlinked, expected_operation: operation, expected_state: state) */);
     // if (state) !persisted || persist(operation: operation) || (throw Exception('Failed to persist operation status to temp file.'));
     return state;

@@ -60,31 +60,25 @@ class SemaphoreIdentity {
 
   String get prefix => SemaphoreIdentities.prefix;
 
-  //  Gets set when the semaphore is opened
-  late final int _address;
-
-  int get address => _address;
-
-  set address(int value) => !LatePropertyAssigned<int>(() => _address) ? _address = value : _address;
-
   final LateProperty<String> name = LateProperty<String>(name: 'name', updatable: false);
+
+  final LateProperty<int> address = LateProperty<int>(name: 'address', updatable: false);
 
   late String Function() tracerFn;
 
   String get tracer => tracerFn();
 
   // helper property to know if it has been registered inside of a named semaphore instance
-  late final bool _registered;
-
-  bool get registered => !LatePropertyAssigned<int>(() => _registered) ? false : _registered;
+  final LateProperty<bool> registered = LateProperty<bool>(name: 'registered', updatable: false);
 
   String get identifier => [name.get, isolate, process].join('_');
 
-  late final Directory cache = Directory('${Directory.systemTemp.path}${Platform.pathSeparator}runtime_native_semaphores${Platform.pathSeparator}$name')..createSync(recursive: true);
+  // late final Directory cache = Directory('${Directory.systemTemp.path}${Platform.pathSeparator}runtime_native_semaphores${Platform.pathSeparator}${name.get}')..createSync(recursive: true);
+  late final Directory cache = Directory('${Directory.current.path}${Platform.pathSeparator}runtime_native_semaphores_cache${Platform.pathSeparator}${name.get}')..createSync(recursive: true);
 
   late final File temp = File('${cache.path}${Platform.pathSeparator}process_${process}_isolate_${isolate}.semaphore.txt')
-    ..createSync(recursive: true)
-    ..writeAsStringSync(PersistedNativeSemaphoreOperations().serialize(), flush: true);
+    ..createSync(recursive: true);
+    // ..writeAsStringSync(PersistedNativeSemaphoreOperations().serialize(), flush: true);
 
   bool verbose;
 
@@ -95,7 +89,6 @@ class SemaphoreIdentity {
     // check if identifier has invalid characters
     if (name.contains(RegExp(r'[\\/:*?"<>|]'))) throw ArgumentError('Identifier contains invalid characters.');
     this.name.set(name);
-    // this.tracer = tracer ?? '';
     _isolate = isolate ?? (Service.getIsolateId(Isolate.current)?.toString() ?? Isolate.current.hashCode.toString()).replaceFirst('isolates${Platform.pathSeparator}', '');
     _process = process ?? pid.toString();
   }

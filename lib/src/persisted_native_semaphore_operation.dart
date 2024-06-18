@@ -1,4 +1,4 @@
-import 'native_semaphore_operations.dart' show NATIVE_SEMAPHORE_OPERATION;
+import 'native_semaphore_operations.dart' show NATIVE_SEMAPHORE_OPERATIONS;
 import 'utils/XXHash64.dart' show JSON, Utf8, xxh64;
 
 class PersistedNativeSemaphoreOperations<PNSO extends PersistedNativeSemaphoreOperation> {
@@ -39,7 +39,7 @@ class PersistedNativeSemaphoreOperations<PNSO extends PersistedNativeSemaphoreOp
 class PersistedNativeSemaphoreOperation {
   late final String name;
 
-  final NATIVE_SEMAPHORE_OPERATION operation;
+  final NATIVE_SEMAPHORE_OPERATIONS operation;
 
   late final DateTime created;
 
@@ -80,7 +80,7 @@ class PersistedNativeSemaphoreOperation {
     required String this.name,
     required String this.isolate,
     required String this.process,
-    required NATIVE_SEMAPHORE_OPERATION this.operation,
+    required NATIVE_SEMAPHORE_OPERATIONS this.operation,
     ({int isolate_locks, int process_locks, int reentrant, int opened, int closed, int unlinked, int instantiated}) this.counts = (isolate_locks: 0, process_locks: 0, reentrant: 0, opened: 0, closed: 0, unlinked: 0, instantiated: 0),
     this.opened = false,
     this.locked = false,
@@ -134,7 +134,7 @@ class PersistedNativeSemaphoreOperation {
       tracer: data['tracer'],
       isolate: data['isolate'],
       process: data['process'],
-      operation: NATIVE_SEMAPHORE_OPERATION.fromString(data['operation']),
+      operation: NATIVE_SEMAPHORE_OPERATIONS.fromString(data['operation']),
       created: DateTime.parse(data['created']),
       address: data['address'],
       waiting: data['waiting'],

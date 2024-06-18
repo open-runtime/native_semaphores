@@ -1,5 +1,5 @@
 import 'package:runtime_native_semaphores/src/utils/XXHash64.dart' show JSON;
-import 'native_semaphore_operations.dart' show NATIVE_SEMAPHORE_OPERATION;
+import 'native_semaphore_operations.dart' show NATIVE_SEMAPHORE_OPERATIONS;
 
 class PersistedNativeSemaphoreAccessor {
   /* The isolate ID */
@@ -35,7 +35,7 @@ class PersistedNativeSemaphoreAccessor {
   final int position;
 
   /* The last operation performed by the accessor */
-  final NATIVE_SEMAPHORE_OPERATION operation;
+  final NATIVE_SEMAPHORE_OPERATIONS operation;
 
   /* How much time it has been since it's last operation in microseconds  */
   final Duration elapsed;
@@ -132,7 +132,7 @@ class PersistedNativeSemaphoreMetadata<PNSA extends PersistedNativeSemaphoreAcce
                 closed: accessor['closed'],
                 unlinked: accessor['unlinked'],
                 position: accessor['position'],
-                operation: NATIVE_SEMAPHORE_OPERATION.fromString(accessor['operation']),
+                operation: NATIVE_SEMAPHORE_OPERATIONS.fromString(accessor['operation']),
                 elapsed: Duration(microseconds: accessor['elapsed'])))
             .toList(),
         holder: PersistedNativeSemaphoreAccessor(
@@ -148,7 +148,7 @@ class PersistedNativeSemaphoreMetadata<PNSA extends PersistedNativeSemaphoreAcce
             closed: data['holder']['closed'],
             unlinked: data['holder']['unlinked'],
             position: data['holder']['position'],
-            operation: NATIVE_SEMAPHORE_OPERATION.fromString(data['holder']['operation']),
+            operation: NATIVE_SEMAPHORE_OPERATIONS.fromString(data['holder']['operation']),
             elapsed: Duration(microseconds: data['holder']['elapsed'])),
         synchronized: DateTime.parse(data['synchronized'])) as PNSM;
   }

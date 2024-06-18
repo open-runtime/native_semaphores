@@ -757,7 +757,7 @@ class Utf8 {
 }
 
 class JSON {
-  static final _encoder = JsonEncoder.withIndent(' ');
+  static final _encoder = JsonEncoder();
   static final _decoder = JsonDecoder();
 
   static final String Function(Object object) encode = _encoder.convert;

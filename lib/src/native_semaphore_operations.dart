@@ -1,10 +1,61 @@
 import 'dart:async' show Completer, Future, Stream, StreamController, StreamSubscription;
-import 'dart:io' show Platform, stderr;
+import 'dart:io' show File, FileMode, Platform, stderr;
+
+import 'package:runtime_native_semaphores/src/utils/XXHash64.dart';
+import 'package:runtime_native_semaphores/src/utils/list_extensions.dart';
 
 import 'semaphore_identity.dart' show SemaphoreIdentity;
 import 'utils/late_final_property.dart' show LateProperty;
 
-enum NATIVE_SEMAPHORE_OPERATION {
+enum NATIVE_SEMAPHORE_OPERATION_STEPS {
+  instantiate,
+  willAttempt,
+  attempting,
+  attempted,
+  succeeded,
+  unknown;
+
+  @override
+  String toString() {
+    switch (this) {
+      case NATIVE_SEMAPHORE_OPERATION_STEPS.instantiate:
+        return 'instantiate';
+      case NATIVE_SEMAPHORE_OPERATION_STEPS.willAttempt:
+        return 'willAttempt';
+      /*Case sensitive*/
+      case NATIVE_SEMAPHORE_OPERATION_STEPS.attempting:
+        return 'attempting';
+      case NATIVE_SEMAPHORE_OPERATION_STEPS.attempted:
+        return 'attempted';
+      case NATIVE_SEMAPHORE_OPERATION_STEPS.succeeded:
+        return 'Succeeded';
+      /*Case sensitive*/
+      default:
+        return 'unknown';
+    }
+  }
+
+  static NATIVE_SEMAPHORE_OPERATION_STEPS fromString(String value) {
+    switch (value) {
+      case 'instantiate':
+        return NATIVE_SEMAPHORE_OPERATION_STEPS.instantiate;
+      case 'willAttempt':
+        /*Case sensitive*/
+        return NATIVE_SEMAPHORE_OPERATION_STEPS.willAttempt;
+      case 'attempting':
+        return NATIVE_SEMAPHORE_OPERATION_STEPS.attempting;
+      case 'attempted':
+        return NATIVE_SEMAPHORE_OPERATION_STEPS.attempted;
+      case 'Succeeded':
+        /*Case sensitive*/
+        return NATIVE_SEMAPHORE_OPERATION_STEPS.succeeded;
+      default:
+        return NATIVE_SEMAPHORE_OPERATION_STEPS.unknown;
+    }
+  }
+}
+
+enum NATIVE_SEMAPHORE_OPERATIONS {
   instantiate,
 
   /*Open*/
@@ -79,254 +130,256 @@ enum NATIVE_SEMAPHORE_OPERATION {
   String toString() {
     switch (this) {
       /*Instantiate */
-      case NATIVE_SEMAPHORE_OPERATION.instantiate:
+      case NATIVE_SEMAPHORE_OPERATIONS.instantiate:
         return 'instantiate()';
       /*Open*/
-      case NATIVE_SEMAPHORE_OPERATION.open:
+      case NATIVE_SEMAPHORE_OPERATIONS.open:
         return 'open()';
-      case NATIVE_SEMAPHORE_OPERATION.willAttemptOpenReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.willAttemptOpenReentrantToIsolate:
         return 'willAttemptOpenReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptingOpenReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptingOpenReentrantToIsolate:
         return 'attemptingOpenReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.openReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.openReentrantToIsolate:
         return 'openReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptedOpenReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptedOpenReentrantToIsolate:
         return 'attemptedOpenReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.openAttemptReentrantToIsolateSucceeded:
+      case NATIVE_SEMAPHORE_OPERATIONS.openAttemptReentrantToIsolateSucceeded:
         return 'openAttemptReentrantToIsolateSucceeded()';
-      case NATIVE_SEMAPHORE_OPERATION.willAttemptOpenAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.willAttemptOpenAcrossProcesses:
         return 'willAttemptOpenAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptingOpenAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptingOpenAcrossProcesses:
         return 'attemptingOpenAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.openAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.openAcrossProcesses:
         return 'openAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptedOpenAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptedOpenAcrossProcesses:
         return 'attemptedOpenAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.openAttemptAcrossProcessesSucceeded:
+      case NATIVE_SEMAPHORE_OPERATIONS.openAttemptAcrossProcessesSucceeded:
         return 'openAttemptAcrossProcessesSucceeded()';
       /*Lock*/
-      case NATIVE_SEMAPHORE_OPERATION.lock:
+      case NATIVE_SEMAPHORE_OPERATIONS.lock:
         return 'lock()';
-      case NATIVE_SEMAPHORE_OPERATION.willAttemptLockReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.willAttemptLockReentrantToIsolate:
         return 'willAttemptLockReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptingLockReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptingLockReentrantToIsolate:
         return 'attemptingLockReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.lockReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.lockReentrantToIsolate:
         return 'lockReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptedLockReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptedLockReentrantToIsolate:
         return 'attemptedLockReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.lockAttemptReentrantToIsolateSucceeded:
+      case NATIVE_SEMAPHORE_OPERATIONS.lockAttemptReentrantToIsolateSucceeded:
         return 'lockAttemptReentrantToIsolateSucceeded()';
-      case NATIVE_SEMAPHORE_OPERATION.willAttemptLockAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.willAttemptLockAcrossProcesses:
         return 'willAttemptLockAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptingLockAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptingLockAcrossProcesses:
         return 'attemptingLockAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.lockAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.lockAcrossProcesses:
         return 'lockAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptedLockAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptedLockAcrossProcesses:
         return 'attemptedLockAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.lockAttemptAcrossProcessesSucceeded:
+      case NATIVE_SEMAPHORE_OPERATIONS.lockAttemptAcrossProcessesSucceeded:
         return 'lockAttemptAcrossProcessesSucceeded()';
       /*Unlock*/
-      case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlockAcrossProcesses:
         return 'willAttemptUnlockAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptingUnlockAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptingUnlockAcrossProcesses:
         return 'attemptingUnlockAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.unlockAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.unlockAcrossProcesses:
         return 'unlockAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptedUnlockAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptedUnlockAcrossProcesses:
         return 'attemptedUnlockAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.unlockAttemptAcrossProcessesSucceeded:
+      case NATIVE_SEMAPHORE_OPERATIONS.unlockAttemptAcrossProcessesSucceeded:
         return 'unlockAttemptAcrossProcessesSucceeded()';
-      case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlockReentrantToIsolate:
         return 'willAttemptUnlockReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptingUnlockReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptingUnlockReentrantToIsolate:
         return 'attemptingUnlockReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.unlockReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.unlockReentrantToIsolate:
         return 'unlockReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptedUnlockReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptedUnlockReentrantToIsolate:
         return 'attemptedUnlockReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.unlockAttemptReentrantToIsolateSucceeded:
+      case NATIVE_SEMAPHORE_OPERATIONS.unlockAttemptReentrantToIsolateSucceeded:
         return 'unlockAttemptReentrantToIsolateSucceeded()';
       /*Close*/
-      case NATIVE_SEMAPHORE_OPERATION.close:
+      case NATIVE_SEMAPHORE_OPERATIONS.close:
         return 'close()';
-      case NATIVE_SEMAPHORE_OPERATION.willAttemptCloseAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.willAttemptCloseAcrossProcesses:
         return 'willAttemptCloseAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptingCloseAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptingCloseAcrossProcesses:
         return 'attemptingCloseAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.closeAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.closeAcrossProcesses:
         return 'closeAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptedCloseAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptedCloseAcrossProcesses:
         return 'attemptedCloseAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.closeAttemptAcrossProcessesSucceeded:
+      case NATIVE_SEMAPHORE_OPERATIONS.closeAttemptAcrossProcessesSucceeded:
         return 'closeAttemptAcrossProcessesSucceeded()';
-      case NATIVE_SEMAPHORE_OPERATION.willAttemptCloseReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.willAttemptCloseReentrantToIsolate:
         return 'willAttemptCloseReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptingCloseReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptingCloseReentrantToIsolate:
         return 'attemptingCloseReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.closeReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.closeReentrantToIsolate:
         return 'closeReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptedCloseReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptedCloseReentrantToIsolate:
         return 'attemptedCloseReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.closeAttemptReentrantToIsolateSucceeded:
+      case NATIVE_SEMAPHORE_OPERATIONS.closeAttemptReentrantToIsolateSucceeded:
         return 'closeAttemptReentrantToIsolateSucceeded()';
       /*Unlink*/
-      case NATIVE_SEMAPHORE_OPERATION.unlink:
+      case NATIVE_SEMAPHORE_OPERATIONS.unlink:
         return 'unlink()';
-      case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlinkAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlinkAcrossProcesses:
         return 'willAttemptUnlinkAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptingUnlinkAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptingUnlinkAcrossProcesses:
         return 'attemptingUnlinkAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.unlinkAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.unlinkAcrossProcesses:
         return 'unlinkAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptedUnlinkAcrossProcesses:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptedUnlinkAcrossProcesses:
         return 'attemptedUnlinkAcrossProcesses()';
-      case NATIVE_SEMAPHORE_OPERATION.unlinkAttemptAcrossProcessesSucceeded:
+      case NATIVE_SEMAPHORE_OPERATIONS.unlinkAttemptAcrossProcessesSucceeded:
         return 'unlinkAttemptAcrossProcessesSucceeded()';
-      case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlinkReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlinkReentrantToIsolate:
         return 'willAttemptUnlinkReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptingUnlinkReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptingUnlinkReentrantToIsolate:
         return 'attemptingUnlinkReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.unlinkReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.unlinkReentrantToIsolate:
         return 'unlinkReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.attemptedUnlinkReentrantToIsolate:
+      case NATIVE_SEMAPHORE_OPERATIONS.attemptedUnlinkReentrantToIsolate:
         return 'attemptedUnlinkReentrantToIsolate()';
-      case NATIVE_SEMAPHORE_OPERATION.unlinkAttemptReentrantToIsolateSucceeded:
+      case NATIVE_SEMAPHORE_OPERATIONS.unlinkAttemptReentrantToIsolateSucceeded:
         return 'unlinkAttemptReentrantToIsolateSucceeded()';
       default:
         throw Exception('Unknown Native Semaphore Operation');
     }
   }
 
-  static NATIVE_SEMAPHORE_OPERATION fromString(String value) {
+  static NATIVE_SEMAPHORE_OPERATIONS fromString(String value) {
     switch (value) {
       /*Instantiate */
       case 'instantiate()':
-        return NATIVE_SEMAPHORE_OPERATION.instantiate;
+        return NATIVE_SEMAPHORE_OPERATIONS.instantiate;
       /*Open */
       case 'open()':
-        return NATIVE_SEMAPHORE_OPERATION.open;
+        return NATIVE_SEMAPHORE_OPERATIONS.open;
       case 'willAttemptOpenReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.willAttemptOpenReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.willAttemptOpenReentrantToIsolate;
       case 'attemptingOpenReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptingOpenReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptingOpenReentrantToIsolate;
       case 'openReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.openReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.openReentrantToIsolate;
       case 'attemptedOpenReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptedOpenReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptedOpenReentrantToIsolate;
       case 'openAttemptReentrantToIsolateSucceeded()':
-        return NATIVE_SEMAPHORE_OPERATION.openAttemptReentrantToIsolateSucceeded;
+        return NATIVE_SEMAPHORE_OPERATIONS.openAttemptReentrantToIsolateSucceeded;
       case 'willAttemptOpenAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.willAttemptOpenAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.willAttemptOpenAcrossProcesses;
       case 'attemptingOpenAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptingOpenAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptingOpenAcrossProcesses;
       case 'openAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.openAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.openAcrossProcesses;
       case 'attemptedOpenAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptedOpenAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptedOpenAcrossProcesses;
       case 'openAttemptAcrossProcessesSucceeded()':
-        return NATIVE_SEMAPHORE_OPERATION.openAttemptAcrossProcessesSucceeded;
+        return NATIVE_SEMAPHORE_OPERATIONS.openAttemptAcrossProcessesSucceeded;
       /*Lock */
       case 'lock()':
-        return NATIVE_SEMAPHORE_OPERATION.lock;
+        return NATIVE_SEMAPHORE_OPERATIONS.lock;
       case 'willAttemptLockReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.willAttemptLockReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.willAttemptLockReentrantToIsolate;
       case 'attemptingLockReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptingLockReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptingLockReentrantToIsolate;
       case 'lockReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.lockReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.lockReentrantToIsolate;
       case 'attemptedLockReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptedLockReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptedLockReentrantToIsolate;
       case 'lockAttemptReentrantToIsolateSucceeded()':
-        return NATIVE_SEMAPHORE_OPERATION.lockAttemptReentrantToIsolateSucceeded;
+        return NATIVE_SEMAPHORE_OPERATIONS.lockAttemptReentrantToIsolateSucceeded;
       case 'willAttemptLockAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.willAttemptLockAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.willAttemptLockAcrossProcesses;
       case 'attemptingLockAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptingLockAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptingLockAcrossProcesses;
       case 'lockAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.lockAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.lockAcrossProcesses;
       case 'attemptedLockAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptedLockAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptedLockAcrossProcesses;
       case 'lockAttemptAcrossProcessesSucceeded()':
-        return NATIVE_SEMAPHORE_OPERATION.lockAttemptAcrossProcessesSucceeded;
+        return NATIVE_SEMAPHORE_OPERATIONS.lockAttemptAcrossProcessesSucceeded;
       /*Unlock */
       case 'unlock()':
-        return NATIVE_SEMAPHORE_OPERATION.unlock;
+        return NATIVE_SEMAPHORE_OPERATIONS.unlock;
       case 'willAttemptUnlockAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlockAcrossProcesses;
       case 'attemptingUnlockAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptingUnlockAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptingUnlockAcrossProcesses;
       case 'unlockAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.unlockAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.unlockAcrossProcesses;
       case 'attemptedUnlockAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptedUnlockAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptedUnlockAcrossProcesses;
       case 'unlockAttemptAcrossProcessesSucceeded()':
-        return NATIVE_SEMAPHORE_OPERATION.unlockAttemptAcrossProcessesSucceeded;
+        return NATIVE_SEMAPHORE_OPERATIONS.unlockAttemptAcrossProcessesSucceeded;
       case 'willAttemptUnlockReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlockReentrantToIsolate;
       case 'attemptingUnlockReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptingUnlockReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptingUnlockReentrantToIsolate;
       case 'unlockReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.unlockReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.unlockReentrantToIsolate;
       case 'attemptedUnlockReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptedUnlockReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptedUnlockReentrantToIsolate;
       case 'unlockAttemptReentrantToIsolateSucceeded()':
-        return NATIVE_SEMAPHORE_OPERATION.unlockAttemptReentrantToIsolateSucceeded;
+        return NATIVE_SEMAPHORE_OPERATIONS.unlockAttemptReentrantToIsolateSucceeded;
       /*Close */
       case 'close()':
-        return NATIVE_SEMAPHORE_OPERATION.close;
+        return NATIVE_SEMAPHORE_OPERATIONS.close;
       case 'willAttemptCloseAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.willAttemptCloseAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.willAttemptCloseAcrossProcesses;
       case 'attemptingCloseAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptingCloseAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptingCloseAcrossProcesses;
       case 'closeAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.closeAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.closeAcrossProcesses;
       case 'attemptedCloseAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptedCloseAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptedCloseAcrossProcesses;
       case 'closeAttemptAcrossProcessesSucceeded()':
-        return NATIVE_SEMAPHORE_OPERATION.closeAttemptAcrossProcessesSucceeded;
+        return NATIVE_SEMAPHORE_OPERATIONS.closeAttemptAcrossProcessesSucceeded;
       case 'willAttemptCloseReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.willAttemptCloseReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.willAttemptCloseReentrantToIsolate;
       case 'attemptingCloseReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptingCloseReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptingCloseReentrantToIsolate;
       case 'closeReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.closeReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.closeReentrantToIsolate;
       case 'attemptedCloseReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptedCloseReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptedCloseReentrantToIsolate;
       case 'closeAttemptReentrantToIsolateSucceeded()':
-        return NATIVE_SEMAPHORE_OPERATION.closeAttemptReentrantToIsolateSucceeded;
+        return NATIVE_SEMAPHORE_OPERATIONS.closeAttemptReentrantToIsolateSucceeded;
       /*Unlink */
       case 'unlink()':
-        return NATIVE_SEMAPHORE_OPERATION.unlink;
+        return NATIVE_SEMAPHORE_OPERATIONS.unlink;
       case 'willAttemptUnlinkAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.willAttemptUnlinkAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlinkAcrossProcesses;
       case 'attemptingUnlinkAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptingUnlinkAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptingUnlinkAcrossProcesses;
       case 'unlinkAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.unlinkAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.unlinkAcrossProcesses;
       case 'attemptedUnlinkAcrossProcesses()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptedUnlinkAcrossProcesses;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptedUnlinkAcrossProcesses;
       case 'unlinkAttemptAcrossProcessesSucceeded()':
-        return NATIVE_SEMAPHORE_OPERATION.unlinkAttemptAcrossProcessesSucceeded;
+        return NATIVE_SEMAPHORE_OPERATIONS.unlinkAttemptAcrossProcessesSucceeded;
       case 'willAttemptUnlinkReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.willAttemptUnlinkReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlinkReentrantToIsolate;
       case 'attemptingUnlinkReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptingUnlinkReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptingUnlinkReentrantToIsolate;
       case 'unlinkReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.unlinkReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.unlinkReentrantToIsolate;
       case 'attemptedUnlinkReentrantToIsolate()':
-        return NATIVE_SEMAPHORE_OPERATION.attemptedUnlinkReentrantToIsolate;
+        return NATIVE_SEMAPHORE_OPERATIONS.attemptedUnlinkReentrantToIsolate;
       case 'unlinkAttemptReentrantToIsolateSucceeded()':
-        return NATIVE_SEMAPHORE_OPERATION.unlinkAttemptReentrantToIsolateSucceeded;
+        return NATIVE_SEMAPHORE_OPERATIONS.unlinkAttemptReentrantToIsolateSucceeded;
       /*Unknown */
       default:
         throw Exception('Unknown Native Semaphore Operation');
     }
   }
+
+  bool isStep(NATIVE_SEMAPHORE_OPERATION_STEPS step) => toString().contains(step.toString());
 }
 
-typedef NativeSemaphoreProcessOperationStatusStateSynchronizeFunctionType<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>> = Future<NSPOS> Function<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>>({required String hash, required NATIVE_SEMAPHORE_OPERATION operation, dynamic state, DateTime? timestamp, bool reentrant, required NSPOS status, ({NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_state})? verification, R Function<R>(NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_state)? verifier});
+typedef NativeSemaphoreProcessOperationStatusStateSynchronizeFunctionType<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>> = Future<NSPOS> Function<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>>({required String hash, required NATIVE_SEMAPHORE_OPERATIONS operation, dynamic state, DateTime? timestamp, bool reentrant, required NSPOS status, ({NSPOS status, NATIVE_SEMAPHORE_OPERATIONS expected_operation, dynamic expected_state})? verification, R Function<R>(NSPOS status, NATIVE_SEMAPHORE_OPERATIONS expected_operation, R expected_state)? verifier});
 
 class NativeSemaphoreProcessOperationStatusState {
   final String hash;
@@ -334,31 +387,53 @@ class NativeSemaphoreProcessOperationStatusState {
   final String name;
   final String process;
   final String isolate;
+  final bool external;
 
+  // TODO external boolean
   String get identifier => [name, isolate, process].join('_');
 
   final bool reentrant;
 
-  late final Duration took;
+  bool waiting = false;
+
+  late final LateProperty<Duration> took = LateProperty<Duration>(name: 'duration', updatable: false);
 
   late final DateTime timestamp;
 
   dynamic state;
 
-  NATIVE_SEMAPHORE_OPERATION operation;
+  NATIVE_SEMAPHORE_OPERATIONS operation;
 
-  LateProperty<bool> completed = LateProperty<bool>(initial: false, name: 'completed');
+  LateProperty<bool> completed = LateProperty<bool>(initial: false, name: 'completed', updatable: false);
 
   /* This will complete with the NativeSemaphoreProcessOperationStatusState that preceded it i.e. if the owner of the completer is attemptingOpenAcrossProcesses then the completer will complete with willAttemptOpenAcrossProcesses */
   /* If it is a succeeded event then it will complete with the initial event that kicked it off i.e. openAttemptAcrossProcessesSucceeded  will complete with willAttemptOpenAcrossProcesses  */
   late Completer<NativeSemaphoreProcessOperationStatusState> completer = Completer<NativeSemaphoreProcessOperationStatusState>();
 
-  NativeSemaphoreProcessOperationStatusState({required NATIVE_SEMAPHORE_OPERATION this.operation, DateTime? timestamp, required String this.hash, required bool this.reentrant, required String this.tracer, required String this.name, required String this.process, required String this.isolate, required dynamic this.state}) {
+  NativeSemaphoreProcessOperationStatusState({required NATIVE_SEMAPHORE_OPERATIONS this.operation, DateTime? timestamp, required String this.hash, required bool this.reentrant, required String this.tracer, required String this.name, required String this.process, required String this.isolate, required dynamic this.state, bool this.external = false, bool this.waiting = false}) {
     this.timestamp = timestamp ?? DateTime.now();
   }
 
   @override
   toString() => 'NativeSemaphoreProcessOperationStatusState(tracer: $tracer, name: $name, process: $process, isolate: $isolate, timestamp: $timestamp, state: $state, operation: $operation, completer.isComplete: ${completer.isCompleted})';
+
+  String get serialized => JSON.encode({
+        'operation': operation.toString(),
+        'took': took.nullable?.inMilliseconds,
+        'waiting': waiting,
+        'state': state.toString(),
+        'completed': completed.get,
+        'tracer': tracer,
+        'reentrant': reentrant,
+        'hash': hash,
+        'name': name,
+        'process': process,
+        'isolate': isolate,
+        'external': external,
+        'timestamp': timestamp.toString(),
+      });
+
+  persist({required File temp, bool newline = true}) => temp.writeAsStringSync((newline ? Platform.lineTerminator : '') + serialized, mode: FileMode.append, flush: true);
 }
 
 class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState> {
@@ -372,7 +447,7 @@ class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS 
 
   final List<NativeSemaphoreProcessOperationStatusState> synchronizations = [];
 
-  late final void Function(NativeSemaphoreProcessOperationStatusState _state) callback = (NativeSemaphoreProcessOperationStatusState _state) => {};
+  late final void Function(NativeSemaphoreProcessOperationStatusState _state) callback = (NativeSemaphoreProcessOperationStatusState _state) => { print(_state.toString() + _state.tracer)};
 
   late final void Function(List<NativeSemaphoreProcessOperationStatusState?> _state) finalizer = (List<NativeSemaphoreProcessOperationStatusState?> _state) {};
 
@@ -386,7 +461,24 @@ class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS 
 
   Map<String, Future<NativeSemaphoreProcessOperationStatusState>> memoized_completers = {};
 
-  Future<NativeSemaphoreProcessOperationStatusState> getFuture({required NATIVE_SEMAPHORE_OPERATION operation, required String hash}) => Future.sync(() => [hash, operation.name].join('_')).then((key) => memoized_completers.containsKey(key) ? memoized_completers[key]! : memoized_completers.putIfAbsent(key, () => _broadcast.firstWhere((NativeSemaphoreProcessOperationStatusState state) => state.hash == hash && state.completed.get)));
+  Future<NativeSemaphoreProcessOperationStatusState> getFuture({required NATIVE_SEMAPHORE_OPERATIONS operation, required String hash}) => Future.sync(() => [hash, operation.name].join('_')).then((key) => memoized_completers.containsKey(key) ? memoized_completers[key]! : memoized_completers.putIfAbsent(key, () => _broadcast.firstWhere((NativeSemaphoreProcessOperationStatusState state) => state.hash == hash && state.completed.get)));
+
+  bool persist<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>>({required NSPOSS inbound, ({NSPOSS? previous, NSPOSS? initial})? completed}) {
+    // Roll-up?
+    print((completed?.previous?.completed.updates.toString() ?? '') + " completed previous updates" + (completed?.previous?.operation.toString() ?? '') + tracer);
+    print(inbound.completed.updates.toString() + " completed inbound updates" + inbound.operation.toString() + tracer);
+    print((completed?.initial?.completed.updates.toString() ?? '') + " completed initial updates" + (completed?.initial?.operation.toString() ?? '') + tracer);
+
+    print([(completed?.previous == inbound), (completed?.previous == completed?.initial), (completed?.initial == inbound), (completed?.previous), (completed?.initial)]);
+
+
+    bool newline = !inbound.operation.isStep(NATIVE_SEMAPHORE_OPERATION_STEPS.instantiate);
+    completed?.previous?.persist(temp: identity.temp, newline: newline);
+    inbound.persist(temp: identity.temp, newline: newline);
+    completed?.initial?.persist(temp: identity.temp, newline: newline);
+
+    return true;
+  }
 
   /// Synchronizes the state of semaphore operations, ensuring correct tracking and completion of each operation.
   ///
@@ -411,41 +503,67 @@ class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS 
   /// - **verifier:** An optional verifier function.
 
   /// Returns the provided [status] after synchronization.
-  NSPOS synchronize<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>>({required String hash, required NATIVE_SEMAPHORE_OPERATION operation, dynamic state = null, bool reentrant = false, DateTime? timestamp, required NSPOS status, ({NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_state})? verification, R Function<R>(NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_state)? verifier}) {
-    NativeSemaphoreProcessOperationStatusState inbound_status_state = NativeSemaphoreProcessOperationStatusState(tracer: tracer, name: name, process: process, isolate: isolate, operation: operation, hash: hash, state: state, reentrant: true) as NSPOSS;
+  NSPOS synchronize<I extends SemaphoreIdentity, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>>({
+    required String hash,
+    required NATIVE_SEMAPHORE_OPERATIONS operation,
+    dynamic state = null,
+    bool reentrant = false,
+    DateTime? timestamp,
+    required NSPOS status,
+    /*({NSPOS status, NATIVE_SEMAPHORE_OPERATIONS expected_operation, dynamic expected_state})? verification, R Function<R>(NSPOS status, NATIVE_SEMAPHORE_OPERATIONS expected_operation, R expected_state)? verifier*/
+  }) {
+    NSPOSS inbound_status_state = NativeSemaphoreProcessOperationStatusState(tracer: tracer, name: name, process: process, isolate: isolate, operation: operation, hash: hash, state: state, reentrant: reentrant, waiting: /*for attemptingLockAcrossProcesses waiting is effectively true*/ operation == NATIVE_SEMAPHORE_OPERATIONS.attemptingLockAcrossProcesses && state is bool && /* state is false */ !state) as NSPOSS;
+
+    NSPOSS? completable_previous_status_state = synchronizations.nullableLastSatisfies<NSPOSS?>((synchronization) => synchronization?.hash == hash && !(synchronization?.completed.isSet ?? true) && !(synchronization?.completed.get ?? true)) ?? synchronizations.nullableLastWhere<NSPOSS?>((synchronization) => synchronization.hash == hash && !synchronization.completed.isSet && !synchronization.completed.get);
+
+    NSPOSS? completed_initial_status_state;
 
     synchronizations.add(inbound_status_state);
+    _controller.add(inbound_status_state);
 
-    // get the previous status state for the same hash that is not completed
-    NativeSemaphoreProcessOperationStatusState incomplete_previous_status_state = synchronizations.firstWhere((synchronization) => synchronization.hash == hash && !synchronization.completed.isSet, orElse: () => inbound_status_state);
+    if (completable_previous_status_state == null || completable_previous_status_state != inbound_status_state) {
+      if (completable_previous_status_state is NSPOSS) {
+        // Add the completed status first
+        completable_previous_status_state.completed.set(true);
+        memoized_completers.putIfAbsent([hash, completable_previous_status_state.operation.name].join('_'), () => completable_previous_status_state.completer.future);
 
-    if (incomplete_previous_status_state != inbound_status_state) {
-      incomplete_previous_status_state.completed.set(true);
-      incomplete_previous_status_state.completer.complete(inbound_status_state);
-      incomplete_previous_status_state.took = inbound_status_state.timestamp.difference(incomplete_previous_status_state.timestamp);
-      memoized_completers.putIfAbsent([hash, inbound_status_state.operation.name].join('_'), () => inbound_status_state.completer.future);
-      _controller.add(inbound_status_state);
-      memoized_completers.putIfAbsent([hash, incomplete_previous_status_state.operation.name].join('_'), () => incomplete_previous_status_state.completer.future);
-      _controller.add(incomplete_previous_status_state);
-    }
+        if (completable_previous_status_state.operation.isStep(NATIVE_SEMAPHORE_OPERATION_STEPS.willAttempt))
+          inbound_status_state.took.set(DateTime.now().difference(completable_previous_status_state.timestamp));
 
-    if (inbound_status_state.operation.name.endsWith('Succeeded')) {
-      NativeSemaphoreProcessOperationStatusState completed_initial_status_state = synchronizations.firstWhere((synchronization) => synchronization.hash == hash && synchronization.operation.name.startsWith("attempting"), orElse: () => inbound_status_state);
-      if (completed_initial_status_state != inbound_status_state) {
-        inbound_status_state.completed.set(true);
-        inbound_status_state.took = inbound_status_state.timestamp.difference(completed_initial_status_state.timestamp);
-        inbound_status_state.completer.complete(inbound_status_state);
-        memoized_completers.putIfAbsent([hash, inbound_status_state.operation.name].join('_'), () => inbound_status_state.completer.future);
-        _controller.add(inbound_status_state);
+        if (completable_previous_status_state.operation.isStep(NATIVE_SEMAPHORE_OPERATION_STEPS.attempting))
+          inbound_status_state.took.set(DateTime.now().difference(completable_previous_status_state.timestamp));
+
+        inbound_status_state.persist(temp: identity.temp);
+
+        // Add the completed previous status state to the controller
+        completable_previous_status_state.persist(temp: identity.temp);
+        completable_previous_status_state.completer.complete(inbound_status_state);
+        _controller.add(completable_previous_status_state);
       }
-    }
 
-    if (inbound_status_state.operation.name.startsWith("instantiate")) {
-      inbound_status_state.completed.set(true);
-      inbound_status_state.took = DateTime.now().difference(inbound_status_state.timestamp);
-      inbound_status_state.completer.complete(inbound_status_state);
       memoized_completers.putIfAbsent([hash, inbound_status_state.operation.name].join('_'), () => inbound_status_state.completer.future);
-      _controller.add(inbound_status_state);
+
+      if (inbound_status_state.operation.isStep(NATIVE_SEMAPHORE_OPERATION_STEPS.instantiate)) {
+        inbound_status_state.completed.set(true);
+        inbound_status_state.took.set(DateTime.now().difference(inbound_status_state.timestamp));
+        // if it is the initial state then complete it immediately with itself
+        inbound_status_state.persist(temp: identity.temp, newline: false);
+        inbound_status_state.completer.complete(inbound_status_state);
+        _controller.add(/* i.e. instantiated */ inbound_status_state);
+      }
+
+      if (inbound_status_state.operation.isStep(NATIVE_SEMAPHORE_OPERATION_STEPS.succeeded)) {
+        NSPOSS? __completed_initial_status_state = synchronizations.nullableLastSatisfies<NSPOSS?>((synchronization) => synchronization?.hash == hash && (synchronization?.operation.isStep(NATIVE_SEMAPHORE_OPERATION_STEPS.willAttempt) ?? false)) ?? synchronizations.nullableLastWhere<NSPOSS?>((synchronization) => synchronization.hash == hash && synchronization.operation.isStep(NATIVE_SEMAPHORE_OPERATION_STEPS.willAttempt));
+
+        if (__completed_initial_status_state is NSPOSS && __completed_initial_status_state != inbound_status_state) {
+          /* i.e. willAttempt*/ completed_initial_status_state = __completed_initial_status_state;
+          inbound_status_state.completed.set(true);
+          inbound_status_state.took.set(inbound_status_state.timestamp.difference(completed_initial_status_state.timestamp));
+          inbound_status_state.persist(temp: identity.temp);
+          inbound_status_state.completer.complete(inbound_status_state);
+          _controller.add( /* i.e. AttemptSucceeded */inbound_status_state);
+        }
+      }
     }
 
     return status;
@@ -453,7 +571,7 @@ class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS 
 
   Map<String, bool> memoized_completions = {};
 
-  bool isCompleted({required String hash, required List<NATIVE_SEMAPHORE_OPERATION> operations}) {
+  bool isCompleted({required String hash, required List<NATIVE_SEMAPHORE_OPERATIONS> operations}) {
     String key = [hash, ...operations.map((operation) => operation.name)].join('_');
 
     if (memoized_completions.containsKey(key) && memoized_completions[hash] is bool) return memoized_completions[hash]!;
@@ -470,11 +588,11 @@ class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS 
   Map<String, bool> memoized_reentrancies = {};
 
   bool isReentrant({required String hash, required int depth}) {
-    String key = [hash, NATIVE_SEMAPHORE_OPERATION.instantiate.name].join('_');
+    String key = [hash, NATIVE_SEMAPHORE_OPERATIONS.instantiate.name].join('_');
     if (memoized_reentrancies.containsKey(key) && memoized_reentrancies[hash] is bool) return memoized_reentrancies[hash]!;
 
     Iterable<NativeSemaphoreProcessOperationStatusState> reentrancies = synchronizations.where((status) {
-      return status.operation == NATIVE_SEMAPHORE_OPERATION.instantiate && status.completed.get;
+      return status.operation == NATIVE_SEMAPHORE_OPERATIONS.instantiate && status.completed.get;
     });
 
     bool _completed = (reentrancies.length > 1 && depth > 0) && reentrancies.isNotEmpty && reentrancies.every((status) => status.completed.get);
@@ -503,22 +621,22 @@ class NativeSemaphoreProcessOperationStatuses<I extends SemaphoreIdentity, NSPOS
     for (NativeSemaphoreProcessOperationStatusState status in all) {
       if (status.identifier != identifier) continue;
       switch (status.operation) {
-        case NATIVE_SEMAPHORE_OPERATION.instantiate:
+        case NATIVE_SEMAPHORE_OPERATIONS.instantiate:
           instantiations++;
           break;
-        case NATIVE_SEMAPHORE_OPERATION.willAttemptOpenAcrossProcesses:
+        case NATIVE_SEMAPHORE_OPERATIONS.willAttemptOpenAcrossProcesses:
           opens++;
           break;
-        case NATIVE_SEMAPHORE_OPERATION.willAttemptLockAcrossProcesses:
+        case NATIVE_SEMAPHORE_OPERATIONS.willAttemptLockAcrossProcesses:
           locks++;
           break;
-        case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlockAcrossProcesses:
+        case NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlockAcrossProcesses:
           unlocks++;
           break;
-        case NATIVE_SEMAPHORE_OPERATION.willAttemptCloseAcrossProcesses:
+        case NATIVE_SEMAPHORE_OPERATIONS.willAttemptCloseAcrossProcesses:
           closes++;
           break;
-        case NATIVE_SEMAPHORE_OPERATION.willAttemptUnlinkAcrossProcesses:
+        case NATIVE_SEMAPHORE_OPERATIONS.willAttemptUnlinkAcrossProcesses:
           unlinks++;
           break;
         default:
@@ -630,7 +748,7 @@ class NativeSemaphoreProcessOperationStatuses<I extends SemaphoreIdentity, NSPOS
 
   late final NSPOS unlinked = NativeSemaphoreProcessOperationStatus<I, NSPOSS>(identity: identity, tracerFn: () => tracer) as NSPOS;
 
-  NSPOS lookup(NATIVE_SEMAPHORE_OPERATION operation) {
+  NSPOS lookup(NATIVE_SEMAPHORE_OPERATIONS operation) {
     if (operation.name.toLowerCase().contains('instantiate')) return instantiated;
     if (operation.name.toLowerCase().contains('open')) return opened;
     /* lock has to go below unlock because lock also matches on 'unlock' */
@@ -641,7 +759,25 @@ class NativeSemaphoreProcessOperationStatuses<I extends SemaphoreIdentity, NSPOS
     throw Exception('Unknown operation $operation');
   }
 
-  void synchronize({required String hash, required NATIVE_SEMAPHORE_OPERATION operation, dynamic state = null, bool reentrant = false, DateTime? timestamp, /*({NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_state})? verification, R Function<R>(NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_state)? verifier*/}) => all.add(lookup(operation).synchronize<I, NSPOSS, NSPOS>(hash: hash, operation: operation, state: state, timestamp: timestamp ?? DateTime.now(), reentrant: reentrant, status: lookup(operation), /*verification: verification, verifier: verifier ?? verify*/).synchronizations.last);
+  void synchronize({
+    required String hash,
+    required NATIVE_SEMAPHORE_OPERATIONS operation,
+    dynamic state = null,
+    bool reentrant = false,
+    DateTime? timestamp,
+    /*({NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, dynamic expected_state})? verification, R Function<R>(NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_state)? verifier*/
+  }) =>
+      all.add(lookup(operation)
+          .synchronize<I, NSPOSS, NSPOS>(
+            hash: hash,
+            operation: operation,
+            state: state,
+            timestamp: timestamp ?? DateTime.now(),
+            reentrant: reentrant,
+            status: lookup(operation), /*verification: verification, verifier: verifier ?? verify*/
+          )
+          .synchronizations
+          .last);
 
   // R verify<R>(NSPOS status, NATIVE_SEMAPHORE_OPERATION expected_operation, R expected_state) {
   //   // if (status.current.isSet && status.current.get.operation != expected_operation) throw Exception('The current operation ${status.current.get.operation} does not match the expected operation $expected_operation previous is ${status.previous.get.operation}.');

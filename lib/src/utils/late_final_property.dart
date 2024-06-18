@@ -22,12 +22,20 @@ class LateProperty<T> {
 
   T? get getter => isSet ? updatable ? updating : once : initial;
 
+  int updates = 0;
+
+  @protected
+  ({T get, T? nullable, bool succeeded, String? name}) _increment(({T get, T? nullable, bool succeeded, String? name}) _set) {
+    if(_set.succeeded) updates++;
+    return _set;
+  }
+
   // TODO completer for async
 
   LateProperty({T? this.initial = null, bool this.updatable = true, String this.name = ''});
 
   ({T get, T? nullable, bool succeeded, String? name}) set(T _) =>
-      (succeeded: !updatable ? !(isSet || !((once = _) is T)) : (updating = _) is T, name: name, get: get, nullable: nullable);
+      _increment((succeeded: !updatable ? !(isSet || !((once = _) is T)) : (updating = _) is T, name: name, get: get, nullable: nullable));
 
   T? get nullable => isSet ? getter : initial;
 

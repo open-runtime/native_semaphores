@@ -34,7 +34,7 @@ void main() {
           bool locked = sem.lock();
           locked || (throw Exception("Lock in isolate $id should have succeeded"));
 
-          sleep(Duration(milliseconds: Random().nextInt(1000)));
+          sleep(Duration(milliseconds: [500, 1500, 200, 600, 900][Random().nextInt(4)]));
 
           // Unlock
           bool unlocked = sem.unlock();

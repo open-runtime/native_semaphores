@@ -11,8 +11,8 @@ import 'semaphore_identity.dart' show SemaphoreIdentities, SemaphoreIdentity;
 import 'utils/late_final_property.dart' show LateProperty;
 
 class UnixSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentities<I>, CU extends SemaphoreCountUpdate, CD extends SemaphoreCountDeletion, CT extends SemaphoreCount<CU, CD>, CTS extends SemaphoreCounts<CU, CD, CT>, NSPOSS extends NativeSemaphoreProcessOperationStatusState, NSPOS extends NativeSemaphoreProcessOperationStatus<I, NSPOSS>, NSPOSES extends NativeSemaphoreProcessOperationStatuses<I, NSPOSS, NSPOS>, CTR extends SemaphoreCounter<I, CU, CD, CT, CTS, NSPOSS, NSPOS, NSPOSES>, CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, NSPOSS, NSPOS, NSPOSES, CTR>, PNSO extends PersistedNativeSemaphoreOperation, PNSOS extends PersistedNativeSemaphoreOperations<PNSO>, PNSA extends PersistedNativeSemaphoreAccessor, PNSM extends PersistedNativeSemaphoreMetadata<PNSA>> extends NativeSemaphore<I, IS, CU, CD, CT, CTS, NSPOSS, NSPOS, NSPOSES, CTR, CTRS, PNSO, PNSOS, PNSA> {
-  LateProperty<Pointer<Char>> identifier = LateProperty<Pointer<Char>>(name: 'identifier', updatable: false);
-  LateProperty<Pointer<sem_t>> semaphore = LateProperty<Pointer<sem_t>>(name: 'semaphore', updatable: false);
+  LateProperty<Pointer<Char>> handle = LateProperty<Pointer<Char>>(name: 'identifier', updatable: false);
+  LateProperty<Pointer<sem_t>> native = LateProperty<Pointer<sem_t>>(name: 'semaphore', updatable: false);
 
   UnixSemaphore({required String Function() tracerFn, required CTR counter, verbose = false}) : super(tracerFn: () => tracerFn(), counter: counter, verbose: verbose);
 
@@ -26,16 +26,16 @@ class UnixSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentities<
   @override
   bool openAcrossProcesses() {
     if (!willAttemptOpenAcrossProcesses()) return false;
-    identifier.set(('/${identity.name.get.replaceFirst(('/'), '')}'.toNativeUtf8()).cast()).succeeded || (throw 'Failed to set identifier');
+    handle.set(('/${identity.name.get.replaceFirst(('/'), '')}'.toNativeUtf8()).cast()).succeeded || (throw 'Failed to set identifier');
     super.attemptingOpenAcrossProcesses(/*Dont pass state as true or false explicitly here as super will determine it based on !opened */);
-    identity.address = semaphore.set(sem_open(identifier.get, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED)).get.address;
-    super.attemptedOpenAcrossProcesses(state: semaphore.get.address != UnixSemOpenMacros.SEM_FAILED.address);
+    identity.address.set(native.set(sem_open(handle.get, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED)).get.address);
+    super.attemptedOpenAcrossProcesses(state: native.get.address != UnixSemOpenMacros.SEM_FAILED.address);
     return openAttemptAcrossProcessesSucceeded();
   }
 
   @override
   bool openAttemptAcrossProcessesSucceeded({bool? state, bool persisted = true}) {
-    (semaphore.get.address != UnixSemOpenMacros.SEM_FAILED.address) || (throw "${UnixSemOpenError.fromErrno(errno.value).toString()}");
+    (native.get.address != UnixSemOpenMacros.SEM_FAILED.address) || (throw "${UnixSemOpenError.fromErrno(errno.value).toString()}");
     return super.openAttemptAcrossProcessesSucceeded(/* If we made it this far, we're passing true */ state: true);
   }
 
@@ -44,8 +44,8 @@ class UnixSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentities<
     if (!willAttemptLockAcrossProcesses()) return false;
 
     waiting = blocking;
-    int attempt = sem_trywait(semaphore.get);
-    if (blocking && /* i.e. same as !attempt.isEven */ !attemptingLockAcrossProcesses(state: attempt.isEven)) attempt = sem_wait(semaphore.get);
+    int attempt = sem_trywait(native.get);
+    if (blocking && /* i.e. same as !attempt.isEven */ !attemptingLockAcrossProcesses(state: attempt.isEven)) attempt = sem_wait(native.get);
     waiting = false;
 
     attemptedLockAcrossProcesses(attempt: attempt, state: attempt.isEven);
@@ -84,7 +84,7 @@ class UnixSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentities<
   bool unlockAcrossProcesses() {
     if (!willAttemptUnlockAcrossProcesses()) return false; // TODO perhaps call completers.complete here? & Synchronize within the hook itself?
     attemptingUnlockAcrossProcesses(state: true);
-    int attempt = sem_post(semaphore.get);
+    int attempt = sem_post(native.get);
     attemptedUnlockAcrossProcesses(attempt: attempt, state: attempt == 0);
     return unlockAttemptAcrossProcessesSucceeded(attempt: attempt);
   }
@@ -109,7 +109,7 @@ class UnixSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentities<
   bool closeAcrossProcesses() {
     if (!willAttemptCloseAcrossProcesses()) return false;
     super.attemptingCloseAcrossProcesses(state: true);
-    final int attempt = sem_close(semaphore.get);
+    final int attempt = sem_close(native.get);
     super.attemptedCloseAcrossProcesses(attempt: attempt, state: attempt == 0);
     return closeAttemptAcrossProcessesSucceeded(attempt: attempt);
   }
@@ -122,7 +122,7 @@ class UnixSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentities<
     state = error is UnixSemUnlinkError && !error.critical || state;
 
     if (super.unlinkAttemptAcrossProcessesSucceeded<E>(attempt: attempt, state: state, error: error)) {
-      malloc.free(identifier.get);
+      malloc.free(handle.get);
     }
 
     return state;
@@ -132,7 +132,7 @@ class UnixSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentities<
   bool unlinkAcrossProcesses() {
     if (!willAttemptUnlinkAcrossProcesses()) return false;
     super.attemptingUnlinkAcrossProcesses(state: true);
-    final int attempt = sem_unlink(identifier.get);
+    final int attempt = sem_unlink(handle.get);
     super.attemptedUnlinkAcrossProcesses(attempt: attempt, state: attempt == 0);
     return unlinkAttemptAcrossProcessesSucceeded(attempt: attempt);
   }
