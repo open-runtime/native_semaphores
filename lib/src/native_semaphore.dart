@@ -48,6 +48,7 @@ class NativeSemaphore<I extends SemaphoreIdentity, IS extends SemaphoreIdentitie
 
   //TODO use xxh64
   // String get hash => _hash.isSet ? _hash.get : _hash.set(xxh64.string('${identity.name}-$depth').hex()).get;
+  // Hashes are cross process safe ✅
   String get hash => _hash.isSet ? _hash.get : _hash.set('${identity.identifier}-$depth').get;
 
   // Log Stream for the semaphore

@@ -1,8 +1,8 @@
 import 'dart:async' show Completer, Future, Stream, StreamController, StreamSubscription;
 import 'dart:io' show File, FileMode, Platform, stderr;
 
-import 'package:runtime_native_semaphores/src/utils/XXHash64.dart';
-import 'package:runtime_native_semaphores/src/utils/list_extensions.dart';
+import 'package:runtime_native_semaphores/src/utils/XXHash64.dart' show JSON;
+import 'utils/list_extensions.dart' show NullableLastWhere;
 
 import 'semaphore_identity.dart' show SemaphoreIdentity;
 import 'utils/late_final_property.dart' show LateProperty;
@@ -468,9 +468,7 @@ class NativeSemaphoreProcessOperationStatus<I extends SemaphoreIdentity, NSPOSS 
     print((completed?.previous?.completed.updates.toString() ?? '') + " completed previous updates" + (completed?.previous?.operation.toString() ?? '') + tracer);
     print(inbound.completed.updates.toString() + " completed inbound updates" + inbound.operation.toString() + tracer);
     print((completed?.initial?.completed.updates.toString() ?? '') + " completed initial updates" + (completed?.initial?.operation.toString() ?? '') + tracer);
-
     print([(completed?.previous == inbound), (completed?.previous == completed?.initial), (completed?.initial == inbound), (completed?.previous), (completed?.initial)]);
-
 
     bool newline = !inbound.operation.isStep(NATIVE_SEMAPHORE_OPERATION_STEPS.instantiate);
     completed?.previous?.persist(temp: identity.temp, newline: newline);
