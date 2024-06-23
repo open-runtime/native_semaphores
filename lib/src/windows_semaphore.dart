@@ -107,7 +107,7 @@ class WindowsSemaphore<
         WindowsCreateSemaphoreWMacros.SEM_FAILED.address) {
       if (verbose)
         print(
-            "Failed [openAttemptSucceeded()] windows semaphore: ${name} with error: ${WindowsCreateSemaphoreWError.fromErrorCode(_semaphore.address).toString()}");
+            "Failed [openAttemptSucceeded()] windows semaphore: ${name} with error: ${WindowsCreateSemaphoreWError.fromErrorCode(_semaphore.address)}");
       throw Exception(
           "CreateSemaphoreW in secondary isolate should have succeeded, got ${_semaphore.address}");
     }

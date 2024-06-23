@@ -271,7 +271,7 @@ class UnixSemaphore<
 
       if (verbose)
         print(
-            "Failed Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt ERROR: ${error.toString()}");
+            "Failed Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt ERROR: ${error}");
       return false;
     }
 
@@ -397,7 +397,7 @@ class UnixSemaphore<
     UnixSemCloseError error = UnixSemCloseError.fromErrno(errno.value);
     if (verbose)
       print(
-          "Failed Evaluation [Close Attempt Succeeded]: IDENTITY: ${identity.uuid} REASON: Close attempt resulted in non 0 response: $attempt ERROR: ${error.toString()}");
+          "Failed Evaluation [Close Attempt Succeeded]: IDENTITY: ${identity.uuid} REASON: Close attempt resulted in non 0 response: $attempt ERROR: ${error}");
 
     return false;
   }
@@ -456,7 +456,7 @@ class UnixSemaphore<
       if (error.critical) {
         if (verbose)
           print(
-              "Non-Zero Evaluation of [unlinkAttemptSucceeded()]: IDENTITY: ${identity.uuid} REASON: Unlink attempt resulted in non 0 response: $attempt ERROR: ${error.toString()}");
+              "Non-Zero Evaluation of [unlinkAttemptSucceeded()]: IDENTITY: ${identity.uuid} REASON: Unlink attempt resulted in non 0 response: $attempt ERROR: ${error}");
         return false;
       }
     }
@@ -468,7 +468,7 @@ class UnixSemaphore<
 
     if (error is UnixSemUnlinkError && !error.critical) if (verbose)
       print(
-          "Non-Critical Error in Evaluation [unlinkAttemptSucceeded()]: IDENTITY: ${identity.uuid} ERROR: ${error.toString()}");
+          "Non-Critical Error in Evaluation [unlinkAttemptSucceeded()]: IDENTITY: ${identity.uuid} ERROR: ${error}");
 
     malloc.free(_identifier);
 
