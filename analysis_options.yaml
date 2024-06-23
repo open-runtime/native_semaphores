@@ -1,0 +1,53 @@
+include: package:lint_hard/all.yaml
+
+linter:
+  rules:
+    avoid_print: false  
+    diagnostic_describe_all_properties: false
+    lines_longer_than_80_chars: false
+    avoid_classes_with_only_static_members: false
+    camel_case_types: false
+    non_constant_identifier_names: false
+    curly_braces_in_flow_control_structures: false
+    use_super_parameters: false
+    comment_references: false
+    prefer_single_quotes: false
+    always_put_control_body_on_new_line: false
+    avoid_bool_literals_in_conditional_expressions: false
+    prefer_constructors_over_static_methods: false
+    prefer_final_locals: false
+    flutter_style_todos: false
+    sort_constructors_first: false
+    unnecessary_parenthesis: false
+    avoid_escaping_inner_quotes: false
+    directives_ordering: false
+    use_raw_strings: false
+    prefer_expression_function_bodies: false
+    prefer_const_constructors: false
+    unnecessary_lambdas: false
+    cascade_invocations: false
+    combinators_ordering: false
+    avoid_catches_without_on_clauses: false
+    avoid_positional_boolean_parameters: false
+    avoid_redundant_argument_values: false
+    avoid_function_literals_in_foreach_calls: false
+
+    # go0d to do
+    prefer_interpolation_to_compose_strings: false
+    unnecessary_string_interpolations: false
+    avoid_init_to_null: false
+    unnecessary_brace_in_string_interps: false
+    omit_local_variable_types: false
+    prefer_initializing_formals: false
+    constant_identifier_names: false
+    
+
+
+    
+    # priority lints
+    type_init_formals: false
+    only_throw_errors: false
+
+    # high priority
+    unnecessary_statements: false
+

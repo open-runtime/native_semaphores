@@ -10,7 +10,7 @@ class SemaphoreCountUpdate {
   // Updated to a specific count
   final int to;
 
-  SemaphoreCountUpdate({required String this.identifier, int? this.from = null, required int this.to});
+  SemaphoreCountUpdate({required String this.identifier, required int this.to, int? this.from = null});
 }
 
 class SemaphoreCountDeletion {
@@ -123,13 +123,13 @@ class SemaphoreCounters<
   bool has<T>({required String identifier}) => _counters.containsKey(identifier) && _counters[identifier] is T;
 
   // Returns the semaphore identity for the given identifier as a singleton
-  CTR get({required String identifier}) => _counters[identifier] ?? (throw Exception('Failed to get semaphore counter for $identifier. It doesn\'t exist.'));
+  CTR get({required String identifier}) => _counters[identifier] as CTR? ?? (throw Exception('Failed to get semaphore counter for $identifier. It doesn\'t exist.'));
 
   CTR register({required String identifier, required CTR counter}) {
     (_counters.containsKey(identifier) || counter != _counters[identifier]) ||
         (throw Exception('Failed to register semaphore counter for $identifier. It already exists or is not the same as the inbound identity being passed.'));
 
-    return _counters.putIfAbsent(identifier, () => counter);
+    return _counters.putIfAbsent(identifier, () => counter) as CTR;
   }
 
   void delete({required String identifier}) {
@@ -152,6 +152,7 @@ class SemaphoreCounter<
     > {
   static late final dynamic __instances;
 
+  // ignore: unused_element
   dynamic get _instances => SemaphoreCounter.__instances;
 
   late final String identifier;

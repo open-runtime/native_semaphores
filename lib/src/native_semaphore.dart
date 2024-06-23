@@ -47,13 +47,13 @@ class NativeSemaphores<
   bool has<T>({required String name}) => _instantiations.containsKey(name) && _instantiations[name] is T;
 
   // Returns the semaphore identity for the given identifier as a singleton
-  NS get({required String name}) => _instantiations[name] ?? (throw Exception('Failed to get semaphore counter for $name. It doesn\'t exist.'));
+  NS get({required String name}) => _instantiations[name] as NS? ?? (throw Exception('Failed to get semaphore counter for $name. It doesn\'t exist.'));
 
   NS register({required String name, required NS semaphore}) {
     (_instantiations.containsKey(name) || semaphore != _instantiations[name]) ||
         (throw Exception('Failed to register semaphore counter for $name. It already exists or is not the same as the inbound identity being passed.'));
 
-    return _instantiations.putIfAbsent(name, () => semaphore);
+    return _instantiations.putIfAbsent(name, () => semaphore) as NS;
   }
 
   void delete({required String name}) {
@@ -61,7 +61,8 @@ class NativeSemaphores<
     _instantiations.remove(name);
   }
 
-  String toString() => 'NativeSemaphores(all: ${all.toString()})';
+  @override
+  String toString() => 'NativeSemaphores(all: ${all})';
 }
 
 class NativeSemaphore<
@@ -85,6 +86,7 @@ class NativeSemaphore<
     > implements Finalizable {
   static late final dynamic __instances;
 
+  // ignore: unused_element
   dynamic get _instances => NativeSemaphore.__instances;
 
   bool verbose;
@@ -156,7 +158,7 @@ class NativeSemaphore<
       >({required String name, I? identity, CTR? counter, bool verbose = false}) {
     if (!LatePropertyAssigned<NSS>(() => __instances)) {
       __instances = NativeSemaphores<I, IS, CU, CD, CT, CTS, CTR, CTRS, NS>();
-      if (verbose) print('Setting NativeSemaphore._instances: ${__instances.toString()}');
+      if (verbose) print('Setting NativeSemaphore._instances: ${__instances}');
     }
 
     return (__instances as NSS).has<NS>(name: name)
@@ -244,5 +246,6 @@ class NativeSemaphore<
 
   bool unlink() => throw UnimplementedError();
 
+  @override
   String toString() => throw UnimplementedError();
 }
