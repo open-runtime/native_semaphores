@@ -324,7 +324,7 @@ class WindowsWaitForSingleObjectMacros {
 class WindowsReleaseSemaphoreMacros {
   static const int RELEASE_COUNT_RECOMMENDED = 1;
 
-  static late Pointer<Never> PREVIOUS_RELEASE_COUNT_RECOMMENDED = NULL;
+  static  Pointer<Never> PREVIOUS_RELEASE_COUNT_RECOMMENDED = NULL;
 
   static int ERROR_SEM_OVERFLOW = 105;
 

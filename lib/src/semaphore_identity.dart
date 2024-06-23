@@ -22,13 +22,13 @@ class SemaphoreIdentities<I extends SemaphoreIdentity> {
   bool has<T>({required String name}) => _identities.containsKey(name) && _identities[name] is T;
 
   // Returns the semaphore identity for the given identifier as a singleton
-  I get({required String name}) => _identities[name] ?? (throw Exception('Failed to get semaphore identity for $name. It doesn\'t exist.'));
+  I get({required String name}) => _identities[name] as I? ?? (throw Exception('Failed to get semaphore identity for $name. It doesn\'t exist.'));
 
   I register({required String name, required I identity}) {
     (_identities.containsKey(name) || identity != _identities[name]) ||
         (throw Exception('Failed to register semaphore identity for $name. It already exists or is not the same as the inbound identity being passed.'));
 
-    return _identities.putIfAbsent(name, () => identity);
+    return _identities.putIfAbsent(name, () => identity) as I;
   }
 
   void delete({required String name}) {
@@ -40,6 +40,7 @@ class SemaphoreIdentities<I extends SemaphoreIdentity> {
 class SemaphoreIdentity {
   static late final dynamic __instances;
 
+  // ignore: unused_element
   dynamic get _instances => SemaphoreIdentity.__instances;
 
   String get prefix => SemaphoreIdentities.prefix;

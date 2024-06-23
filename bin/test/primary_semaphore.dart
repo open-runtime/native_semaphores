@@ -2,7 +2,7 @@ import 'dart:io' show exit, pid, stdout;
 
 import 'package:runtime_native_semaphores/runtime_native_semaphores.dart';
 
-main(List<String> args) async {
+void main(List<String> args) async {
   String name = args.elementAt(0);
 
   int lock_delay = int.parse(args.elementAt(1));
@@ -16,7 +16,7 @@ main(List<String> args) async {
 
   final NativeSemaphore sem = NativeSemaphore.instantiate(name: name)..open();
 
-  await Future.delayed(Duration(seconds: lock_delay));
+  await Future.delayed(Duration(seconds: lock_delay), () {}) ;
 
   Stopwatch stopwatch = Stopwatch()..start();
   sem.lock();
@@ -24,7 +24,7 @@ main(List<String> args) async {
 
   stdout.writeln('Child Process $tracker $pid Locking semaphore with name $name took: [${stopwatch.elapsed.inSeconds}] seconds');
 
-  await Future.delayed(Duration(seconds: unlock_delay));
+  await Future.delayed(Duration(seconds: unlock_delay), () {});
 
   sem.unlock();
 

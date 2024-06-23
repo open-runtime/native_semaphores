@@ -182,7 +182,7 @@ void main() {
         await Isolate.spawn(isolate_entrypoint, receiver.sendPort);
 
         // Wait for the isolate to send its message
-        return await receiver.first;
+        return (await receiver.first) as String;
       }
 
       // Spawn the first helper isolate
