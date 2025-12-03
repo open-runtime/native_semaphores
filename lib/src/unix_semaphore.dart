@@ -3,7 +3,14 @@ import 'dart:ffi' show AbiSpecificIntegerPointer, Char, Pointer;
 import 'package:ffi/ffi.dart' show StringUtf8Pointer, malloc;
 
 import 'native_semaphore.dart' show NativeSemaphore;
-import 'semaphore_counter.dart' show SemaphoreCount, SemaphoreCountDeletion, SemaphoreCountUpdate, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
+import 'semaphore_counter.dart'
+    show
+        SemaphoreCount,
+        SemaphoreCountDeletion,
+        SemaphoreCountUpdate,
+        SemaphoreCounter,
+        SemaphoreCounters,
+        SemaphoreCounts;
 import 'semaphore_identity.dart' show SemaphoreIdentities, SemaphoreIdentity;
 import 'ffi/unix.dart'
     show
@@ -25,40 +32,48 @@ import 'ffi/unix.dart'
 import 'utils/late_property_assigned.dart' show LatePropertyAssigned;
 
 class UnixSemaphore<
-    /*  Identity */
-    I extends SemaphoreIdentity,
-    /* Semaphore Identities */
-    IS extends SemaphoreIdentities<I>,
-    /*Count Update*/
-    CU extends SemaphoreCountUpdate,
-    /*Count Deletion*/
-    CD extends SemaphoreCountDeletion,
-    /* Semaphore Count */
-    CT extends SemaphoreCount<CU, CD>,
-    /* Semaphore Counts */
-    CTS extends SemaphoreCounts<CU, CD, CT>,
-    /* Semaphore Counter */
-    CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
-    /* Semaphore Counter */
-    CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>
-    /* formatting guard comment */
-    > extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS> {
+  /*  Identity */
+  I extends SemaphoreIdentity,
+  /* Semaphore Identities */
+  IS extends SemaphoreIdentities<I>,
+  /*Count Update*/
+  CU extends SemaphoreCountUpdate,
+  /*Count Deletion*/
+  CD extends SemaphoreCountDeletion,
+  /* Semaphore Count */
+  CT extends SemaphoreCount<CU, CD>,
+  /* Semaphore Counts */
+  CTS extends SemaphoreCounts<CU, CD, CT>,
+  /* Semaphore Counter */
+  CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
+  /* Semaphore Counter */
+  CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>
+  /* formatting guard comment */
+>
+    extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS> {
   late final Pointer<Char> _identifier;
 
-  ({bool isSet, Pointer<Char>? get}) get identifier => LatePropertyAssigned<Pointer<Char>>(() => _identifier) ? (isSet: true, get: _identifier) : (isSet: false, get: null);
+  ({bool isSet, Pointer<Char>? get}) get identifier => LatePropertyAssigned<Pointer<Char>>(() => _identifier)
+      ? (isSet: true, get: _identifier)
+      : (isSet: false, get: null);
 
   late final Pointer<sem_t> _semaphore;
 
-  ({bool isSet, Pointer<sem_t>? get}) get semaphore => LatePropertyAssigned<Pointer<sem_t>>(() => _semaphore) ? (isSet: true, get: _semaphore) : (isSet: false, get: null);
+  ({bool isSet, Pointer<sem_t>? get}) get semaphore => LatePropertyAssigned<Pointer<sem_t>>(() => _semaphore)
+      ? (isSet: true, get: _semaphore)
+      : (isSet: false, get: null);
 
-  UnixSemaphore({required String name, required CTR counter, verbose = false}) : super(name: name, counter: counter, verbose: verbose);
+  UnixSemaphore({required String name, required CTR counter, verbose = false})
+    : super(name: name, counter: counter, verbose: verbose);
 
   @override
   bool willAttemptOpen() {
     if (verbose) print("Evaluating [willAttemptOpen()]: IDENTITY: ${identity.uuid}");
     // TODO other checks on the identifier string
     (name.replaceFirst(('/'), '').length <= UnixSemLimits.NAME_MAX_CHARACTERS) ||
-        (throw ArgumentError('Identifier is too long. Must be less than or equal to ${UnixSemLimits.NAME_MAX_CHARACTERS} characters.'));
+        (throw ArgumentError(
+          'Identifier is too long. Must be less than or equal to ${UnixSemLimits.NAME_MAX_CHARACTERS} characters.',
+        ));
 
     identity.name == name || (throw ArgumentError('Identity name does not match the name provided to the semaphore.'));
 
@@ -74,7 +89,13 @@ class UnixSemaphore<
 
     if (verbose) print("Attempting to [open()] semaphore: ${name}");
 
-    if (!semaphore.isSet) _semaphore = sem_open(_identifier, UnixSemOpenMacros.O_CREAT, MODE_T_PERMISSIONS.RECOMMENDED, UnixSemOpenMacros.VALUE_RECOMMENDED);
+    if (!semaphore.isSet)
+      _semaphore = sem_open(
+        _identifier,
+        UnixSemOpenMacros.O_CREAT,
+        MODE_T_PERMISSIONS.RECOMMENDED,
+        UnixSemOpenMacros.VALUE_RECOMMENDED,
+      );
     identity.address = _semaphore.address;
 
     if (verbose) print("Semaphore [open()] attempt response: ${semaphore}");
@@ -84,9 +105,11 @@ class UnixSemaphore<
 
   @override
   bool openAttemptSucceeded() {
-    (_semaphore.address != UnixSemOpenMacros.SEM_FAILED.address) || (throw "${UnixSemOpenError.fromErrno(errno.value).toString()}");
+    (_semaphore.address != UnixSemOpenMacros.SEM_FAILED.address) ||
+        (throw "${UnixSemOpenError.fromErrno(errno.value).toString()}");
 
-    if (verbose) print("Successfully [openAttemptSucceeded()] unix semaphore: ${name} at address: ${semaphore.get?.address}");
+    if (verbose)
+      print("Successfully [openAttemptSucceeded()] unix semaphore: ${name} at address: ${semaphore.get?.address}");
 
     return !LatePropertyAssigned<bool>(() => hasOpened) ? hasOpened = true : opened;
   }
@@ -96,13 +119,21 @@ class UnixSemaphore<
     if (verbose) print("Evaluating [willAttemptLockAcrossProcesses()]: IDENTITY: ${identity.uuid}");
 
     if (opened == false) {
-      if (verbose) print("Failed [willAttemptLockAcrossProcesses()]: IDENTITY: ${identity.uuid} REASON: Cannot lock semaphore that has not been opened.");
+      if (verbose)
+        print(
+          "Failed [willAttemptLockAcrossProcesses()]: IDENTITY: ${identity.uuid} REASON: Cannot lock semaphore that has not been opened.",
+        );
 
-      throw Exception('Failed [willAttemptLockAcrossProcesses()]: IDENTITY: ${identity.uuid} REASON: Cannot lock semaphore that has not been opened.');
+      throw Exception(
+        'Failed [willAttemptLockAcrossProcesses()]: IDENTITY: ${identity.uuid} REASON: Cannot lock semaphore that has not been opened.',
+      );
     }
 
     if (counter.counts.process.get() > 0) {
-      if (verbose) print("Failed [willAttemptLockAcrossProcesses()]: IDENTITY: ${identity.uuid} REASON: Current Process already locked semaphore.");
+      if (verbose)
+        print(
+          "Failed [willAttemptLockAcrossProcesses()]: IDENTITY: ${identity.uuid} REASON: Current Process already locked semaphore.",
+        );
       return false;
     }
 
@@ -119,7 +150,10 @@ class UnixSemaphore<
 
     int attempt = blocking ? sem_wait(_semaphore) : sem_trywait(_semaphore);
 
-    if (verbose) print("Attempted [lockAcrossProcesses()]: IDENTITY: ${identity.uuid} BLOCKING: $blocking ATTEMPT RESPONSE: $attempt");
+    if (verbose)
+      print(
+        "Attempted [lockAcrossProcesses()]: IDENTITY: ${identity.uuid} BLOCKING: $blocking ATTEMPT RESPONSE: $attempt",
+      );
 
     return lockAttemptAcrossProcessesSucceeded(attempt: attempt);
   }
@@ -131,11 +165,15 @@ class UnixSemaphore<
 
       if (verbose)
         print(
-            "Incremented [lockAttemptAcrossProcessesSucceeded()] Count: IDENTITY: ${identity.uuid} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+          "Incremented [lockAttemptAcrossProcessesSucceeded()] Count: IDENTITY: ${identity.uuid} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}",
+        );
       return true;
     }
 
-    if (verbose) print("Failed [lockAttemptAcrossProcessesSucceeded()] [sem_wait] Semaphore resulted in non 0 response: IDENTITY: ${identity.uuid} ATTEMPT RESULT: $attempt");
+    if (verbose)
+      print(
+        "Failed [lockAttemptAcrossProcessesSucceeded()] [sem_wait] Semaphore resulted in non 0 response: IDENTITY: ${identity.uuid} ATTEMPT RESULT: $attempt",
+      );
     return false;
   }
 
@@ -145,7 +183,8 @@ class UnixSemaphore<
 
     counter.counts.process.get() > 0 ||
         (throw Exception(
-            'Failed [willAttemptLockReentrantToIsolate()]: IDENTITY: ${identity.uuid} REASON: Cannot lock reentrant to isolate while outer process is unlocked locked.'));
+          'Failed [willAttemptLockReentrantToIsolate()]: IDENTITY: ${identity.uuid} REASON: Cannot lock reentrant to isolate while outer process is unlocked locked.',
+        ));
 
     if (verbose) print("Proceeding [lockReentrantToIsolate()]: IDENTITY: ${identity.uuid}");
 
@@ -168,7 +207,8 @@ class UnixSemaphore<
 
     if (verbose)
       print(
-          "Incremented [lockAttemptReentrantToIsolateSucceeded()] Count: IDENTITY: ${identity.uuid} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+        "Incremented [lockAttemptReentrantToIsolateSucceeded()] Count: IDENTITY: ${identity.uuid} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}",
+      );
 
     return true;
   }
@@ -183,22 +223,30 @@ class UnixSemaphore<
 
     return (locked == (processes || isolates)) ||
         (throw Exception(
-            'Failed [lock()] IDENTITY: ${identity.uuid} REASON: Mismatched lock statuses. ISOLATES STATUS: $isolates PROCESSES STATUS: $processes LOCKED STATUS: $locked'));
+          'Failed [lock()] IDENTITY: ${identity.uuid} REASON: Mismatched lock statuses. ISOLATES STATUS: $isolates PROCESSES STATUS: $processes LOCKED STATUS: $locked',
+        ));
   }
 
   @override
   bool willAttemptUnlockAcrossProcesses() {
     if (verbose) print("Evaluating [willAttemptUnlockAcrossProcesses()]: IDENTITY: ${identity.uuid}");
-    if (verbose) print("Process Counts [willAttemptUnlockAcrossProcesses()]: ${counter.counts.process.get()} locked $locked Isolate Counts: ${counter.counts.isolate.get()}");
+    if (verbose)
+      print(
+        "Process Counts [willAttemptUnlockAcrossProcesses()]: ${counter.counts.process.get()} locked $locked Isolate Counts: ${counter.counts.isolate.get()}",
+      );
 
     if (locked && counter.counts.isolate.get() > 0) {
-      if (verbose) print("Failed [willAttemptUnlockAcrossProcesses()]: IDENTITY: ${identity.uuid} REASON: Semaphore already locked across processes");
+      if (verbose)
+        print(
+          "Failed [willAttemptUnlockAcrossProcesses()]: IDENTITY: ${identity.uuid} REASON: Semaphore already locked across processes",
+        );
       return false;
     }
 
     // TODO eventually consider globally tracked processes?
 
-    if (verbose) print("Proceeding to [unlock()] from [willAttemptUnlockAcrossProcesses()]: IDENTITY: ${identity.uuid}");
+    if (verbose)
+      print("Proceeding to [unlock()] from [willAttemptUnlockAcrossProcesses()]: IDENTITY: ${identity.uuid}");
     return true;
   }
 
@@ -209,20 +257,25 @@ class UnixSemaphore<
     if (attempt == -1) {
       UnixSemUnlockWithPostError error = UnixSemUnlockWithPostError.fromErrno(errno.value);
 
-      if (verbose) print("Failed Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt ERROR: ${error.toString()}");
+      if (verbose)
+        print(
+          "Failed Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt ERROR: ${error.toString()}",
+        );
       return false;
     }
 
     if (attempt == 0) {
       if (verbose)
         print(
-            "Successful Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt DETAILS: Blocked threads were waiting for the semaphore to become unlocked and one of them is now allowed to return from their sem_wait call.");
+          "Successful Evaluation [unlockAttemptAcrossProcessesSucceeded()]: IDENTITY: ${identity.uuid} ATTEMPT RESPONSE: $attempt DETAILS: Blocked threads were waiting for the semaphore to become unlocked and one of them is now allowed to return from their sem_wait call.",
+        );
       // Decrement the semaphore count
       counter.counts.process.decrement();
 
       if (verbose)
         print(
-            "Decremented [unlockAttemptAcrossProcessesSucceeded()] Count: IDENTITY: ${identity.uuid} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+          "Decremented [unlockAttemptAcrossProcessesSucceeded()] Count: IDENTITY: ${identity.uuid} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}",
+        );
     }
 
     return true;
@@ -245,19 +298,22 @@ class UnixSemaphore<
   bool willAttemptUnlockReentrantToIsolate() {
     if (verbose)
       print(
-          "Evaluating [willAttemptUnlockReentrantToIsolate()]: IDENTITY: ${identity.uuid} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+        "Evaluating [willAttemptUnlockReentrantToIsolate()]: IDENTITY: ${identity.uuid} PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}",
+      );
 
     if (counter.counts.process.get() == 0) {
       if (verbose)
         print(
-            "Failed [willAttemptUnlockReentrantToIsolate()]: IDENTITY: ${identity.uuid} REASON: Cannot reentrantly unlock semaphore that is not locked reentrant to isolates.");
+          "Failed [willAttemptUnlockReentrantToIsolate()]: IDENTITY: ${identity.uuid} REASON: Cannot reentrantly unlock semaphore that is not locked reentrant to isolates.",
+        );
       return false;
     }
 
     if (counter.counts.isolate.get() == 0 && counter.counts.process.get() > 0) {
       if (verbose)
         print(
-            "Failed [willAttemptUnlockReentrantToIsolate()]: IDENTITY: ${identity.uuid} REASON: Cannot reentrantly unlock semaphore that is not locked reentrant to isolates.");
+          "Failed [willAttemptUnlockReentrantToIsolate()]: IDENTITY: ${identity.uuid} REASON: Cannot reentrantly unlock semaphore that is not locked reentrant to isolates.",
+        );
       return false;
     }
 
@@ -282,7 +338,8 @@ class UnixSemaphore<
 
     if (verbose)
       print(
-          "Decremented [Unlock Reentrant To Isolate] Count: IDENTITY: ${identity.uuid}  PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}");
+        "Decremented [Unlock Reentrant To Isolate] Count: IDENTITY: ${identity.uuid}  PROCESS COUNT: ${counter.counts.process.get()} ISOLATE COUNT: ${counter.counts.isolate.get()}",
+      );
 
     return true;
   }
@@ -298,7 +355,10 @@ class UnixSemaphore<
     if (verbose) print("Evaluating [willAttemptClose()]: IDENTITY: ${identity.uuid}");
 
     if (locked) {
-      if (verbose) print("Failed [willAttemptClose()]: IDENTITY: ${identity.uuid} REASON: Cannot close while semaphore is locked reentrant to isolates or across the process.");
+      if (verbose)
+        print(
+          "Failed [willAttemptClose()]: IDENTITY: ${identity.uuid} REASON: Cannot close while semaphore is locked reentrant to isolates or across the process.",
+        );
       return false;
     }
 
@@ -318,7 +378,9 @@ class UnixSemaphore<
 
     UnixSemCloseError error = UnixSemCloseError.fromErrno(errno.value);
     if (verbose)
-      print("Failed Evaluation [Close Attempt Succeeded]: IDENTITY: ${identity.uuid} REASON: Close attempt resulted in non 0 response: $attempt ERROR: ${error.toString()}");
+      print(
+        "Failed Evaluation [Close Attempt Succeeded]: IDENTITY: ${identity.uuid} REASON: Close attempt resulted in non 0 response: $attempt ERROR: ${error.toString()}",
+      );
 
     return false;
   }
@@ -343,12 +405,18 @@ class UnixSemaphore<
     if (verbose) print("Evaluating [willAttemptUnlink()]: IDENTITY: ${identity.uuid}");
 
     if (counter.counts.process.get() > 0) {
-      if (verbose) print("Failed [willAttemptUnlink()]: IDENTITY: ${identity.uuid} REASON: Cannot unlink while process semaphore is locked.");
+      if (verbose)
+        print(
+          "Failed [willAttemptUnlink()]: IDENTITY: ${identity.uuid} REASON: Cannot unlink while process semaphore is locked.",
+        );
       return false;
     }
 
     if (!closed) {
-      if (verbose) print("Failed [willAttemptUnlink()]: IDENTITY: ${identity.uuid} REASON: Cannot unlink before calling close() on the semaphore");
+      if (verbose)
+        print(
+          "Failed [willAttemptUnlink()]: IDENTITY: ${identity.uuid} REASON: Cannot unlink before calling close() on the semaphore",
+        );
       return false;
     }
 
@@ -368,16 +436,21 @@ class UnixSemaphore<
       if (error.critical) {
         if (verbose)
           print(
-              "Non-Zero Evaluation of [unlinkAttemptSucceeded()]: IDENTITY: ${identity.uuid} REASON: Unlink attempt resulted in non 0 response: $attempt ERROR: ${error.toString()}");
+            "Non-Zero Evaluation of [unlinkAttemptSucceeded()]: IDENTITY: ${identity.uuid} REASON: Unlink attempt resulted in non 0 response: $attempt ERROR: ${error.toString()}",
+          );
         return false;
       }
     }
 
     // If it is odd and negative i.e. -1 unlink has already been called and succeded
-    if (attempt == 0) if (verbose) print("Successful Evaluation [unlinkAttemptSucceeded()]: IDENTITY: ${identity.uuid}");
+    if (attempt == 0)
+      if (verbose) print("Successful Evaluation [unlinkAttemptSucceeded()]: IDENTITY: ${identity.uuid}");
 
-    if (error is UnixSemUnlinkError && !error.critical) if (verbose)
-      print("Non-Critical Error in Evaluation [unlinkAttemptSucceeded()]: IDENTITY: ${identity.uuid} ERROR: ${error.toString()}");
+    if (error is UnixSemUnlinkError && !error.critical)
+      if (verbose)
+        print(
+          "Non-Critical Error in Evaluation [unlinkAttemptSucceeded()]: IDENTITY: ${identity.uuid} ERROR: ${error.toString()}",
+        );
 
     malloc.free(_identifier);
 

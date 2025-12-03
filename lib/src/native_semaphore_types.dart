@@ -1,5 +1,12 @@
 import 'native_semaphore.dart' show NativeSemaphore;
-import 'semaphore_counter.dart' show SemaphoreCount, SemaphoreCountDeletion, SemaphoreCountUpdate, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
+import 'semaphore_counter.dart'
+    show
+        SemaphoreCount,
+        SemaphoreCountDeletion,
+        SemaphoreCountUpdate,
+        SemaphoreCounter,
+        SemaphoreCounters,
+        SemaphoreCounts;
 import 'semaphore_identity.dart' show SemaphoreIdentities, SemaphoreIdentity;
 
 typedef I = SemaphoreIdentity;

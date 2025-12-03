@@ -48,10 +48,11 @@ void main() {
       LPCWSTR name = ('Global\\${'x<>:"/\\|?*' * WindowsCreateSemaphoreWMacros.MAX_PATH}'.toNativeUtf16());
 
       int address = CreateSemaphoreW(
-          WindowsCreateSemaphoreWMacros.NULL.address,
-          WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
-          WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
-          name);
+        WindowsCreateSemaphoreWMacros.NULL.address,
+        WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
+        WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
+        name,
+      );
 
       final sem = Pointer.fromAddress(address);
 
@@ -76,10 +77,11 @@ void main() {
       LPCWSTR name = ('Global\\${safeIntId.getId()}_named_sem'.toNativeUtf16());
 
       int address = CreateSemaphoreW(
-          WindowsCreateSemaphoreWMacros.NULL.address,
-          WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
-          WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
-          name);
+        WindowsCreateSemaphoreWMacros.NULL.address,
+        WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
+        WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
+        name,
+      );
 
       final sem = Pointer.fromAddress(address);
 
@@ -106,10 +108,11 @@ void main() {
       LPCWSTR name = ('Global\\${safeIntId.getId()}_named_sem'.toNativeUtf16());
 
       int address = CreateSemaphoreW(
-          WindowsCreateSemaphoreWMacros.NULL.address,
-          WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
-          WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
-          name);
+        WindowsCreateSemaphoreWMacros.NULL.address,
+        WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
+        WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
+        name,
+      );
       final sem = Pointer.fromAddress(address);
 
       // expect sem_open to not be WindowsCreateSemaphoreWMacros.SEM_FAILED
@@ -137,247 +140,258 @@ void main() {
 
   group('Testing Cross-Isolate Named Semaphore', () {
     test(
-        'Two Isolates Accessing Same Named Semaphore, one locks for a 3 second Duration, the other waits to lock and then unlocks',
-        () async {
-      Future<bool> spawn_primary_isolate(String name) async {
-        // The entry point for the isolate
-        void primary_isolate_entrypoint(SendPort sender) {
-          LPCWSTR _name = (name.toNativeUtf16());
+      'Two Isolates Accessing Same Named Semaphore, one locks for a 3 second Duration, the other waits to lock and then unlocks',
+      () async {
+        Future<bool> spawn_primary_isolate(String name) async {
+          // The entry point for the isolate
+          void primary_isolate_entrypoint(SendPort sender) {
+            LPCWSTR _name = (name.toNativeUtf16());
 
-          int address = CreateSemaphoreW(
+            int address = CreateSemaphoreW(
               WindowsCreateSemaphoreWMacros.NULL.address,
               WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
               WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
-              _name);
-          final sem = Pointer.fromAddress(address);
+              _name,
+            );
+            final sem = Pointer.fromAddress(address);
 
-          sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address ||
-              (throw Exception("CreateSemaphoreW in primary isolate should have succeeded, got ${sem.address}"));
+            sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address ||
+                (throw Exception("CreateSemaphoreW in primary isolate should have succeeded, got ${sem.address}"));
 
-          final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
+            final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
 
-          // Should be signaled with 0 i.e. WAIT_OBJECT_0
-          locked.isEven || (throw Exception("Primary Thread should have locked and returned 0, got $locked"));
+            // Should be signaled with 0 i.e. WAIT_OBJECT_0
+            locked.isEven || (throw Exception("Primary Thread should have locked and returned 0, got $locked"));
 
-          locked == WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0 ||
-              (throw Exception("Primary Thread should have locked and returned WAIT_OBJECT_0, got $locked"));
+            locked == WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0 ||
+                (throw Exception("Primary Thread should have locked and returned WAIT_OBJECT_0, got $locked"));
 
-          // Waiting in primary isolate for 3 seconds.
-          sleep(Duration(seconds: 3));
+            // Waiting in primary isolate for 3 seconds.
+            sleep(Duration(seconds: 3));
 
-          // Unlock
-          final int released = ReleaseSemaphore(
-            sem.address,
-            WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
-            WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
-          );
-          released.isOdd ||
-              (throw Exception("ReleaseSemaphore in primary isolate should have expected 1, got $released"));
+            // Unlock
+            final int released = ReleaseSemaphore(
+              sem.address,
+              WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
+              WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
+            );
+            released.isOdd ||
+                (throw Exception("ReleaseSemaphore in primary isolate should have expected 1, got $released"));
 
-          // Close & expect 0
-          final int closed = CloseHandle(sem.address);
-          closed.isOdd || (throw Exception("CloseHandle in primary isolate should have expected 1, got $closed"));
+            // Close & expect 0
+            final int closed = CloseHandle(sem.address);
+            closed.isOdd || (throw Exception("CloseHandle in primary isolate should have expected 1, got $closed"));
 
-          sender.send(true);
-          malloc.free(_name);
+            sender.send(true);
+            malloc.free(_name);
+          }
+
+          // Create a receive port to get messages from the isolate
+          final ReceivePort receiver = ReceivePort();
+
+          // Spawn the isolate
+          await Isolate.spawn(primary_isolate_entrypoint, receiver.sendPort);
+
+          // Wait for the isolate to send its message
+          return await receiver.first;
         }
 
-        // Create a receive port to get messages from the isolate
-        final ReceivePort receiver = ReceivePort();
+        Future<bool> spawn_secondary_isolate(String name) async {
+          // The entry point for the isolate
+          void secondary_isolate_entrypoint(SendPort sender) {
+            LPCWSTR _name = (name.toNativeUtf16());
 
-        // Spawn the isolate
-        await Isolate.spawn(primary_isolate_entrypoint, receiver.sendPort);
-
-        // Wait for the isolate to send its message
-        return await receiver.first;
-      }
-
-      Future<bool> spawn_secondary_isolate(String name) async {
-        // The entry point for the isolate
-        void secondary_isolate_entrypoint(SendPort sender) {
-          LPCWSTR _name = (name.toNativeUtf16());
-
-          int address = CreateSemaphoreW(
+            int address = CreateSemaphoreW(
               WindowsCreateSemaphoreWMacros.NULL.address,
               WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
               WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
-              _name);
-          final sem = Pointer.fromAddress(address);
+              _name,
+            );
+            final sem = Pointer.fromAddress(address);
 
-          sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address ||
-              (throw Exception("CreateSemaphoreW in secondary isolate should have succeeded, got ${sem.address}"));
+            sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address ||
+                (throw Exception("CreateSemaphoreW in secondary isolate should have succeeded, got ${sem.address}"));
 
-          final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
+            final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
 
-          locked.isEven || (throw Exception("Secondary Thread should have locked and returned 0, got $locked"));
+            locked.isEven || (throw Exception("Secondary Thread should have locked and returned 0, got $locked"));
 
-          // Unlock
-          final int released = ReleaseSemaphore(
-            sem.address,
-            WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
-            WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
-          );
-          released.isOdd ||
-              (throw Exception("ReleaseSemaphore in secondary isolate should have expected 1, got $released"));
+            // Unlock
+            final int released = ReleaseSemaphore(
+              sem.address,
+              WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
+              WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
+            );
+            released.isOdd ||
+                (throw Exception("ReleaseSemaphore in secondary isolate should have expected 1, got $released"));
 
-          // Close
-          final int closed = CloseHandle(sem.address);
-          closed.isOdd || (throw Exception("CloseHandle in secondary isolate should have expected 1, got $closed"));
+            // Close
+            final int closed = CloseHandle(sem.address);
+            closed.isOdd || (throw Exception("CloseHandle in secondary isolate should have expected 1, got $closed"));
 
-          sender.send(true);
-          malloc.free(_name);
+            sender.send(true);
+            malloc.free(_name);
+          }
+
+          // Create a receive port to get messages from the isolate
+          final ReceivePort receiver = ReceivePort();
+
+          // Spawn the isolate
+          await Isolate.spawn(secondary_isolate_entrypoint, receiver.sendPort);
+
+          // Wait for the isolate to send its message
+          return await receiver.first;
         }
 
-        // Create a receive port to get messages from the isolate
-        final ReceivePort receiver = ReceivePort();
+        String name = '/${safeIntId.getId()}_named_sem';
 
-        // Spawn the isolate
-        await Isolate.spawn(secondary_isolate_entrypoint, receiver.sendPort);
+        // Spawn the first helper isolate
+        final result_one = spawn_primary_isolate(name);
+        sleep(Duration(milliseconds: 250));
+        final result_two = spawn_secondary_isolate(name);
 
-        // Wait for the isolate to send its message
-        return await receiver.first;
-      }
+        // Wait for both isolates to complete their work
+        final outcomes = await Future.wait([result_one, result_two]);
 
-      String name = '/${safeIntId.getId()}_named_sem';
+        LPCWSTR _name = (name.toNativeUtf16());
+        final int closed = CloseHandle(_name.address);
 
-      // Spawn the first helper isolate
-      final result_one = spawn_primary_isolate(name);
-      sleep(Duration(milliseconds: 250));
-      final result_two = spawn_secondary_isolate(name);
-
-      // Wait for both isolates to complete their work
-      final outcomes = await Future.wait([result_one, result_two]);
-
-      LPCWSTR _name = (name.toNativeUtf16());
-      final int closed = CloseHandle(_name.address);
-
-      expect(closed, equals(0));
-      expect(outcomes, everyElement(equals(true)));
-    });
+        expect(closed, equals(0));
+        expect(outcomes, everyElement(equals(true)));
+      },
+    );
 
     test(
-        'Two Isolates Accessing Same Named Semaphore, one locks for a 3 second Duration, the other WaitForSingleObject fails, and then WaitForSingleObject completes properly after a duration.',
-        () async {
-      Future<bool> spawn_primary_isolate(String name) async {
-        // The entry point for the isolate
-        void primary_isolate_entrypoint(SendPort sender) {
-          LPCWSTR _name = (name.toNativeUtf16());
+      'Two Isolates Accessing Same Named Semaphore, one locks for a 3 second Duration, the other WaitForSingleObject fails, and then WaitForSingleObject completes properly after a duration.',
+      () async {
+        Future<bool> spawn_primary_isolate(String name) async {
+          // The entry point for the isolate
+          void primary_isolate_entrypoint(SendPort sender) {
+            LPCWSTR _name = (name.toNativeUtf16());
 
-          int address = CreateSemaphoreW(
+            int address = CreateSemaphoreW(
               WindowsCreateSemaphoreWMacros.NULL.address,
               WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
               WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
-              _name);
-          final sem = Pointer.fromAddress(address);
+              _name,
+            );
+            final sem = Pointer.fromAddress(address);
 
-          sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address ||
-              (throw Exception("CreateSemaphoreW in primary isolate should have succeeded, got ${sem.address}"));
+            sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address ||
+                (throw Exception("CreateSemaphoreW in primary isolate should have succeeded, got ${sem.address}"));
 
-          final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
+            final int locked = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_RECOMMENDED);
 
-          locked.isEven || (throw Exception("Thread (primary isolate) should have locked and returned 0, got $locked"));
+            locked.isEven ||
+                (throw Exception("Thread (primary isolate) should have locked and returned 0, got $locked"));
 
-          sleep(Duration(seconds: 1));
+            sleep(Duration(seconds: 1));
 
-          // Unlock
-          final int released = ReleaseSemaphore(
-            sem.address,
-            WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
-            WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
-          );
-          released.isOdd ||
-              (throw Exception("ReleaseSemaphore in primary isolate should have expected 1, got $released"));
+            // Unlock
+            final int released = ReleaseSemaphore(
+              sem.address,
+              WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
+              WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
+            );
+            released.isOdd ||
+                (throw Exception("ReleaseSemaphore in primary isolate should have expected 1, got $released"));
 
-          // Close
-          final int closed = CloseHandle(sem.address);
-          closed.isOdd || (throw Exception("CloseHandle in primary isolate should have expected 1, got $closed"));
+            // Close
+            final int closed = CloseHandle(sem.address);
+            closed.isOdd || (throw Exception("CloseHandle in primary isolate should have expected 1, got $closed"));
 
-          sender.send(true);
-          malloc.free(_name);
+            sender.send(true);
+            malloc.free(_name);
+          }
+
+          // Create a receive port to get messages from the isolate
+          final ReceivePort receiver = ReceivePort();
+
+          // Spawn the isolate
+          await Isolate.spawn(primary_isolate_entrypoint, receiver.sendPort);
+
+          // Wait for the isolate to send its message
+          return await receiver.first;
         }
 
-        // Create a receive port to get messages from the isolate
-        final ReceivePort receiver = ReceivePort();
+        Future<bool> spawn_secondary_isolate(String name) async {
+          // The entry point for the isolate
+          void secondary_isolate_entrypoint(SendPort sender) {
+            LPCWSTR _name = (name.toNativeUtf16());
 
-        // Spawn the isolate
-        await Isolate.spawn(primary_isolate_entrypoint, receiver.sendPort);
-
-        // Wait for the isolate to send its message
-        return await receiver.first;
-      }
-
-      Future<bool> spawn_secondary_isolate(String name) async {
-        // The entry point for the isolate
-        void secondary_isolate_entrypoint(SendPort sender) {
-          LPCWSTR _name = (name.toNativeUtf16());
-
-          int address = CreateSemaphoreW(
+            int address = CreateSemaphoreW(
               WindowsCreateSemaphoreWMacros.NULL.address,
               WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
               WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
-              _name);
+              _name,
+            );
 
-          final sem = Pointer.fromAddress(address);
+            final sem = Pointer.fromAddress(address);
 
-          sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address ||
-              (throw Exception("CreateSemaphoreW in secondary isolate should have succeeded, got ${sem.address}"));
+            sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address ||
+                (throw Exception("CreateSemaphoreW in secondary isolate should have succeeded, got ${sem.address}"));
 
-          int waited = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO);
+            int waited = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO);
 
-          waited == WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT ||
-              (throw Exception("WaitForSingleObject in secondary isolate should have expected 258, got $waited"));
+            waited == WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT ||
+                (throw Exception("WaitForSingleObject in secondary isolate should have expected 258, got $waited"));
 
-          // await 2 seconds and try again
-          sleep(Duration(seconds: 2));
+            // await 2 seconds and try again
+            sleep(Duration(seconds: 2));
 
-          int successfully_trywaited = WaitForSingleObject(sem.address, WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO);
-          successfully_trywaited.isEven ||
-              (throw Exception(
-                  "second call to WaitForSingleObject in secondary isolate should have expected 0, got $successfully_trywaited"));
+            int successfully_trywaited = WaitForSingleObject(
+              sem.address,
+              WindowsWaitForSingleObjectMacros.TIMEOUT_ZERO,
+            );
+            successfully_trywaited.isEven ||
+                (throw Exception(
+                  "second call to WaitForSingleObject in secondary isolate should have expected 0, got $successfully_trywaited",
+                ));
 
-          // Release
-          final int released = ReleaseSemaphore(
-            sem.address,
-            WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
-            WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
-          );
-          released.isOdd ||
-              (throw Exception("ReleaseSemaphore in secondary isolate should have expected 0, got $released"));
+            // Release
+            final int released = ReleaseSemaphore(
+              sem.address,
+              WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
+              WindowsReleaseSemaphoreMacros.PREVIOUS_RELEASE_COUNT_RECOMMENDED,
+            );
+            released.isOdd ||
+                (throw Exception("ReleaseSemaphore in secondary isolate should have expected 0, got $released"));
 
-          // Close
-          final int closed = CloseHandle(sem.address);
-          closed.isOdd || (throw Exception("CloseHandle in secondary isolate should have expected 1, got $closed"));
+            // Close
+            final int closed = CloseHandle(sem.address);
+            closed.isOdd || (throw Exception("CloseHandle in secondary isolate should have expected 1, got $closed"));
 
-          sender.send(true);
-          malloc.free(_name);
+            sender.send(true);
+            malloc.free(_name);
+          }
+
+          // Create a receive port to get messages from the isolate
+          final ReceivePort receiver = ReceivePort();
+
+          // Spawn the isolate
+          await Isolate.spawn(secondary_isolate_entrypoint, receiver.sendPort);
+
+          // Wait for the isolate to send its message
+          return await receiver.first;
         }
 
-        // Create a receive port to get messages from the isolate
-        final ReceivePort receiver = ReceivePort();
+        String name = '/${safeIntId.getId()}_named_sem';
 
-        // Spawn the isolate
-        await Isolate.spawn(secondary_isolate_entrypoint, receiver.sendPort);
+        // Spawn the first helper isolate
+        final result_one = spawn_primary_isolate(name);
+        sleep(Duration(milliseconds: 250));
+        final result_two = spawn_secondary_isolate(name);
 
-        // Wait for the isolate to send its message
-        return await receiver.first;
-      }
+        // Wait for both isolates to complete their work
+        final outcomes = await Future.wait([result_one, result_two]);
 
-      String name = '/${safeIntId.getId()}_named_sem';
+        LPCWSTR _name = (name.toNativeUtf16());
+        final int closed = CloseHandle(_name.address);
 
-      // Spawn the first helper isolate
-      final result_one = spawn_primary_isolate(name);
-      sleep(Duration(milliseconds: 250));
-      final result_two = spawn_secondary_isolate(name);
-
-      // Wait for both isolates to complete their work
-      final outcomes = await Future.wait([result_one, result_two]);
-
-      LPCWSTR _name = (name.toNativeUtf16());
-      final int closed = CloseHandle(_name.address);
-
-      expect(closed, equals(0));
-      expect(outcomes, everyElement(equals(true)));
-    });
+        expect(closed, equals(0));
+        expect(outcomes, everyElement(equals(true)));
+      },
+    );
 
     test('Several Isolates Accessing Same Named Semaphore, waiting random durations and then unlocking.', () async {
       Future<bool> spawn_isolate(String name, int sem_open_value, int id) async {
@@ -386,10 +400,11 @@ void main() {
           LPCWSTR _name = (name.toNativeUtf16());
 
           int address = CreateSemaphoreW(
-              WindowsCreateSemaphoreWMacros.NULL.address,
-              WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
-              WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
-              _name);
+            WindowsCreateSemaphoreWMacros.NULL.address,
+            WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
+            WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
+            _name,
+          );
           final sem = Pointer.fromAddress(address);
 
           sem.address != WindowsCreateSemaphoreWMacros.SEM_FAILED.address ||
