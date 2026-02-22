@@ -18,26 +18,26 @@ import '../runtime_native_semaphores.dart'
 
 // A wrapper to track the instances of the native semaphore
 class NativeSemaphores<
-    /*  Identity */
-    I extends SemaphoreIdentity,
-    /* Semaphore Identities */
-    IS extends SemaphoreIdentities<I>,
-    /* Count Update */
-    CU extends SemaphoreCountUpdate,
-    /* Count Deletion */
-    CD extends SemaphoreCountDeletion,
-    /* Semaphore Count */
-    CT extends SemaphoreCount<CU, CD>,
-    /* Semaphore Counts */
-    CTS extends SemaphoreCounts<CU, CD, CT>,
-    /* Semaphore Counter */
-    CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
-    /* Semaphore Counter */
-    CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>,
-    /* Native Semaphore */
-    NS extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS>
-    /* formatting guard comment */
-    > {
+  /*  Identity */
+  I extends SemaphoreIdentity,
+  /* Semaphore Identities */
+  IS extends SemaphoreIdentities<I>,
+  /* Count Update */
+  CU extends SemaphoreCountUpdate,
+  /* Count Deletion */
+  CD extends SemaphoreCountDeletion,
+  /* Semaphore Count */
+  CT extends SemaphoreCount<CU, CD>,
+  /* Semaphore Counts */
+  CTS extends SemaphoreCounts<CU, CD, CT>,
+  /* Semaphore Counter */
+  CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
+  /* Semaphore Counter */
+  CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>,
+  /* Native Semaphore */
+  NS extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS>
+  /* formatting guard comment */
+> {
   static final Map<String, dynamic> __instantiations = {};
 
   final Map<String, dynamic> _instantiations = NativeSemaphores.__instantiations;
@@ -47,17 +47,21 @@ class NativeSemaphores<
   bool has<T>({required String name}) => _instantiations.containsKey(name) && _instantiations[name] is T;
 
   // Returns the semaphore identity for the given identifier as a singleton
-  NS get({required String name}) => _instantiations[name] ?? (throw Exception('Failed to get semaphore counter for $name. It doesn\'t exist.'));
+  NS get({required String name}) =>
+      _instantiations[name] ?? (throw Exception('Failed to get semaphore counter for $name. It doesn\'t exist.'));
 
   NS register({required String name, required NS semaphore}) {
     (_instantiations.containsKey(name) || semaphore != _instantiations[name]) ||
-        (throw Exception('Failed to register semaphore counter for $name. It already exists or is not the same as the inbound identity being passed.'));
+        (throw Exception(
+          'Failed to register semaphore counter for $name. It already exists or is not the same as the inbound identity being passed.',
+        ));
 
     return _instantiations.putIfAbsent(name, () => semaphore);
   }
 
   void delete({required String name}) {
-    _instantiations.containsKey(name) || (throw Exception('Failed to delete semaphore counter for $name. It doesn\'t exist.'));
+    _instantiations.containsKey(name) ||
+        (throw Exception('Failed to delete semaphore counter for $name. It doesn\'t exist.'));
     _instantiations.remove(name);
   }
 
@@ -65,26 +69,29 @@ class NativeSemaphores<
 }
 
 class NativeSemaphore<
-    /*  Identity */
-    I extends SemaphoreIdentity,
-    /* Semaphore Identities */
-    IS extends SemaphoreIdentities<I>,
-    /* Count Update */
-    CU extends SemaphoreCountUpdate,
-    /* Count Deletion */
-    CD extends SemaphoreCountDeletion,
-    /* Semaphore Count */
-    CT extends SemaphoreCount<CU, CD>,
-    /* Semaphore Counts */
-    CTS extends SemaphoreCounts<CU, CD, CT>,
-    /* Semaphore Counter */
-    CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
-    /* Semaphore Counter */
-    CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>
-    /* formatting guard comment */
-    > implements Finalizable {
+  /*  Identity */
+  I extends SemaphoreIdentity,
+  /* Semaphore Identities */
+  IS extends SemaphoreIdentities<I>,
+  /* Count Update */
+  CU extends SemaphoreCountUpdate,
+  /* Count Deletion */
+  CD extends SemaphoreCountDeletion,
+  /* Semaphore Count */
+  CT extends SemaphoreCount<CU, CD>,
+  /* Semaphore Counts */
+  CTS extends SemaphoreCounts<CU, CD, CT>,
+  /* Semaphore Counter */
+  CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
+  /* Semaphore Counter */
+  CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>
+  /* formatting guard comment */
+>
+    implements Finalizable {
   static late final dynamic __instances;
 
+  // Instance registry for debugging and introspection.
+  // ignore: unused_element
   dynamic get _instances => NativeSemaphore.__instances;
 
   bool verbose;
@@ -106,8 +113,8 @@ class NativeSemaphore<
       ? !hasClosed
       // If opened is assigned then we return _opened otherwise false
       : LatePropertyAssigned<bool>(() => hasOpened)
-          ? hasOpened
-          : false;
+      ? hasOpened
+      : false;
 
   bool get closed => LatePropertyAssigned<bool>(() => hasClosed) && !opened ? hasClosed : false;
 
@@ -132,28 +139,28 @@ class NativeSemaphore<
 
   // TODO maybe a rehydrate method? or instantiate takes in a "from process" flag i.e. to attempt to find and rehydrate the semaphore from another process/all processes
   static NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS> instantiate<
-      /*  Identity */
-      I extends SemaphoreIdentity,
-      /* Semaphore Identities */
-      IS extends SemaphoreIdentities<I>,
-      /* Count Update */
-      CU extends SemaphoreCountUpdate,
-      /* Count Deletion */
-      CD extends SemaphoreCountDeletion,
-      /* Semaphore Count */
-      CT extends SemaphoreCount<CU, CD>,
-      /* Semaphore Counts */
-      CTS extends SemaphoreCounts<CU, CD, CT>,
-      /* Semaphore Counter i.e. this class */
-      CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
-      /* Semaphore Counters */
-      CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>,
-      /* Native Semaphore */
-      NS extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS>,
-      /*Native Semaphores*/
-      NSS extends NativeSemaphores<I, IS, CU, CD, CT, CTS, CTR, CTRS, NS>
-      /* formatting guard comment */
-      >({required String name, I? identity, CTR? counter, bool verbose = false}) {
+    /*  Identity */
+    I extends SemaphoreIdentity,
+    /* Semaphore Identities */
+    IS extends SemaphoreIdentities<I>,
+    /* Count Update */
+    CU extends SemaphoreCountUpdate,
+    /* Count Deletion */
+    CD extends SemaphoreCountDeletion,
+    /* Semaphore Count */
+    CT extends SemaphoreCount<CU, CD>,
+    /* Semaphore Counts */
+    CTS extends SemaphoreCounts<CU, CD, CT>,
+    /* Semaphore Counter i.e. this class */
+    CTR extends SemaphoreCounter<I, CU, CD, CT, CTS>,
+    /* Semaphore Counters */
+    CTRS extends SemaphoreCounters<I, CU, CD, CT, CTS, CTR>,
+    /* Native Semaphore */
+    NS extends NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS>,
+    /*Native Semaphores*/
+    NSS extends NativeSemaphores<I, IS, CU, CD, CT, CTS, CTR, CTRS, NS>
+    /* formatting guard comment */
+  >({required String name, I? identity, CTR? counter, bool verbose = false}) {
     if (!LatePropertyAssigned<NSS>(() => __instances)) {
       __instances = NativeSemaphores<I, IS, CU, CD, CT, CTS, CTR, CTRS, NS>();
       if (verbose) print('Setting NativeSemaphore._instances: ${__instances.toString()}');
@@ -165,27 +172,26 @@ class NativeSemaphore<
             name: name,
             semaphore: Platform.isWindows
                 ? WindowsSemaphore(
-                    name: name,
-                    counter: counter ??
-                        SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(
-                          identity: identity ??
-                              SemaphoreIdentity.instantiate<I, IS>(
-                                name: name,
-                              ) as I,
-                        ),
-                    verbose: verbose,
-                  ) as NS
+                        name: name,
+                        counter:
+                            counter ??
+                            SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(
+                              identity: identity ?? SemaphoreIdentity.instantiate<I, IS>(name: name) as I,
+                            ),
+                        verbose: verbose,
+                      )
+                      as NS
                 : UnixSemaphore(
-                    name: name,
-                    counter: counter ??
-                        SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(
-                          identity: identity ??
-                              SemaphoreIdentity.instantiate<I, IS>(
-                                name: name,
-                              ) as I,
-                        ) as CTR,
-                    verbose: verbose,
-                  ) as NS,
+                        name: name,
+                        counter:
+                            counter ??
+                            SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(
+                                  identity: identity ?? SemaphoreIdentity.instantiate<I, IS>(name: name) as I,
+                                )
+                                as CTR,
+                        verbose: verbose,
+                      )
+                      as NS,
           );
   }
 

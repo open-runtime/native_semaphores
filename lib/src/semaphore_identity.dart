@@ -22,17 +22,21 @@ class SemaphoreIdentities<I extends SemaphoreIdentity> {
   bool has<T>({required String name}) => _identities.containsKey(name) && _identities[name] is T;
 
   // Returns the semaphore identity for the given identifier as a singleton
-  I get({required String name}) => _identities[name] ?? (throw Exception('Failed to get semaphore identity for $name. It doesn\'t exist.'));
+  I get({required String name}) =>
+      _identities[name] ?? (throw Exception('Failed to get semaphore identity for $name. It doesn\'t exist.'));
 
   I register({required String name, required I identity}) {
     (_identities.containsKey(name) || identity != _identities[name]) ||
-        (throw Exception('Failed to register semaphore identity for $name. It already exists or is not the same as the inbound identity being passed.'));
+        (throw Exception(
+          'Failed to register semaphore identity for $name. It already exists or is not the same as the inbound identity being passed.',
+        ));
 
     return _identities.putIfAbsent(name, () => identity);
   }
 
   void delete({required String name}) {
-    _identities.containsKey(name) || (throw Exception('Failed to delete semaphore identity for $name. It doesn\'t exist.'));
+    _identities.containsKey(name) ||
+        (throw Exception('Failed to delete semaphore identity for $name. It doesn\'t exist.'));
     _identities.remove(name);
   }
 }
@@ -40,6 +44,8 @@ class SemaphoreIdentities<I extends SemaphoreIdentity> {
 class SemaphoreIdentity {
   static late final dynamic __instances;
 
+  // Instance registry for debugging and introspection.
+  // ignore: unused_element
   dynamic get _instances => SemaphoreIdentity.__instances;
 
   String get prefix => SemaphoreIdentities.prefix;
@@ -74,15 +80,20 @@ class SemaphoreIdentity {
   }
 
   static SemaphoreIdentity instantiate<
-      /*  Identity */
-      I extends SemaphoreIdentity,
-      /* Semaphore Identities */
-      IS extends SemaphoreIdentities<I>
-      /* formatting guard comment */
-      >({required String name}) {
+    /*  Identity */
+    I extends SemaphoreIdentity,
+    /* Semaphore Identities */
+    IS extends SemaphoreIdentities<I>
+    /* formatting guard comment */
+  >({required String name}) {
     if (!LatePropertyAssigned<IS>(() => __instances)) __instances = SemaphoreIdentities<I>();
 
-    return (__instances as IS).has<I>(name: name) ? (__instances as IS).get(name: name) : (__instances as IS).register(name: name, identity: SemaphoreIdentity(name: name) as I);
+    return (__instances as IS).has<I>(name: name)
+        ? (__instances as IS).get(name: name)
+        : (__instances as IS).register(
+            name: name,
+            identity: SemaphoreIdentity(name: name) as I,
+          );
   }
 
   bool dispose() => throw UnimplementedError('Dispose not implemented');

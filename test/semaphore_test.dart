@@ -17,7 +17,6 @@ void main() {
 
           final NS sem = NativeSemaphore.instantiate(name: name, verbose: true);
 
-
           bool opened = sem.open();
           opened || (throw Exception("Open in isolate $id should have succeeded"));
 
@@ -65,10 +64,11 @@ void main() {
 
       final NS sem = NativeSemaphore.instantiate(name: name);
 
-      final disposed = (sem
-            ..open()
-            ..close())
-          .unlink();
+      final disposed =
+          (sem
+                ..open()
+                ..close())
+              .unlink();
 
       expect(disposed, equals(true));
       expect(outcomes, everyElement(equals(true)));

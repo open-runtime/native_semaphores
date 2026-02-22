@@ -91,7 +91,10 @@ void main() {
         expect(sem.locked, equals(true));
         expect(sem.counter.counts.process.get(), equals(1));
 
-        expect(sem.counter.counts.isolate.get(), equals(currentDepth - (currentDepth - sem.counter.counts.isolate.get())));
+        expect(
+          sem.counter.counts.isolate.get(),
+          equals(currentDepth - (currentDepth - sem.counter.counts.isolate.get())),
+        );
 
         sleep(Duration(milliseconds: Random().nextInt(1000)));
 
@@ -199,10 +202,11 @@ void main() {
 
       final NS sem = NativeSemaphore.instantiate(name: name);
 
-      final disposed = (sem
-            ..open()
-            ..close())
-          .unlink();
+      final disposed =
+          (sem
+                ..open()
+                ..close())
+              .unlink();
 
       expect(disposed, equals(true));
       expect(outcomes, everyElement(equals(true)));

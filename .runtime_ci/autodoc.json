@@ -54,6 +54,40 @@
       ],
       "hash": "",
       "last_updated": null
+    },
+    {
+      "id": "ffi",
+      "name": "Ffi",
+      "source_paths": [
+        "lib/src/ffi/"
+      ],
+      "lib_paths": [
+        "lib/src/ffi/"
+      ],
+      "output_path": "docs/ffi/",
+      "generate": [
+        "quickstart",
+        "api_reference"
+      ],
+      "hash": "",
+      "last_updated": null
+    },
+    {
+      "id": "utils",
+      "name": "Utils",
+      "source_paths": [
+        "lib/src/utils/"
+      ],
+      "lib_paths": [
+        "lib/src/utils/"
+      ],
+      "output_path": "docs/utils/",
+      "generate": [
+        "quickstart",
+        "api_reference"
+      ],
+      "hash": "",
+      "last_updated": null
     }
   ],
   "templates": {

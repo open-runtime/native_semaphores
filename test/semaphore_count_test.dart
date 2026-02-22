@@ -2,7 +2,13 @@ import 'dart:isolate' show Isolate, ReceivePort, SendPort;
 import 'dart:math' show Random;
 
 import 'package:runtime_native_semaphores/src/semaphore_counter.dart'
-    show SemaphoreCount, SemaphoreCountDeletion, SemaphoreCountUpdate, SemaphoreCounter, SemaphoreCounters, SemaphoreCounts;
+    show
+        SemaphoreCount,
+        SemaphoreCountDeletion,
+        SemaphoreCountUpdate,
+        SemaphoreCounter,
+        SemaphoreCounters,
+        SemaphoreCounts;
 import 'package:runtime_native_semaphores/src/semaphore_identity.dart' show SemaphoreIdentities, SemaphoreIdentity;
 import 'package:safe_int_id/safe_int_id.dart' show safeIntId;
 
@@ -76,66 +82,77 @@ void main() {
       // expect(counter, equals(SemaphoreCurrentThreadCounter<SemaphoreIdentity>(identity: identity)));
     });
 
-    test("Verify that two counters with different names and identities have different count states within same isolate/thread", () {
-      String name_one = '${safeIntId.getId()}_named_sem';
-      String name_two = '${safeIntId.getId()}_named_sem';
+    test(
+      "Verify that two counters with different names and identities have different count states within same isolate/thread",
+      () {
+        String name_one = '${safeIntId.getId()}_named_sem';
+        String name_two = '${safeIntId.getId()}_named_sem';
 
-      // Create a new semaphore identity
-      final SemaphoreIdentity identity_one = SemaphoreIdentity.instantiate<I, IS>(name: name_one);
-      final SemaphoreIdentity identity_two = SemaphoreIdentity.instantiate<I, IS>(name: name_two);
+        // Create a new semaphore identity
+        final SemaphoreIdentity identity_one = SemaphoreIdentity.instantiate<I, IS>(name: name_one);
+        final SemaphoreIdentity identity_two = SemaphoreIdentity.instantiate<I, IS>(name: name_two);
 
-      // Create a new semaphore counter
-      final SemaphoreCounter counter_one = SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(
-        identity: identity_one,
-      );
+        // Create a new semaphore counter
+        final SemaphoreCounter counter_one = SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(
+          identity: identity_one,
+        );
 
-      final SemaphoreCounter counter_two = SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity_two);
+        final SemaphoreCounter counter_two = SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(
+          identity: identity_two,
+        );
 
-      // Verify the counter is a singleton
-      expect(counter_one, equals(SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity_one)));
-      expect(counter_two, equals(SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity_two)));
+        // Verify the counter is a singleton
+        expect(
+          counter_one,
+          equals(SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity_one)),
+        );
+        expect(
+          counter_two,
+          equals(SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity_two)),
+        );
 
-      expect(counter_one.counts.isolate.get(), equals(0));
-      expect(counter_one.counts.isolate.increment().to, equals(1));
+        expect(counter_one.counts.isolate.get(), equals(0));
+        expect(counter_one.counts.isolate.increment().to, equals(1));
 
-      expect(counter_two.counts.isolate.get(), equals(0));
-      expect(counter_two.counts.isolate.increment().to, equals(1));
+        expect(counter_two.counts.isolate.get(), equals(0));
+        expect(counter_two.counts.isolate.increment().to, equals(1));
 
-      expect(counter_one.counts.isolate.increment().to, equals(2));
-      expect(counter_one.counts.isolate.get(), equals(2));
+        expect(counter_one.counts.isolate.increment().to, equals(2));
+        expect(counter_one.counts.isolate.get(), equals(2));
 
-      expect(counter_two.counts.isolate.increment().to, equals(2));
-      expect(counter_two.counts.isolate.get(), equals(2));
+        expect(counter_two.counts.isolate.increment().to, equals(2));
+        expect(counter_two.counts.isolate.get(), equals(2));
 
-      expect(counter_one.counts.isolate.decrement().to, equals(1));
-      expect(counter_one.counts.isolate.get(), equals(1));
+        expect(counter_one.counts.isolate.decrement().to, equals(1));
+        expect(counter_one.counts.isolate.get(), equals(1));
 
-      expect(counter_two.counts.isolate.decrement().to, equals(1));
-      expect(counter_two.counts.isolate.get(), equals(1));
+        expect(counter_two.counts.isolate.decrement().to, equals(1));
+        expect(counter_two.counts.isolate.get(), equals(1));
 
-      expect(counter_one.counts.isolate.decrement().to, equals(0));
-      expect(counter_one.counts.isolate.get(), equals(0));
+        expect(counter_one.counts.isolate.decrement().to, equals(0));
+        expect(counter_one.counts.isolate.get(), equals(0));
 
-      expect(counter_two.counts.isolate.decrement().to, equals(0));
-      expect(counter_two.counts.isolate.get(), equals(0));
+        expect(counter_two.counts.isolate.decrement().to, equals(0));
+        expect(counter_two.counts.isolate.get(), equals(0));
 
-      // Verify that the two counters are different
-      expect(counter_one, isNot(equals(counter_two)));
+        // Verify that the two counters are different
+        expect(counter_one, isNot(equals(counter_two)));
 
-      // Verify that the two identities are different
-      expect(identity_one, isNot(equals(identity_two)));
+        // Verify that the two identities are different
+        expect(identity_one, isNot(equals(identity_two)));
 
-      // Verify that the uuids are different
-      expect(identity_one.uuid, isNot(equals(identity_two.uuid)));
+        // Verify that the uuids are different
+        expect(identity_one.uuid, isNot(equals(identity_two.uuid)));
 
-      // Verify that the identity is registered
-      expect(SemaphoreIdentities<I>().has<SemaphoreIdentity>(name: name_one), equals(true));
-      expect(SemaphoreIdentities<I>().has<SemaphoreIdentity>(name: name_two), equals(true));
+        // Verify that the identity is registered
+        expect(SemaphoreIdentities<I>().has<SemaphoreIdentity>(name: name_one), equals(true));
+        expect(SemaphoreIdentities<I>().has<SemaphoreIdentity>(name: name_two), equals(true));
 
-      // Verify the counter is a singleton
-      expect(SemaphoreCounters<I, CU, CD, CT, CTS, CTR>().has<CTR>(identifier: name_one), equals(true));
-      expect(SemaphoreCounters<I, CU, CD, CT, CTS, CTR>().has<CTR>(identifier: name_two), equals(true));
-    });
+        // Verify the counter is a singleton
+        expect(SemaphoreCounters<I, CU, CD, CT, CTS, CTR>().has<CTR>(identifier: name_one), equals(true));
+        expect(SemaphoreCounters<I, CU, CD, CT, CTS, CTR>().has<CTR>(identifier: name_two), equals(true));
+      },
+    );
 
     test("Verify that across isolates the counters are different.", () async {
       String name = '${safeIntId.getId()}_named_sem';
@@ -162,7 +179,9 @@ void main() {
           final SemaphoreIdentity _identity = SemaphoreIdentity.instantiate<I, IS>(name: name);
 
           // Create a new semaphore counter
-          final SemaphoreCounter _counter = SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(identity: identity);
+          final SemaphoreCounter _counter = SemaphoreCounter.instantiate<I, CU, CD, CT, CTS, CTR, CTRS>(
+            identity: identity,
+          );
 
           // increment the isolate count
           // loop for 100 times and increment the isolate count

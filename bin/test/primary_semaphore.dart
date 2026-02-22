@@ -10,7 +10,9 @@ main(List<String> args) async {
 
   String tracker = args.elementAt(3);
 
-  stdout.writeln('Child Process Parameters Lock Delay: $lock_delay, Unlock Delay: $unlock_delay, Tracker: $tracker, PID: $pid, Name: $name');
+  stdout.writeln(
+    'Child Process Parameters Lock Delay: $lock_delay, Unlock Delay: $unlock_delay, Tracker: $tracker, PID: $pid, Name: $name',
+  );
 
   stdout.writeln('Creating semaphore with name: $name');
 
@@ -22,7 +24,9 @@ main(List<String> args) async {
   sem.lock();
   stopwatch.stop();
 
-  stdout.writeln('Child Process $tracker $pid Locking semaphore with name $name took: [${stopwatch.elapsed.inSeconds}] seconds');
+  stdout.writeln(
+    'Child Process $tracker $pid Locking semaphore with name $name took: [${stopwatch.elapsed.inSeconds}] seconds',
+  );
 
   await Future.delayed(Duration(seconds: unlock_delay));
 
@@ -39,5 +43,4 @@ main(List<String> args) async {
   stdout.writeln('Semaphore unlinked with name: $name');
 
   exit(0);
-
 }
