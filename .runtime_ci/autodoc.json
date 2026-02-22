@@ -1,0 +1,64 @@
+{
+  "version": "1.0.0",
+  "gemini_model": "gemini-3-1-pro-preview",
+  "max_concurrent": 3,
+  "modules": [
+    {
+      "id": "core",
+      "name": "Semaphore Core",
+      "source_paths": [
+        "lib/src/"
+      ],
+      "lib_paths": [
+        "lib/src/"
+      ],
+      "output_path": "doc/core/",
+      "generate": [
+        "quickstart",
+        "api_reference",
+        "examples"
+      ],
+      "hash": "",
+      "last_updated": null
+    },
+    {
+      "id": "unix",
+      "name": "Unix FFI Bindings",
+      "source_paths": [
+        "lib/src/ffi/unix.dart",
+        "lib/src/unix_semaphore.dart"
+      ],
+      "lib_paths": [
+        "lib/src/"
+      ],
+      "output_path": "doc/unix/",
+      "generate": [
+        "api_reference"
+      ],
+      "hash": "",
+      "last_updated": null
+    },
+    {
+      "id": "windows",
+      "name": "Windows FFI Bindings",
+      "source_paths": [
+        "lib/src/ffi/windows.dart",
+        "lib/src/windows_semaphore.dart"
+      ],
+      "lib_paths": [
+        "lib/src/"
+      ],
+      "output_path": "doc/windows/",
+      "generate": [
+        "api_reference"
+      ],
+      "hash": "",
+      "last_updated": null
+    }
+  ],
+  "templates": {
+    "quickstart": "scripts/prompts/autodoc_quickstart_prompt.dart",
+    "api_reference": "scripts/prompts/autodoc_api_reference_prompt.dart",
+    "examples": "scripts/prompts/autodoc_examples_prompt.dart"
+  }
+}
