@@ -12,7 +12,7 @@
       "lib_paths": [
         "lib/src/"
       ],
-      "output_path": "doc/core/",
+      "output_path": "docs/core/",
       "generate": [
         "quickstart",
         "api_reference",
@@ -31,9 +31,11 @@
       "lib_paths": [
         "lib/src/"
       ],
-      "output_path": "doc/unix/",
+      "output_path": "docs/unix/",
       "generate": [
-        "api_reference"
+        "quickstart",
+        "api_reference",
+        "examples"
       ],
       "hash": "",
       "last_updated": null
@@ -48,9 +50,11 @@
       "lib_paths": [
         "lib/src/"
       ],
-      "output_path": "doc/windows/",
+      "output_path": "docs/windows/",
       "generate": [
-        "api_reference"
+        "quickstart",
+        "api_reference",
+        "examples"
       ],
       "hash": "",
       "last_updated": null
