@@ -69,12 +69,13 @@ jobs:
 
       - name: Configure Git for HTTPS with Token
         shell: bash
+        env:
+          GH_PAT: ${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          TOKEN="${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
 
       - uses: dart-lang/setup-dart@v1.7.1
         with:
@@ -142,12 +143,13 @@ jobs:
 
       - name: Configure Git for HTTPS with Token
         shell: bash
+        env:
+          GH_PAT: ${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          TOKEN="${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
 
       - uses: dart-lang/setup-dart@v1.7.1
         with:
@@ -180,17 +182,19 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.CICD_GEMINI_API_KEY_OPEN_RUNTIME }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREV_TAG: ${{ needs.determine-version.outputs.prev_tag }}
+          NEW_VERSION: ${{ needs.determine-version.outputs.new_version }}
         run: |
           dart run runtime_ci_tooling:manage_cicd triage pre-release \
-            --prev-tag "${{ needs.determine-version.outputs.prev_tag }}" \
-            --version "${{ needs.determine-version.outputs.new_version }}"
+            --prev-tag "$PREV_TAG" \
+            --version "$NEW_VERSION"
 
           # Find manifest from .runtime_ci/runs/ audit trail
           MANIFEST=$(find .runtime_ci/runs -name "issue_manifest.json" -type f 2>/dev/null | sort -r | head -1)
           if [ -n "$MANIFEST" ]; then
             cp "$MANIFEST" /tmp/issue_manifest.json
           else
-            echo '{"version":"${{ needs.determine-version.outputs.new_version }}","github_issues":[],"sentry_issues":[],"cross_repo_issues":[]}' > /tmp/issue_manifest.json
+            echo "{\"version\":\"${NEW_VERSION}\",\"github_issues\":[],\"sentry_issues\":[],\"cross_repo_issues\":[]}" > /tmp/issue_manifest.json
           fi
 
       - uses: actions/upload-artifact@v6.0.0
@@ -223,12 +227,13 @@ jobs:
 
       - name: Configure Git for HTTPS with Token
         shell: bash
+        env:
+          GH_PAT: ${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          TOKEN="${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
 
       - uses: dart-lang/setup-dart@v1.7.1
         with:
@@ -266,10 +271,12 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.CICD_GEMINI_API_KEY_OPEN_RUNTIME }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREV_TAG: ${{ needs.determine-version.outputs.prev_tag }}
+          NEW_VERSION: ${{ needs.determine-version.outputs.new_version }}
         run: |
           dart run runtime_ci_tooling:manage_cicd explore \
-            --prev-tag "${{ needs.determine-version.outputs.prev_tag }}" \
-            --version "${{ needs.determine-version.outputs.new_version }}"
+            --prev-tag "$PREV_TAG" \
+            --version "$NEW_VERSION"
 
       - name: Create fallback stage1 artifacts if missing
         run: |
@@ -311,12 +318,13 @@ jobs:
 
       - name: Configure Git for HTTPS with Token
         shell: bash
+        env:
+          GH_PAT: ${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          TOKEN="${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
 
       - uses: dart-lang/setup-dart@v1.7.1
         with:
@@ -359,19 +367,23 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.CICD_GEMINI_API_KEY_OPEN_RUNTIME }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREV_TAG: ${{ needs.determine-version.outputs.prev_tag }}
+          NEW_VERSION: ${{ needs.determine-version.outputs.new_version }}
         run: |
           dart run runtime_ci_tooling:manage_cicd compose \
-            --prev-tag "${{ needs.determine-version.outputs.prev_tag }}" \
-            --version "${{ needs.determine-version.outputs.new_version }}"
+            --prev-tag "$PREV_TAG" \
+            --version "$NEW_VERSION"
 
       - name: Documentation update
         env:
           GEMINI_API_KEY: ${{ secrets.CICD_GEMINI_API_KEY_OPEN_RUNTIME }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREV_TAG: ${{ needs.determine-version.outputs.prev_tag }}
+          NEW_VERSION: ${{ needs.determine-version.outputs.new_version }}
         run: |
           dart run runtime_ci_tooling:manage_cicd documentation \
-            --prev-tag "${{ needs.determine-version.outputs.prev_tag }}" \
-            --version "${{ needs.determine-version.outputs.new_version }}"
+            --prev-tag "$PREV_TAG" \
+            --version "$NEW_VERSION"
 
       - uses: actions/upload-artifact@v6.0.0
         with:
@@ -410,12 +422,13 @@ jobs:
 
       - name: Configure Git for HTTPS with Token
         shell: bash
+        env:
+          GH_PAT: ${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN }}
         run: |
-          TOKEN="${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN }}"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
 
       - name: Set up Dart
         uses: dart-lang/setup-dart@v1.7.1
@@ -510,12 +523,13 @@ jobs:
 
       - name: Configure Git for HTTPS with Token
         shell: bash
+        env:
+          GH_PAT: ${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          TOKEN="${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
 
       - uses: dart-lang/setup-dart@v1.7.1
         with:
@@ -585,30 +599,34 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.CICD_GEMINI_API_KEY_OPEN_RUNTIME }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREV_TAG: ${{ needs.determine-version.outputs.prev_tag }}
+          NEW_VERSION: ${{ needs.determine-version.outputs.new_version }}
         run: |
           dart run runtime_ci_tooling:manage_cicd release-notes \
-            --prev-tag "${{ needs.determine-version.outputs.prev_tag }}" \
-            --version "${{ needs.determine-version.outputs.new_version }}"
+            --prev-tag "$PREV_TAG" \
+            --version "$NEW_VERSION"
 
       # Consolidate all release notes files under .runtime_ci/release_notes/ before upload.
       # Mixing relative and absolute paths in upload-artifact causes path
       # resolution issues. Keep everything under one root.
       - name: Consolidate release notes
+        env:
+          NEW_VERSION: ${{ needs.determine-version.outputs.new_version }}
         run: |
-          VERSION="${{ needs.determine-version.outputs.new_version }}"
-          mkdir -p ".runtime_ci/release_notes/v${VERSION}"
-          cp /tmp/release_notes_body.md ".runtime_ci/release_notes/v${VERSION}/" 2>/dev/null || true
-          cp /tmp/migration_guide.md ".runtime_ci/release_notes/v${VERSION}/" 2>/dev/null || true
-          echo "Contents of .runtime_ci/release_notes/v${VERSION}/:"
-          ls -la ".runtime_ci/release_notes/v${VERSION}/" 2>/dev/null || echo "(empty)"
+          mkdir -p ".runtime_ci/release_notes/v${NEW_VERSION}"
+          cp /tmp/release_notes_body.md ".runtime_ci/release_notes/v${NEW_VERSION}/" 2>/dev/null || true
+          cp /tmp/migration_guide.md ".runtime_ci/release_notes/v${NEW_VERSION}/" 2>/dev/null || true
+          echo "Contents of .runtime_ci/release_notes/v${NEW_VERSION}/:"
+          ls -la ".runtime_ci/release_notes/v${NEW_VERSION}/" 2>/dev/null || echo "(empty)"
 
       - name: Ensure release notes artifact is non-empty
         shell: bash
+        env:
+          NEW_VERSION: ${{ needs.determine-version.outputs.new_version }}
         run: |
-          VERSION="${{ needs.determine-version.outputs.new_version }}"
-          mkdir -p ".runtime_ci/release_notes/v${VERSION}"
-          if [ ! -f ".runtime_ci/release_notes/v${VERSION}/release_notes_body.md" ]; then
-            echo "Release notes unavailable for v${VERSION}." > ".runtime_ci/release_notes/v${VERSION}/release_notes_body.md"
+          mkdir -p ".runtime_ci/release_notes/v${NEW_VERSION}"
+          if [ ! -f ".runtime_ci/release_notes/v${NEW_VERSION}/release_notes_body.md" ]; then
+            echo "Release notes unavailable for v${NEW_VERSION}." > ".runtime_ci/release_notes/v${NEW_VERSION}/release_notes_body.md"
             echo "Created fallback release_notes_body.md"
           fi
 
@@ -646,12 +664,13 @@ jobs:
 
       - name: Configure Git for HTTPS with Token
         shell: bash
+        env:
+          GH_PAT: ${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN }}
         run: |
-          TOKEN="${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN }}"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
 
       - uses: dart-lang/setup-dart@v1.7.1
         with:
@@ -693,34 +712,35 @@ jobs:
           merge-multiple: false
 
       - name: Prepare artifacts
+        env:
+          NEW_VERSION: ${{ needs.determine-version.outputs.new_version }}
         run: |
-          VERSION="${{ needs.determine-version.outputs.new_version }}"
-          mkdir -p ./artifacts ./.runtime_ci/version_bumps "./.runtime_ci/release_notes/v${VERSION}"
+          mkdir -p ./artifacts ./.runtime_ci/version_bumps "./.runtime_ci/release_notes/v${NEW_VERSION}"
 
           # Stage 3 release notes: downloaded artifact has release_notes/ root
           # so files land at ./release-notes-artifacts/vX.X.X/release_notes.md
-          if [ -d "./release-notes-artifacts/v${VERSION}" ]; then
-            cp -r "./release-notes-artifacts/v${VERSION}/"* "./.runtime_ci/release_notes/v${VERSION}/" 2>/dev/null || true
-            echo "Copied Stage 3 artifacts from release-notes-artifacts/v${VERSION}/"
+          if [ -d "./release-notes-artifacts/v${NEW_VERSION}" ]; then
+            cp -r "./release-notes-artifacts/v${NEW_VERSION}/"* "./.runtime_ci/release_notes/v${NEW_VERSION}/" 2>/dev/null || true
+            echo "Copied Stage 3 artifacts from release-notes-artifacts/v${NEW_VERSION}/"
           elif [ -d "./release-notes-artifacts" ]; then
             # Fallback: search recursively for release_notes.md
             FOUND=$(find ./release-notes-artifacts -name "release_notes.md" -type f 2>/dev/null | head -1)
             if [ -n "$FOUND" ]; then
-              cp "$(dirname "$FOUND")"/* "./.runtime_ci/release_notes/v${VERSION}/" 2>/dev/null || true
+              cp "$(dirname "$FOUND")"/* "./.runtime_ci/release_notes/v${NEW_VERSION}/" 2>/dev/null || true
               echo "Found release notes via recursive search: $FOUND"
             fi
           fi
 
           # Copy release_notes_body.md to /tmp/ for Dart script
-          if [ -f "./.runtime_ci/release_notes/v${VERSION}/release_notes_body.md" ]; then
-            cp "./.runtime_ci/release_notes/v${VERSION}/release_notes_body.md" /tmp/release_notes_body.md
-          elif [ -f "./.runtime_ci/release_notes/v${VERSION}/release_notes.md" ]; then
-            cp "./.runtime_ci/release_notes/v${VERSION}/release_notes.md" /tmp/release_notes_body.md
+          if [ -f "./.runtime_ci/release_notes/v${NEW_VERSION}/release_notes_body.md" ]; then
+            cp "./.runtime_ci/release_notes/v${NEW_VERSION}/release_notes_body.md" /tmp/release_notes_body.md
+          elif [ -f "./.runtime_ci/release_notes/v${NEW_VERSION}/release_notes.md" ]; then
+            cp "./.runtime_ci/release_notes/v${NEW_VERSION}/release_notes.md" /tmp/release_notes_body.md
           fi
 
           # List what we found
           echo "Release notes contents:"
-          ls -la "./.runtime_ci/release_notes/v${VERSION}/" 2>/dev/null || echo "(empty)"
+          ls -la "./.runtime_ci/release_notes/v${NEW_VERSION}/" 2>/dev/null || echo "(empty)"
 
       # Merge all downloaded audit trail artifacts from different jobs into
       # a single .runtime_ci/runs/ directory so archive-run can find them.
@@ -735,20 +755,25 @@ jobs:
       # the release. This replaces the old post-release archive that could
       # never work because .runtime_ci/runs/ didn't exist on the fresh runner.
       - name: Archive audit trail
+        env:
+          NEW_VERSION: ${{ needs.determine-version.outputs.new_version }}
         run: |
           dart run runtime_ci_tooling:manage_cicd archive-run \
-            --version "${{ needs.determine-version.outputs.new_version }}"
+            --version "$NEW_VERSION"
 
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN }}
+          NEW_VERSION: ${{ needs.determine-version.outputs.new_version }}
+          PREV_TAG: ${{ needs.determine-version.outputs.prev_tag }}
+          REPO_NAME: ${{ github.repository }}
         run: |
           dart run runtime_ci_tooling:manage_cicd create-release \
-            --version "${{ needs.determine-version.outputs.new_version }}" \
-            --prev-tag "${{ needs.determine-version.outputs.prev_tag }}" \
+            --version "$NEW_VERSION" \
+            --prev-tag "$PREV_TAG" \
             --artifacts-dir ./artifacts \
-            --repo "${{ github.repository }}"
+            --repo "$REPO_NAME"
 
   # ============================================================================
   # Job 7: Post-Release Triage
@@ -765,12 +790,13 @@ jobs:
 
       - name: Configure Git for HTTPS with Token
         shell: bash
+        env:
+          GH_PAT: ${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          TOKEN="${{ secrets.TSAVO_AT_PIECES_PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
-          git config --global url."https://x-access-token:${TOKEN}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/open-runtime/".insteadOf "git@github.com:open-runtime/"
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/pieces-app/".insteadOf "git@github.com:pieces-app/"
 
       - uses: dart-lang/setup-dart@v1.7.1
         with:
@@ -808,9 +834,11 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.CICD_GEMINI_API_KEY_OPEN_RUNTIME }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_VERSION: ${{ needs.determine-version.outputs.new_version }}
+          REPO_NAME: ${{ github.repository }}
         run: |
           dart run runtime_ci_tooling:manage_cicd triage post-release \
-            --version "${{ needs.determine-version.outputs.new_version }}" \
-            --release-tag "v${{ needs.determine-version.outputs.new_version }}" \
-            --release-url "https://github.com/${{ github.repository }}/releases/tag/v${{ needs.determine-version.outputs.new_version }}" \
+            --version "$NEW_VERSION" \
+            --release-tag "v${NEW_VERSION}" \
+            --release-url "https://github.com/${REPO_NAME}/releases/tag/v${NEW_VERSION}" \
             --manifest /tmp/issue_manifest.json
