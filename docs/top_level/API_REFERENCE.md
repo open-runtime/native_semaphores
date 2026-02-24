@@ -1,375 +1,290 @@
-# Package Entry Points - API Reference
+# Package Entry Points API Reference
 
 ## 1. Classes
 
-### Core Semaphore Classes
+### Core Classes
 
-**NativeSemaphore** -- A finalizable base wrapper class to track instances of native semaphores.
-- **Fields:**
-  - `bool verbose` - Toggles verbose logging output.
-  - `String name` - The name of the semaphore.
-  - `CTR counter` - The counter tracking lock instances.
-  - `I identity` - The associated semaphore identity.
-  - `bool opened` - Whether the semaphore has been successfully opened.
-  - `bool closed` - Whether the semaphore has been closed.
-  - `bool unlinked` - Whether the semaphore has been unlinked.
-  - `bool locked` - Whether the semaphore is currently locked (isolate or process count > 0).
-  - `bool reentrant` - Whether the semaphore is locked reentrantly by the current isolate.
-- **Methods:**
-  - `bool open()` - Opens the underlying native semaphore.
-  - `bool lock({bool blocking = true})` - Locks the semaphore, optionally blocking until available.
-  - `bool unlock()` - Unlocks the semaphore across isolates or processes.
-  - `bool close()` - Closes the native semaphore.
-  - `bool unlink()` - Unlinks the native semaphore.
-  - `String toString()` - Returns a string representation of the semaphore.
-- **Constructors:**
-  - `NativeSemaphore({required String name, required CTR counter, bool verbose = false})`
-  - Factory `instantiate(...)` - Instantiates or retrieves a native semaphore for the given name.
+**SemaphoreIdentities** -- Registry and utility class for tracking `SemaphoreIdentity` instances.
+- **Fields**:
+  - `static String prefix`: The global prefix string.
+  - `static String isolate`: The current isolate ID.
+  - `static final String process`: The current process ID.
+  - `Map<String, I> all`: Gets all registered identities as an unmodifiable map.
+- **Methods**:
+  - `bool has<T>({required String name})`: Checks if an identity exists by name.
+  - `I get({required String name})`: Returns the semaphore identity for the given identifier.
+  - `I register({required String name, required I identity})`: Registers a new identity.
+  - `void delete({required String name})`: Deletes an identity from the registry.
 
-**NativeSemaphores** -- A wrapper to track instantiations of native semaphores.
-- **Fields:**
-  - `Map<String, dynamic> all` - Unmodifiable map of all native semaphore instantiations.
-- **Methods:**
-  - `bool has<T>({required String name})` - Checks if a semaphore instance exists by name.
-  - `NS get({required String name})` - Retrieves a semaphore instance.
-  - `NS register({required String name, required NS semaphore})` - Registers a newly created semaphore.
-  - `void delete({required String name})` - Deletes a semaphore instance from tracking.
+**SemaphoreIdentity** -- Represents the unique identity of a native semaphore across isolates and processes.
+- **Fields**:
+  - `String prefix`: The global prefix.
+  - `String isolate`: The isolate ID.
+  - `String process`: The process ID.
+  - `int address`: Gets/sets the address when the semaphore is opened.
+  - `String name`: The name of the identity.
+  - `bool registered`: Helper to know if it has been registered.
+  - `String uuid`: A unique identifier combining name, isolate, and process.
+- **Methods**:
+  - `static SemaphoreIdentity instantiate(...)`: Factory method to instantiate or retrieve an identity.
+  - `bool dispose()`: Disposes of the identity.
+- **Example**:
+  ```dart
+  import 'package:runtime_native_semaphores/runtime_native_semaphores.dart';
 
-**UnixSemaphore** -- An implementation of `NativeSemaphore` specifically for Unix platforms.
-- **Fields:**
-  - `({bool isSet, Pointer<Char>? get}) identifier` - Record containing the FFI name pointer.
-  - `({bool isSet, Pointer<sem_t>? get}) semaphore` - Record containing the FFI semaphore pointer.
-- **Methods:**
-  - `bool open()` - Opens the Unix semaphore using `sem_open`.
-  - `bool lock({bool blocking = true})` - Locks using `sem_wait` or `sem_trywait`.
-  - `bool unlock()` - Unlocks using `sem_post`.
-  - `bool close()` - Closes using `sem_close`.
-  - `bool unlink()` - Unlinks using `sem_unlink`.
-- **Constructors:**
-  - `UnixSemaphore({required String name, required CTR counter, bool verbose = false})`
+  final identity = SemaphoreIdentity.instantiate(name: 'my_semaphore');
+  print('Identity UUID: ${identity.uuid}');
+  ```
 
-**WindowsSemaphore** -- An implementation of `NativeSemaphore` specifically for Windows platforms.
-- **Fields:**
-  - `({bool isSet, LPCWSTR? get}) identifier` - Record containing the FFI name string pointer.
-  - `({bool isSet, Pointer<NativeType>? get}) semaphore` - Record containing the Windows HANDLE.
-- **Methods:**
-  - `bool open()` - Opens the Windows semaphore using `CreateSemaphoreW`.
-  - `bool lock({bool blocking = true})` - Locks using `WaitForSingleObject`.
-  - `bool unlock()` - Unlocks using `ReleaseSemaphore`.
-  - `bool close()` - Closes the handle using `CloseHandle`.
-  - `bool unlink()` - Unlinks the semaphore (Windows has no native unlink; handles success natively).
-- **Constructors:**
-  - `WindowsSemaphore({required String name, required CTR counter, bool verbose = false})`
+**NativeSemaphores** -- A wrapper class to track instances of `NativeSemaphore`.
+- **Fields**:
+  - `Map<String, dynamic> all`: Gets all registered semaphore instances as an unmodifiable map.
+- **Methods**:
+  - `bool has<T>({required String name})`: Checks if a semaphore instance exists.
+  - `NS get({required String name})`: Gets a registered semaphore instance.
+  - `NS register({required String name, required NS semaphore})`: Registers a new semaphore instance.
+  - `void delete({required String name})`: Removes a registered semaphore instance.
 
-### Identity & Counter Classes
+**NativeSemaphore** -- The core base class representing a native semaphore. Implemented by OS-specific classes.
+- **Fields**:
+  - `bool verbose`: Whether verbose logging is enabled.
+  - `String name`: The name of the semaphore.
+  - `CTR counter`: The `SemaphoreCounter` tracking this semaphore's usage.
+  - `I identity`: The identity of the semaphore.
+  - `bool opened`: Evaluates whether the semaphore is currently opened.
+  - `bool closed`: Evaluates whether the semaphore is currently closed.
+  - `bool unlinked`: Evaluates whether the semaphore has been unlinked (deleted).
+  - `bool locked`: Evaluates whether the semaphore count is greater than zero (locked state).
+  - `bool reentrant`: Evaluates whether the semaphore is locked reentrantly in the current isolate.
+- **Methods**:
+  - `static NativeSemaphore instantiate(...)`: Factory method to instantiate or retrieve a native semaphore instance (returns Windows or Unix variant based on platform).
+  - `bool open()`: Opens the native semaphore.
+  - `bool lock({bool blocking = true})`: Locks the native semaphore, updating process and isolate counts.
+  - `bool unlock()`: Unlocks the native semaphore.
+  - `bool close()`: Closes the native semaphore instance.
+  - `bool unlink()`: Unlinks the native semaphore from the system.
+- **Example**:
+  ```dart
+  import 'package:runtime_native_semaphores/runtime_native_semaphores.dart';
 
-**SemaphoreIdentity** -- Represents the unique identity of a semaphore tracking its lifecycle.
-- **Fields:**
-  - `String prefix` - Common naming prefix.
-  - `String isolate` - The identifier for the current isolate.
-  - `String process` - The identifier for the current process.
-  - `int address` - The underlying native memory address (set when opened).
-  - `String name` - The normalized name of the semaphore.
-  - `bool registered` - Indicates if the identity has been registered.
-  - `String uuid` - The uniquely generated identifier (name + isolate + process).
-- **Methods:**
-  - `bool dispose()` - Disposes the identity.
-  - `String toString()` - String representation including name, isolate, and process.
-- **Constructors:**
-  - `SemaphoreIdentity({required String name})`
-  - Factory `instantiate(...)` - Gets or registers a singleton identity.
-
-**SemaphoreIdentities** -- Registry wrapper for `SemaphoreIdentity` instances.
-- **Fields:**
-  - `static String prefix` - Defines the global `runtime_native_semaphores` prefix.
-  - `static String isolate` - The isolate hash or ID.
-  - `static final String process` - The process ID.
-  - `Map<String, I> all` - Unmodifiable view of registered identities.
-- **Methods:**
-  - `bool has<T>({required String name})`
-  - `I get({required String name})`
-  - `I register({required String name, required I identity})`
-  - `void delete({required String name})`
-
-**SemaphoreCountUpdate** -- A model representing an update of a tracked count.
-- **Fields:**
-  - `String identifier` - The parent identifier.
-  - `int? from` - Prior count value.
-  - `int to` - Updated count value.
-
-**SemaphoreCountDeletion** -- A model representing the deletion of a tracked count.
-- **Fields:**
-  - `String identifier` - The parent identifier.
-  - `int? at` - Count at the time of deletion.
-
-**SemaphoreCount** -- Tracks a specific integer count (e.g., process locks, isolate reentrancy).
-- **Fields:**
-  - `bool verbose` - Toggles logging.
-  - `String identifier` - Full formatted identity string.
-  - `String forProperty` - Descriptive property track name.
-  - `Map<String, int?> all` - All globally tracked counts.
-- **Methods:**
-  - `int get()` - Retrieves the current count value.
-  - `CD delete()` - Removes the count from the internal map.
-  - `CU increment()` - Increments the count by one.
-  - `CU decrement()` - Decrements the count by one.
-
-**SemaphoreCounts** -- Data class containing specific `SemaphoreCount` objects.
-- **Fields:**
-  - `CT isolate` - Count updated by isolate reentrant locks/unlocks.
-  - `CT process` - Count updated by external cross-process lock requests.
-
-**SemaphoreCounter** -- Associates a `SemaphoreIdentity` with its tracked `SemaphoreCounts`.
-- **Fields:**
-  - `String identifier` - Tracked identifier string.
-  - `I identity` - Link to the identity object.
-  - `CTS counts` - Tracked counts container.
-- **Constructors:**
-  - Factory `instantiate({required I identity})`
-
-**SemaphoreCounters** -- Registry tracking active `SemaphoreCounter` instances.
-- **Fields:**
-  - `Map<String, CTR> all` - All active counters.
-- **Methods:**
-  - `bool has<T>({required String identifier})`
-  - `CTR get({required String identifier})`
-  - `CTR register({required String identifier, required CTR counter})`
-  - `void delete({required String identifier})`
-
-### Unix Specific FFI Classes
-
-**mode_t** -- Native FFI wrapper class for C's `mode_t`.
-- **Constructors:** `const mode_t()`
-
-**MODE_T_PERMISSIONS** -- Permissions configuration flags for `sem_open` arguments.
-- **Fields:**
-  - `static int x`, `w`, `r`, `rw`, `rx`, `wx`, `rwx` - Raw bitwise modes.
-  - `static int RECOMMENDED` - Recommended default mode (`OWNER_READ_WRITE_GROUP_READ`).
-  - `static int OWNER_READ_WRITE_GROUP_READ` - Evaluates to octal `0644`.
-  - `static int OWNER_READ_WRITE_GROUP_AND_OTHERS_READ_WRITE` - `0666`.
-  - `static int OWNER_READ_WRITE_GROUP_NO_ACCESS` - `0600`.
-  - `static int OWNER_READ_WRITE_EXECUTE_GROUP_NO_ACCESS` - `0700`.
-  - `static int OWNER_READ_WRITE_EXECUTE_GROUP_AND_OTHERS_READ_EXECUTE` - `0755`.
-  - `static int ALL_READ_WRITE_EXECUTE` - `0777`.
-- **Methods:**
-  - `static int perm({int u = 0, int g = 0, int o = 0, int user = 0, int group = 0, int others = 0})` - Formats the permission integer.
-
-**UnixSemLimits** -- System limits based on standard POSIX implementations.
-- **Fields:**
-  - `static bool isBSD` - Checked if running on MacOS.
-  - `static int PATH_MAX` - 1024.
-  - `static int SEM_VALUE_MAX` - 32767.
-  - `static int NAME_MAX` - 255.
-  - `static int NAME_MAX_CHARACTERS` - Max dart string limit enforced internally (30).
-
-**UnixSemOpenMacros** -- Posix error codes and flags for `sem_open`.
-- **Fields:**
-  - `static int EACCES`, `EINTR`, `EEXIST`, `EINVAL`, `EMFILE`, `ENAMETOOLONG`, `ENFILE`, `ENOENT`, `ENOMEM`, `ENOSPC`, `EFAULT`.
-  - `static Pointer<Uint64> SEM_FAILED` - The pointer address returned upon failure.
-  - `static int O_CREAT` - The `O_CREAT` creation flag.
-  - `static int O_EXCL` - The `O_EXCL` exclusion flag.
-  - `static int VALUE_RECOMMENDED` - Default value.
-
-**UnixSemWaitOrTryWaitMacros** -- Error codes mapped for `sem_wait` and `sem_trywait`.
-- **Fields:** `EAGAIN`, `EDEADLK`, `EINTR`, `EINVAL`.
-
-**UnixSemCloseMacros** -- Error codes mapped for `sem_close`.
-- **Fields:** `EINVAL`.
-
-**UnixSemUnlinkMacros** -- Error codes mapped for `sem_unlink`.
-- **Fields:** `ENOENT`, `EACCES`, `ENAMETOOLONG`.
-
-**UnixSemUnlockWithPostMacros** -- Error codes mapped for `sem_post`.
-- **Fields:** `EINVAL`, `EOVERFLOW`.
-
-### Windows Specific FFI Classes
-
-**SECURITY_ATTRIBUTES** -- Windows FFI Struct for security descriptor definitions.
-- **Fields:** `int nLength`, `Pointer lpSecurityDescriptor`, `int bInheritHandle`.
-
-**SECURITY_DESCRIPTOR** -- Windows FFI Struct for holding security queries and object statuses.
-- **Fields:** `int Revision`, `int Sbz1`, `int Control`, `Pointer Owner`, `Pointer Group`, `Pointer<ACL> Sacl`, `Pointer<ACL> Dacl`.
-
-**ACL** -- Windows FFI Struct mapping the Access Control List header.
-- **Fields:** `int AclRevision`, `int Sbz1`, `int AclSize`, `int AceCount`, `int Sbz2`.
-
-**WindowsCreateSemaphoreWMacros** -- Windows API constants and flags related to `CreateSemaphoreW`.
-- **Fields:**
-  - `static Pointer<Never> NULL`, `SEM_FAILED`
-  - `static const int ERROR_INVALID_NAME`, `ERROR_SUCCESS`, `ERROR_ACCESS_DENIED`, `ERROR_INVALID_HANDLE`, `ERROR_INVALID_PARAMETER`, `ERROR_TOO_MANY_POSTS`, `ERROR_SEM_NOT_FOUND`, `ERROR_SEM_IS_SET`.
-  - `static int INITIAL_VALUE_RECOMMENDED`, `MAXIMUM_VALUE_RECOMMENDED`
-  - `static String GLOBAL_NAME_PREFIX`, `LOCAL_NAME_PREFIX`
-  - `static int MAX_PATH`
-
-**WindowsWaitForSingleObjectMacros** -- Windows API constants and flags related to `WaitForSingleObject`.
-- **Fields:**
-  - `static const int TIMEOUT_RECOMMENDED`, `TIMEOUT_INFINITE`, `TIMEOUT_ZERO`.
-  - `static const int WAIT_ABANDONED`, `WAIT_OBJECT_0`, `WAIT_TIMEOUT`, `WAIT_FAILED`.
-
-**WindowsReleaseSemaphoreMacros** -- Windows API constants and flags related to `ReleaseSemaphore`.
-- **Fields:**
-  - `static const int RELEASE_COUNT_RECOMMENDED`.
-  - `static Pointer<Never> PREVIOUS_RELEASE_COUNT_RECOMMENDED`.
-  - `static int ERROR_SEM_OVERFLOW`.
-  - `static Pointer<Never> NULL`.
-
-**WindowsCloseHandleMacros** -- Windows API constants and flags related to `CloseHandle`.
-- **Fields:**
-  - `static const int INVALID_HANDLE_VALUE`.
-
-### Error Classes
-
-- **UnixSemError** - Base class for UNIX semaphore errors.
-- **UnixSemOpenError** - Wraps `sem_open` errors. `fromErrno(int errno)` maps native code.
-- **UnixSemOpenErrorUnixSemWaitOrTryWaitError** - Wraps `sem_wait`/`sem_trywait` errors. `fromErrno(int errno)` maps native code.
-- **UnixSemCloseError** - Wraps `sem_close` errors. `fromErrno(int errno)` maps native code.
-- **UnixSemUnlinkError** - Wraps `sem_unlink` errors. `fromErrno(int errno)` maps native code.
-- **UnixSemUnlockWithPostError** - Wraps `sem_post` errors. `fromErrno(int errno)` maps native code.
-- **WindowsCreateSemaphoreWError** - Wraps `CreateSemaphoreW` errors. `fromErrorCode(int code)` maps native code.
-- **WindowsReleaseSemaphoreError** - Wraps `ReleaseSemaphore` errors. `fromErrorCode(int code)` maps native code.
-
-## Examples
-
-### Creating and Using a NativeSemaphore
-
-```dart
-import 'package:runtime_native_semaphores/runtime_native_semaphores.dart';
-
-void main() {
-  // Instantiate a semaphore
-  final semaphore = NativeSemaphore.instantiate(name: 'my_semaphore', verbose: true);
-
-  // Open the semaphore
-  if (semaphore.open()) {
-    print('Semaphore opened successfully!');
-    
-    // Lock the semaphore
-    if (semaphore.lock(blocking: true)) {
-      try {
-        print('Semaphore locked, performing critical section task...');
-      } finally {
-        // Always unlock in a finally block
-        semaphore.unlock();
-        print('Semaphore unlocked.');
-      }
+  void main() {
+    final semaphore = NativeSemaphore.instantiate(name: 'shared_resource');
+    semaphore.open();
+    semaphore.lock();
+    try {
+      // Access shared resource securely across processes
+      print('Semaphore locked: ${semaphore.locked}');
+    } finally {
+      semaphore.unlock();
+      semaphore.close();
+      semaphore.unlink();
     }
-    
-    // Close the semaphore
-    semaphore.close();
-    
-    // Unlink the semaphore (Cleans up resources, only applicable on Unix)
-    semaphore.unlink();
   }
-}
-```
+  ```
 
-### Advanced Usage with Platform Specific Semaphores
+**UnixSemaphore** -- Unix-specific implementation of `NativeSemaphore`.
+- **Fields**:
+  - `({bool isSet, Pointer<Char>? get}) identifier`: Gets the native UTF-8 identifier pointer if set.
+  - `({bool isSet, Pointer<sem_t>? get}) semaphore`: Gets the native semaphore pointer if set.
+- **Methods**:
+  - Overrides core lifecycle methods (`open`, `lock`, `unlock`, `close`, `unlink`) to interact with POSIX FFI bindings.
 
-```dart
-import 'dart:io';
-import 'package:runtime_native_semaphores/runtime_native_semaphores.dart';
+**WindowsSemaphore** -- Windows-specific implementation of `NativeSemaphore`.
+- **Fields**:
+  - `({bool isSet, LPCWSTR? get}) identifier`: Gets the native UTF-16 identifier pointer if set.
+  - `({bool isSet, Pointer<NativeType>? get}) semaphore`: Gets the native semaphore handle if set.
+- **Methods**:
+  - Overrides core lifecycle methods (`open`, `lock`, `unlock`, `close`, `unlink`) to interact with Win32 API FFI bindings.
 
-void main() {
-  NativeSemaphore semaphore;
-  
-  // You can construct Windows or Unix semaphores directly
-  if (Platform.isWindows) {
-    // Windows expects an identifier without invalid characters
-    final identity = SemaphoreIdentity.instantiate(name: 'Global\\my_windows_sem');
-    final counter = SemaphoreCounter.instantiate(identity: identity);
-    semaphore = WindowsSemaphore(name: 'Global\\my_windows_sem', counter: counter);
-  } else {
-    // Unix uses POSIX semaphores
-    final identity = SemaphoreIdentity.instantiate(name: 'my_unix_sem');
-    final counter = SemaphoreCounter.instantiate(identity: identity);
-    semaphore = UnixSemaphore(name: 'my_unix_sem', counter: counter);
-  }
-  
-  semaphore.open();
-  if (semaphore.lock(blocking: false)) {
-    semaphore.unlock();
-  }
-  semaphore.close();
-}
-```
+### Counters & State Tracking
+
+**SemaphoreCountUpdate** -- Represents an update operation to a semaphore count.
+- **Fields**:
+  - `String identifier`: The parent identifier.
+  - `int? from`: The count value updated from.
+  - `int to`: The count value updated to.
+
+**SemaphoreCountDeletion** -- Represents a deletion operation of a semaphore count.
+- **Fields**:
+  - `String identifier`: The parent identifier.
+  - `int? at`: The count value at deletion.
+
+**SemaphoreCount** -- Tracks numerical state (like isolate/process locks) for a specific identifier.
+- **Fields**:
+  - `bool verbose`: Toggle logging.
+  - `String identifier`: Internal composite string identifier.
+  - `String forProperty`: Designation property (e.g., 'isolate', 'process').
+  - `Map<String, int?> all`: Gets an unmodifiable map of the counts.
+- **Methods**:
+  - `int get()`: Retrieves the current count.
+  - `CU increment()`: Increments the count.
+  - `CU decrement()`: Decrements the count.
+  - `CD delete()`: Removes the count data.
+
+**SemaphoreCounts** -- Groups specific domain counts (`isolate` and `process`) together.
+- **Fields**:
+  - `CT isolate`: Count tracking isolate-level reentrant locks.
+  - `CT process`: Count tracking external/process-level locks.
+
+**SemaphoreCounter** -- Associates specific `SemaphoreCounts` with a `SemaphoreIdentity`.
+- **Fields**:
+  - `String identifier`: The string identifier.
+  - `I identity`: The identity context.
+  - `CTS counts`: The counts container.
+- **Methods**:
+  - `static SemaphoreCounter instantiate(...)`: Factory method to register or retrieve a counter.
+
+**SemaphoreCounters** -- Registry tracking `SemaphoreCounter` instances.
+- **Methods**:
+  - `bool has<T>({required String identifier})`: Checks if a counter exists.
+  - `CTR get({required String identifier})`: Retrieves a registered counter.
+  - `CTR register({required String identifier, required CTR counter})`: Registers a new counter.
+  - `void delete({required String identifier})`: Deletes a registered counter.
+
+### Unix FFI & OS Structs
+
+**mode_t** -- `AbiSpecificInteger` representing the `mode_t` size on various architectures (e.g., `Uint16` or `Uint64`).
+
+**MODE_T_PERMISSIONS** -- Constants for UNIX file permissions.
+- **Fields**: `x`, `w`, `r`, `rw`, `rx`, `wx`, `rwx`, `RECOMMENDED`, `OWNER_READ_WRITE_GROUP_READ`, `OWNER_READ_WRITE_GROUP_AND_OTHERS_READ_WRITE`, `OWNER_READ_WRITE_GROUP_NO_ACCESS`, `OWNER_READ_WRITE_EXECUTE_GROUP_NO_ACCESS`, `OWNER_READ_WRITE_EXECUTE_GROUP_AND_OTHERS_READ_EXECUTE`, `ALL_READ_WRITE_EXECUTE`.
+- **Methods**: `static int perm(...)` to compute permission values.
+
+**UnixSemLimits** -- Limit constants for UNIX semaphores.
+- **Fields**: `isBSD`, `PATH_MAX`, `SEM_VALUE_MAX`, `NAME_MAX`, `NAME_MAX_CHARACTERS`.
+
+**UnixSemOpenMacros** -- Constants used when opening UNIX semaphores.
+- **Fields**: `EACCES`, `EINTR`, `EEXIST`, `EINVAL`, `EMFILE`, `ENAMETOOLONG`, `ENFILE`, `ENOENT`, `ENOMEM`, `ENOSPC`, `EFAULT`, `SEM_FAILED`, `O_CREAT`, `O_EXCL`, `VALUE_RECOMMENDED`.
+
+**UnixSemWaitOrTryWaitMacros** -- Macros evaluating `sem_wait` and `sem_trywait`.
+- **Fields**: `EAGAIN`, `EDEADLK`, `EINTR`, `EINVAL`.
+
+**UnixSemCloseMacros** -- Macros evaluating `sem_close`.
+- **Fields**: `EINVAL`.
+
+**UnixSemUnlinkMacros** -- Macros evaluating `sem_unlink`.
+- **Fields**: `ENOENT`, `EACCES`, `ENAMETOOLONG`.
+
+**UnixSemUnlockWithPostMacros** -- Macros evaluating `sem_post`.
+- **Fields**: `EINVAL`, `EOVERFLOW`.
+
+**UnixSemError** (and subclasses `UnixSemOpenError`, `UnixSemOpenErrorUnixSemWaitOrTryWaitError`, `UnixSemCloseError`, `UnixSemUnlinkError`, `UnixSemUnlockWithPostError`) -- Error wrappers mapping UNIX `errno` codes to Dart exceptions.
+- **Fields**: `critical`, `code`, `message`, `identifier`, `description`.
+- **Methods**: `static fromErrno(int errno)` maps the numeric C `errno` value to a specific error instance.
+
+### Windows FFI Structs & OS Macros
+
+**SECURITY_ATTRIBUTES** -- Windows FFI Struct containing the security descriptor for an object and handling inheritability.
+- **Fields**: `nLength`, `lpSecurityDescriptor`, `bInheritHandle`.
+
+**SECURITY_DESCRIPTOR** -- Windows FFI Struct containing security information associated with an object.
+- **Fields**: `Revision`, `Sbz1`, `Control`, `Owner`, `Group`, `Sacl`, `Dacl`.
+
+**ACL** -- Windows FFI Struct representing the header of an access control list.
+- **Fields**: `AclRevision`, `Sbz1`, `AclSize`, `AceCount`, `Sbz2`.
+
+**WindowsCreateSemaphoreWMacros** -- Macros mapping Win32 constants for creating semaphores.
+- **Fields**: `NULL`, `SEM_FAILED`, `ERROR_INVALID_NAME`, `ERROR_SUCCESS`, `ERROR_ACCESS_DENIED`, `ERROR_INVALID_HANDLE`, `ERROR_INVALID_PARAMETER`, `ERROR_TOO_MANY_POSTS`, `ERROR_SEM_NOT_FOUND`, `ERROR_SEM_IS_SET`, `INITIAL_VALUE_RECOMMENDED`, `MAXIMUM_VALUE_RECOMMENDED`, `GLOBAL_NAME_PREFIX`, `LOCAL_NAME_PREFIX`, `MAX_PATH`.
+
+**WindowsWaitForSingleObjectMacros** -- Macros mapping return values for Win32 synchronization wait status.
+- **Fields**: `TIMEOUT_RECOMMENDED`, `TIMEOUT_INFINITE`, `TIMEOUT_ZERO`, `WAIT_ABANDONED`, `WAIT_OBJECT_0`, `WAIT_TIMEOUT`, `WAIT_FAILED`.
+
+**WindowsReleaseSemaphoreMacros** -- Macros representing `ReleaseSemaphore` states.
+- **Fields**: `RELEASE_COUNT_RECOMMENDED`, `PREVIOUS_RELEASE_COUNT_RECOMMENDED`, `ERROR_SEM_OVERFLOW`, `NULL`.
+
+**WindowsCloseHandleMacros** -- Macros for object handle states.
+- **Fields**: `INVALID_HANDLE_VALUE`.
+
+**WindowsCreateSemaphoreWError** / **WindowsReleaseSemaphoreError** -- Error subclasses bridging Windows API failure codes to Dart errors.
+- **Methods**: `static fromErrorCode(int code)`.
 
 ## 2. Enums
-
-*(No enums are publicly defined in this module)*
+*(None)*
 
 ## 3. Extensions
+*(None)*
 
-*(No extensions are publicly defined in this module)*
+## 4. Top-Level Functions
 
-## 4. Top-Level Functions & Properties
+**LatePropertyAssigned<X>**
+- **Signature:** `bool LatePropertyAssigned<X>(LatePropertySetParameterType function)`
+- **Description:** Helper function to cleanly evaluate if a Dart `late` property has been initialized by intercepting its `LateInitializationError` inside the try/catch closure.
 
-- **LatePropertyAssigned<X>(LatePropertySetParameterType function)**
-  - Safely checks if a late property has been initialized by calling it and catching assignment errors without throwing them.
-  - **Parameters:** `LatePropertySetParameterType function`
-  - **Returns:** `bool`
+**errno**
+- **Signature:** `Pointer<Int> get errno`
+- **Description:** Top-level getter that abstracts `__error()` vs `__errno_location()` to return the correct C `errno` variable reference for the underlying POSIX system.
 
-- **Pointer<Int> get errno**
-  - **Getter** returning the current Unix `errno` value pointer.
-  - **Returns:** `Pointer<Int>`
+**sem_open**
+- **Signature:** `Pointer<sem_t> sem_open(Pointer<Char> name, int oflag, int mode, int value)`
+- **Description:** FFI binding that creates a new POSIX semaphore or opens an existing semaphore.
 
-### Native Unix Functions
+**sem_wait**
+- **Signature:** `int sem_wait(Pointer<sem_t> sem_t)`
+- **Description:** FFI binding that decrements (locks) the POSIX semaphore. Blocks if the value is zero.
 
-- **sem_open(Pointer<Char> name, int oflag, int mode, int value)**
-  - Creates a new POSIX semaphore or opens an existing one.
-  - **Parameters:** `Pointer<Char> name`, `int oflag`, `int mode`, `int value`
-  - **Returns:** `Pointer<sem_t>`
+**sem_trywait**
+- **Signature:** `int sem_trywait(Pointer<sem_t> sem_t)`
+- **Description:** FFI binding identical to `sem_wait`, but returns an error immediately (`EAGAIN`) instead of blocking if the decrement cannot be performed.
 
-- **sem_wait(Pointer<sem_t> sem_t)**
-  - Decrements (locks) the Unix semaphore. Blocks if the count is zero.
-  - **Parameters:** `Pointer<sem_t> sem_t`
-  - **Returns:** `int`
+**sem_post**
+- **Signature:** `int sem_post(Pointer<sem_t> sem_t)`
+- **Description:** FFI binding that increments (unlocks) the POSIX semaphore, waking up blocked processes or threads.
 
-- **sem_trywait(Pointer<sem_t> sem_t)**
-  - Tries to decrement the semaphore. Returns an error immediately instead of blocking if the value is zero.
-  - **Parameters:** `Pointer<sem_t> sem_t`
-  - **Returns:** `int`
+**sem_close**
+- **Signature:** `int sem_close(Pointer<sem_t> sem_t)`
+- **Description:** FFI binding that closes the named POSIX semaphore.
 
-- **sem_post(Pointer<sem_t> sem_t)**
-  - Increments (unlocks) the Unix semaphore, optionally waking blocked processes.
-  - **Parameters:** `Pointer<sem_t> sem_t`
-  - **Returns:** `int`
+**sem_unlink**
+- **Signature:** `int sem_unlink(Pointer<Char> name)`
+- **Description:** FFI binding that removes the named POSIX semaphore immediately, destroying it once all processes that have the semaphore open close it.
 
-- **sem_close(Pointer<sem_t> sem_t)**
-  - Closes the named semaphore, allowing resources to be freed.
-  - **Parameters:** `Pointer<sem_t> sem_t`
-  - **Returns:** `int`
+**__error**
+- **Signature:** `Pointer<Int> __error()`
+- **Description:** MacOS/BSD FFI binding that retrieves the pointer to the thread-local C `errno` variable.
 
-- **sem_unlink(Pointer<Char> name)**
-  - Removes the named Unix semaphore immediately, destroying it once all other processes close it.
-  - **Parameters:** `Pointer<Char> name`
-  - **Returns:** `int`
+**__errno_location**
+- **Signature:** `Pointer<Int> __errno_location()`
+- **Description:** Linux/GNU FFI binding that retrieves the pointer to the thread-local C `errno` variable.
 
-- **__error()**
-  - MacOS BSD specific lookup for `errno`.
-  - **Returns:** `Pointer<Int>`
+**CreateSemaphoreW**
+- **Signature:** `int CreateSemaphoreW(int lpSecurityAttributes, int lInitialCount, int lMaximumCount, LPCWSTR lpName)`
+- **Description:** FFI binding that creates or opens a named or unnamed Win32 semaphore object.
 
-- **__errno_location()**
-  - Linux specific lookup for `errno`.
-  - **Returns:** `Pointer<Int>`
+**WaitForSingleObject**
+- **Signature:** `int WaitForSingleObject(int hHandle, int dwMilliseconds)`
+- **Description:** FFI binding that blocks execution and waits until the specified Windows kernel object is in the signaled state or the time-out interval elapses.
 
-### Native Windows Functions
+**ReleaseSemaphore**
+- **Signature:** `int ReleaseSemaphore(int hSemaphore, int lReleaseCount, Pointer<LONG> lpPreviousCount)`
+- **Description:** FFI binding that releases the specified Windows semaphore by increasing its count.
 
-- **CreateSemaphoreW(int lpSecurityAttributes, int lInitialCount, int lMaximumCount, LPCWSTR lpName)**
-  - Creates or opens a named/unnamed Windows semaphore object.
-  - **Parameters:** `int lpSecurityAttributes`, `int lInitialCount`, `int lMaximumCount`, `LPCWSTR lpName`
-  - **Returns:** `int` (Representing the HANDLE pointer address)
+**CloseHandle**
+- **Signature:** `int CloseHandle(int hObject)`
+- **Description:** FFI binding that closes an open Win32 object handle.
 
-- **WaitForSingleObject(int hHandle, int dwMilliseconds)**
-  - Waits until the Windows semaphore is in a signaled state or the interval elapses.
-  - **Parameters:** `int hHandle`, `int dwMilliseconds`
-  - **Returns:** `int` (Status `DWORD`)
+## 5. Typedefs
 
-- **ReleaseSemaphore(int hSemaphore, int lReleaseCount, Pointer<LONG> lpPreviousCount)**
-  - Releases the Windows semaphore by increasing its count.
-  - **Parameters:** `int hSemaphore`, `int lReleaseCount`, `Pointer<LONG> lpPreviousCount`
-  - **Returns:** `int` (`BOOL` success indicator)
+**sem_t** -- Typedef mapping the POSIX `sem_t` type to a Dart FFI type (`Int`).
 
-- **CloseHandle(int hObject)**
-  - Closes an open object handle on Windows.
-  - **Parameters:** `int hObject`
-  - **Returns:** `int` (`BOOL` success indicator)
+**HANDLE** -- Typedef mapping Windows `HANDLE` to a Dart FFI `IntPtr`.
+
+**LONG** -- Typedef mapping Windows `LONG` to a Dart FFI `Int32`.
+
+**BOOL** -- Typedef mapping Windows `BOOL` to a Dart FFI `Uint32`.
+
+**DWORD** -- Typedef mapping Windows `DWORD` to a Dart FFI `Uint32`.
+
+**LPCWSTR** -- Typedef mapping Windows `LPCWSTR` to a Dart FFI `Pointer<Utf16>`.
+
+**LatePropertySetParameterType** -- Typedef for the closure function passed to `LatePropertyAssigned` (`dynamic Function()`).
+
+**Generics and Core API Typdefs**:
+These typedefs provide shortcuts for the deep generic signatures used within the object lifecycle tracking of semaphores:
+- `I`: `SemaphoreIdentity`
+- `IS`: `SemaphoreIdentities<I>`
+- `CU`: `SemaphoreCountUpdate`
+- `CD`: `SemaphoreCountDeletion`
+- `CT`: `SemaphoreCount<CU, CD>`
+- `CTS`: `SemaphoreCounts<CU, CD, CT>`
+- `CTR`: `SemaphoreCounter<I, CU, CD, CT, CTS>`
+- `CTRS`: `SemaphoreCounters<I, CU, CD, CT, CTS, CTR>`
+- `NS`: `NativeSemaphore<I, IS, CU, CD, CT, CTS, CTR, CTRS>`

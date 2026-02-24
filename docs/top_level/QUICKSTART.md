@@ -1,153 +1,112 @@
 # Quickstart: Native Semaphores
 
 ## 1. Overview
-The `runtime_native_semaphores` module provides cross-platform, native inter-process semaphores for Dart using FFI. It seamlessly abstracts POSIX semaphores (`sem_open`, `sem_wait`) and Windows semaphores (`CreateSemaphoreW`, `WaitForSingleObject`) into a unified `NativeSemaphore` API. This enables safe, reliable synchronization across multiple Dart isolates and OS-level processes, complete with reentrancy tracking and process-level lock counts.
+The `runtime_native_semaphores` module provides a comprehensive API for cross-platform, native inter-process and inter-isolate semaphores in Dart. By abstracting POSIX (Unix) and Windows semaphores into a unified `NativeSemaphore` interface, it enables safe concurrency, shared resource locking, and reentrant lock tracking across diverse operating system environments.
 
 ## 2. Import
+Import the top-level package entry point to access the unified API and all necessary classes:
+
 ```dart
 import 'package:runtime_native_semaphores/runtime_native_semaphores.dart';
 ```
 
 ## 3. Setup
-To get started, instantiate a `NativeSemaphore`. The module automatically provisions either a `UnixSemaphore` or a `WindowsSemaphore` depending on the host OS.
+To get started, you do not need to manually choose the platform. Use the `NativeSemaphore.instantiate` factory method, which automatically resolves to a `UnixSemaphore` or `WindowsSemaphore` instance based on your current operating system.
 
 ```dart
-// Instantiate a native semaphore with a system-wide unique identifier
+// Instantiate a cross-platform semaphore
 final semaphore = NativeSemaphore.instantiate(
-  name: 'myGlobalSemaphore',
-  verbose: true, // Enables detailed operation tracking
+  name: 'my_global_resource',
+  verbose: true, // Set to true for deep FFI and lock state logging
 );
 ```
 
 ## 4. Common Operations
 
-### Opening and Locking
-Before acquiring a lock, you must `open` the semaphore. Once opened, you can lock it to synchronize access to shared resources. 
-
+### Opening a Semaphore
+Before locking, the semaphore must be opened or natively created. This automatically binds the identifier to the underlying OS representation:
 ```dart
-// 1. Open the semaphore (creates it if it does not exist)
-semaphore.open();
+bool success = semaphore.open();
+print('Opened: ${semaphore.opened}'); // true
+```
 
-// 2. Lock the semaphore (blocking: true waits indefinitely until acquired)
-bool acquired = semaphore.lock(blocking: true);
+### Locking (Critical Section)
+Locking blocks across isolates and OS processes until the semaphore is available. It is also reentrant-safe for the current isolate:
+```dart
+// Acquire the lock (blocks by default)
+semaphore.lock(blocking: true);
 
-if (acquired) {
-  print('Semaphore locked successfully! Count: ${semaphore.counter.counts.isolate.get()}');
+try {
+  // Perform cross-process / cross-isolate critical work here...
+  print('Currently locked: ${semaphore.locked}'); // true
+  print('Is reentrant: ${semaphore.reentrant}'); // false (or true if locked multiple times)
+} finally {
+  // Release the lock
+  semaphore.unlock();
 }
 ```
 
-### Try-Locking (Non-Blocking)
-If you want to attempt to acquire a lock without waiting indefinitely, use `blocking: false`.
-
+### Closing and Unlinking
+When the semaphore is no longer needed, close the handle. Call `unlink()` to physically remove the named semaphore from the system (acts as a deletion on Unix; harmless no-op on Windows):
 ```dart
-bool tryAcquired = semaphore.lock(blocking: false);
-if (tryAcquired) {
-  print('Successfully acquired lock without blocking.');
-} else {
-  print('Failed to acquire lock. The resource is busy.');
-}
-```
-
-### Unlocking and Closing
-Always release locks and close the handle when finished.
-
-```dart
-// 1. Unlock to release the semaphore for other isolates/processes
-semaphore.unlock();
-
-// 2. Close the handle for the current process
 semaphore.close();
+print('Closed: ${semaphore.closed}'); // true
+
+semaphore.unlink();
+print('Unlinked: ${semaphore.unlinked}'); // true
 ```
 
-### Unlinking (Cleanup)
-To completely remove the named semaphore from the OS (primarily affecting UNIX systems), you can unlink it after closing. On Windows, this safely returns true without executing OS logic, as Windows uses reference counting to destroy semaphores.
+## 5. Configuration & Platform Specifics
+While `NativeSemaphore` abstracts the underlying OS, deep configuration macros and error states are available.
+- **Windows Names**: Automatically prefixed with `Global\` to ensure cross-session namespace visibility. Governed by `WindowsCreateSemaphoreWMacros`.
+- **Unix Names**: Automatically prefixed with `/`. Max length defined by `UnixSemLimits.NAME_MAX_CHARACTERS` (30).
+- **Debugging**: Enable `verbose: true` on instantiation or on specific internal trackers (`SemaphoreCount(verbose: true)`) for internal debugging of reference counts and OS `errno` logs.
+
+## 6. Advanced Error Handling
+The package provides structured error wrappers for underlying system errors. Catch exceptions to handle precise POSIX or Kernel32 signals:
 
 ```dart
-if (semaphore.closed) {
-  // Removes the semaphore name immediately. Destroyed when all processes close it.
-  semaphore.unlink();
+try {
+  semaphore.open();
+} on UnixSemOpenError catch (e) {
+  print('Unix Open Failed. Code: ${e.code}, Identifier: ${e.identifier}, Message: ${e.message}');
+} on WindowsCreateSemaphoreWError catch (e) {
+  print('Windows Create Failed. Code: ${e.code}, Identifier: ${e.identifier}, Message: ${e.message}');
+} catch (e) {
+  print('Unknown Error: $e');
 }
 ```
 
-### Using Cascade Builder Pattern
-A common and concise way to manage the lifecycle of a semaphore is using Dart's cascade operator (`..`), ensuring that operations flow sequentially.
+## 7. API Reference Summary
+As part of the module export, the following structures, classes, and macros are available for advanced usage:
 
-```dart
-void accessCriticalResource() {
-  final sem = NativeSemaphore.instantiate(name: 'sharedResourceSem');
+### Core Controllers
+* `NativeSemaphores`, `NativeSemaphore`
+* `UnixSemaphore`, `WindowsSemaphore`
 
-  try {
-    // Open and lock using cascade notation
-    sem
-      ..open()
-      ..lock(blocking: true);
-    
-    // Perform operations on the shared resource
-    print('Critical section entered. Reentrant? ${sem.reentrant}');
-  } finally {
-    // Ensure the semaphore is cleanly unlocked and disposed of
-    sem
-      ..unlock()
-      ..close()
-      ..unlink();
-  }
-}
-```
+### State & Tracking
+* `SemaphoreIdentities`, `SemaphoreIdentity`
+* `SemaphoreCounters`, `SemaphoreCounter`
+* `SemaphoreCounts`, `SemaphoreCount`
+* `SemaphoreCountUpdate`, `SemaphoreCountDeletion`
+* `LatePropertyAssigned` (Utility method)
 
-### Inspecting State
-You can inspect the synchronization counters and metadata directly.
+### Type Aliases
+For extensive type parameter bindings, use the aliases defined in `src/native_semaphore_types.dart`:
+* `I`, `IS`, `CU`, `CD`, `CT`, `CTS`, `CTR`, `CTRS`, `NS`
 
-```dart
-print('Is Locked: ${semaphore.locked}');
-print('Is Reentrant: ${semaphore.reentrant}');
-print('Is Opened: ${semaphore.opened}');
-print('Is Closed: ${semaphore.closed}');
-print('Identity UUID: ${semaphore.identity.uuid}');
-print('Address: ${semaphore.identity.address}');
-```
+### Unix FFI (Bindings & Macros)
+* `mode_t`
+* `MODE_T_PERMISSIONS`
+* `UnixSemLimits`
+* `UnixSemOpenMacros`, `UnixSemWaitOrTryWaitMacros`, `UnixSemCloseMacros`, `UnixSemUnlinkMacros`, `UnixSemUnlockWithPostMacros`
+* `UnixSemError`, `UnixSemOpenError`, `UnixSemOpenErrorUnixSemWaitOrTryWaitError`, `UnixSemCloseError`, `UnixSemUnlinkError`, `UnixSemUnlockWithPostError`
 
-## 5. Configuration and Edge Cases
+### Windows FFI (Bindings & Macros)
+* `SECURITY_ATTRIBUTES`, `SECURITY_DESCRIPTOR`, `ACL`
+* `WindowsCreateSemaphoreWMacros`, `WindowsWaitForSingleObjectMacros`, `WindowsReleaseSemaphoreMacros`, `WindowsCloseHandleMacros`
+* `WindowsCreateSemaphoreWError`, `WindowsReleaseSemaphoreError`
 
-*   **Naming Limits:** Semaphore names must be <= 30 characters on UNIX (`UnixSemLimits.NAME_MAX_CHARACTERS`) and <= `WindowsCreateSemaphoreWMacros.MAX_PATH` on Windows. Windows automatically prefixes names with `Global\\`.
-*   **Permissions (UNIX):** Semaphores are created using `MODE_T_PERMISSIONS.RECOMMENDED` (0644 - Owner read/write, group read).
-*   **Initial Values:** Both platforms use a recommended initial value of 1 (`UnixSemOpenMacros.VALUE_RECOMMENDED`, `WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED`), effectively acting as a standard mutex out-of-the-box.
-*   **Reentrancy:** The `NativeSemaphore` tracks how many times an isolate has reentrantly locked the same semaphore, keeping counters separated (`isolate` vs `process`).
-*   **Verbosity:** Set `verbose = true` upon instantiation to automatically print lifecycle events and cross-process interactions.
-
-## 6. Related Modules & Internal Types Reference
-
-For complete integration clarity, the following classes, macros, and structures are defined within the module:
-
-### Core Abstractions (`src/native_semaphore.dart`, `src/unix_semaphore.dart`, `src/windows_semaphore.dart`)
-*   `NativeSemaphores`, `NativeSemaphore`
-*   `UnixSemaphore`
-*   `WindowsSemaphore`
-
-### State Tracking (`src/semaphore_counter.dart`, `src/semaphore_identity.dart`)
-*   **`SemaphoreIdentity` / `SemaphoreIdentities`**: Tracks `prefix`, `isolate`, `process`, `address`, `name`, `registered`, `uuid`.
-*   **`SemaphoreCountUpdate`**: Contains `identifier`, `from`, `to`.
-*   **`SemaphoreCountDeletion`**: Contains `identifier`, `at`.
-*   **`SemaphoreCount`, `SemaphoreCounts`, `SemaphoreCounter`, `SemaphoreCounters`**: Hierarchical tracking of isolate-level vs process-level lock state.
-
-### UNIX FFI Bindings (`src/ffi/unix.dart`)
-*   **Types**: `mode_t`, `sem_t`
-*   **Functions**: `sem_open`, `sem_wait`, `sem_trywait`, `sem_post`, `sem_close`, `sem_unlink`, `__error`, `__errno_location`
-*   **Macros & Limits**:
-    *   `UnixSemLimits`: `PATH_MAX`, `SEM_VALUE_MAX`, `NAME_MAX`, `NAME_MAX_CHARACTERS`
-    *   `MODE_T_PERMISSIONS`: `OWNER_READ_WRITE_GROUP_READ`, `ALL_READ_WRITE_EXECUTE`, etc.
-    *   `UnixSemOpenMacros`: `EACCES`, `EINTR`, `EEXIST`, `EINVAL`, `EMFILE`, `ENAMETOOLONG`, `ENFILE`, `ENOENT`, `ENOMEM`, `ENOSPC`, `EFAULT`, `SEM_FAILED`, `O_CREAT`, `O_EXCL`
-    *   `UnixSemWaitOrTryWaitMacros`: `EAGAIN`, `EDEADLK`, `EINTR`, `EINVAL`
-    *   `UnixSemCloseMacros`: `EINVAL`
-    *   `UnixSemUnlinkMacros`: `ENOENT`, `EACCES`, `ENAMETOOLONG`
-    *   `UnixSemUnlockWithPostMacros`: `EINVAL`, `EOVERFLOW`
-*   **Errors**: `UnixSemError`, `UnixSemOpenError`, `UnixSemOpenErrorUnixSemWaitOrTryWaitError`, `UnixSemCloseError`, `UnixSemUnlinkError`, `UnixSemUnlockWithPostError`
-
-### Windows FFI Bindings (`src/ffi/windows.dart`)
-*   **Types**: `SECURITY_ATTRIBUTES` (`nLength`, `lpSecurityDescriptor`, `bInheritHandle`), `SECURITY_DESCRIPTOR` (`Revision`, `Sbz1`, `Control`, `Owner`, `Group`, `Sacl`, `Dacl`), `ACL` (`AclRevision`, `Sbz1`, `AclSize`, `AceCount`, `Sbz2`)
-*   **Functions**: `CreateSemaphoreW`, `WaitForSingleObject`, `ReleaseSemaphore`, `CloseHandle`
-*   **Macros & Limits**:
-    *   `WindowsCreateSemaphoreWMacros`: `NULL`, `SEM_FAILED`, `ERROR_INVALID_NAME`, `ERROR_SUCCESS`, `ERROR_ACCESS_DENIED`, `ERROR_INVALID_HANDLE`, `ERROR_INVALID_PARAMETER`, `ERROR_TOO_MANY_POSTS`, `ERROR_SEM_NOT_FOUND`, `ERROR_SEM_IS_SET`, `GLOBAL_NAME_PREFIX`, `LOCAL_NAME_PREFIX`, `MAX_PATH`
-    *   `WindowsWaitForSingleObjectMacros`: `TIMEOUT_RECOMMENDED`, `TIMEOUT_INFINITE`, `TIMEOUT_ZERO`, `WAIT_ABANDONED`, `WAIT_OBJECT_0`, `WAIT_TIMEOUT`, `WAIT_FAILED`
-    *   `WindowsReleaseSemaphoreMacros`: `RELEASE_COUNT_RECOMMENDED`, `PREVIOUS_RELEASE_COUNT_RECOMMENDED`, `ERROR_SEM_OVERFLOW`, `NULL`
-    *   `WindowsCloseHandleMacros`: `INVALID_HANDLE_VALUE`
-*   **Errors**: `WindowsCreateSemaphoreWError`, `WindowsReleaseSemaphoreError`
+## 8. Related Modules
+- `src/ffi/unix.dart`: Direct POSIX bindings (`sem_open`, `sem_wait`, `sem_post`, `sem_close`, `sem_unlink`).
+- `src/ffi/windows.dart`: Direct Kernel32 bindings (`CreateSemaphoreW`, `WaitForSingleObject`, `ReleaseSemaphore`, `CloseHandle`).

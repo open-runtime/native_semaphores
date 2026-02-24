@@ -1,143 +1,90 @@
 # Semaphore Core - Quickstart
 
 ## 1. Overview
-The **Semaphore Core** module provides cross-platform, POSIX-style named semaphores for Dart isolates and distinct processes. It manages semaphore lifecycle—creation, locking, unlocking, closing, and unlinking—while seamlessly handling OS-specific FFI bindings (`sem_t` on Unix, `HANDLE` on Windows), reentrancy via isolate tracking, and process-level cross-synchronization.
+The Semaphore Core module provides a cross-platform (Unix and Windows) implementation of native OS semaphores in Dart. It enables robust inter-process communication (IPC) and isolate synchronization using FFI to interface with system-level semaphore APIs (like `sem_open` on POSIX and `CreateSemaphoreW` on Windows). The module automatically handles platform-specific bindings, reentrant locking within the same isolate, and reference counting across processes.
 
 ## 2. Import
-Import the core module using the package's primary entrypoint:
+
+To use the core classes and convenient type definitions (like `NS` for NativeSemaphore), import the main library:
+
 ```dart
 import 'package:runtime_native_semaphores/runtime_native_semaphores.dart';
 ```
 
-Or, if you are importing directly from the `src` directory within the package:
+## 3. Setup
+To use native semaphores, instantiate a `NativeSemaphore` using its `instantiate` factory method. This automatically resolves to the correct underlying implementation (`UnixSemaphore` or `WindowsSemaphore`) based on the host operating system.
+
+Using the builder pattern (cascade `..`), you can instantiate and open the semaphore in one step. It is recommended to use the `NS` typedef to avoid complex generic type parameter requirements.
+
 ```dart
-import 'package:runtime_native_semaphores/src/native_semaphore.dart';
-import 'package:runtime_native_semaphores/src/semaphore_identity.dart';
+// Instantiate and open the semaphore with a unique system-wide name.
+// Note the use of camelCase naming for the system-wide resource.
+final NS semaphore = NativeSemaphore.instantiate(
+  name: 'mySharedResource',
+  verbose: true, // Set to true for detailed lifecycle logs
+)..open();
 ```
 
-## 3. Setup
-To get started, instantiate a `NativeSemaphore` with a unique identifier. The module automatically provisions the underlying `UnixSemaphore` or `WindowsSemaphore` based on the host platform.
+Alternatively, you can open it separately to verify the result:
 
 ```dart
-// Instantiate and open a semaphore using the builder pattern (cascade notation)
-// This will create it if it doesn't exist or open the existing one with the provided name.
-var semaphore = NativeSemaphore.instantiate(name: 'mySharedResource')
-  ..open();
+final NS separateSemaphore = NativeSemaphore.instantiate(
+  name: 'anotherSharedResource',
+);
+
+// Open or create the native semaphore instance
+bool isOpened = separateSemaphore.open();
 ```
 
 ## 4. Common Operations
 
-### Locking and Unlocking (Blocking)
-Locking a semaphore blocks the current isolate or process until the shared resource becomes available. Once your critical section is finished, you must `unlock()` the semaphore.
+### Locking (Acquire)
+You can lock the semaphore across processes and isolates. The `lock` method supports blocking (wait) or non-blocking (try-wait) attempts.
 
 ```dart
-// Acquire the lock (blocks until available)
-bool isLocked = semaphore.lock(blocking: true);
+// Block the current isolate/thread until the semaphore is acquired
+bool locked = semaphore.lock(blocking: true);
 
-if (!isLocked) {
-  throw Exception('Failed to acquire the lock.');
-}
-
-try {
-  // Perform operations on the shared resource safely
-  print('Inside the critical section');
-} finally {
-  // Release the lock
-  semaphore.unlock();
-}
+// Attempt to lock without blocking, returning false immediately if already locked
+bool tryLocked = semaphore.lock(blocking: false);
 ```
 
-### Non-Blocking Lock Attempt
-You can attempt to acquire a lock without waiting. If the semaphore is already locked by another process, `lock(blocking: false)` returns `false` (via `sem_trywait` on Unix or a `TIMEOUT_ZERO` wait on Windows).
+### Unlocking (Release)
+Releasing the semaphore automatically decrements the internal isolate/process counters and notifies the OS to awake blocked processes.
 
 ```dart
-// Attempt to acquire the lock without blocking, using the cascade operator where appropriate
-bool acquired = semaphore.lock(blocking: false);
-
-if (acquired) {
-  try {
-    print('Lock acquired instantly!');
-  } finally {
-    semaphore.unlock();
-  }
-} else {
-  print('Resource is busy. Try again later.');
-}
+// Release the lock for other processes or isolates
+bool unlocked = semaphore.unlock();
 ```
 
-### Closing and Unlinking
-When you are completely finished with the semaphore in your application, you should `close()` and `unlink()` it to prevent system resource leaks. Note that `unlink()` completely removes the named semaphore from the system on Unix (and performs a no-op memory cleanup on Windows).
+### Checking Status
+You can check the internal state of the semaphore using its properties.
 
 ```dart
-// Safely close and unlink the semaphore using cascade notation
+bool isLocked = semaphore.locked;
+bool isReentrant = semaphore.reentrant;
+bool isOpened = semaphore.opened;
+bool isClosed = semaphore.closed;
+bool isUnlinked = semaphore.unlinked;
+```
+
+### Cleanup (Close and Unlink)
+Always `close()` a semaphore when finished to prevent memory and handle leaks. On Unix systems, you can also `unlink()` the semaphore to completely remove it from the OS registry. You can chain these cleanups using the cascade pattern.
+
+```dart
+// Close the local process handle and completely destroy the 
+// semaphore from the OS (Unix only; safe but no-op on Windows)
 semaphore
   ..close()
   ..unlink();
 ```
 
-### Inspecting State
-The semaphore provides several properties to inspect its current state and identity:
-
-```dart
-print('Is opened: ${semaphore.opened}');
-print('Is locked: ${semaphore.locked}');
-print('Is closed: ${semaphore.closed}');
-print('Is unlinked: ${semaphore.unlinked}');
-print('Is reentrant: ${semaphore.reentrant}');
-print('Identity UUID: ${semaphore.identity.uuid}');
-```
-
-### Reentrancy
-The `NativeSemaphore` tracks locks on a per-isolate and per-process basis via `SemaphoreCounter`. This enables reentrancy. When an isolate calls `lock()` multiple times, the isolate-level counter is incremented, meaning subsequent `lock()` calls from the same isolate succeed immediately. You must call `unlock()` the exact same number of times you called `lock()`.
-
-```dart
-// First lock blocks until available
-semaphore.lock();
-
-// Subsequent locks in the same isolate are non-blocking and increment the isolate count
-semaphore.lock();
-
-print('Isolate is reentrant: ${semaphore.reentrant}'); // true
-
-// Must unlock twice
-semaphore
-  ..unlock()
-  ..unlock();
-```
-
-## 5. Configuration
-
-### Debugging and Verbosity
-You can enable verbose logging during instantiation to trace native FFI calls, reentrancy counts, and process synchronizations. This is extremely helpful when debugging deadlocks.
-
-```dart
-var verboseSemaphore = NativeSemaphore.instantiate(
-  name: 'debugSemaphore', 
-  verbose: true,
-);
-```
-
-### Optional Setup Parameters
-You can explicitly provide a `SemaphoreIdentity` and `SemaphoreCounter` when instantiating the semaphore. If not provided, they are instantiated automatically.
-
-```dart
-var identity = SemaphoreIdentity.instantiate(name: 'customIdentity');
-var customSemaphore = NativeSemaphore.instantiate(
-  name: 'customIdentity',
-  identity: identity,
-  verbose: false,
-)
-  ..open()
-  ..close()
-  ..unlink();
-```
-
-### Naming Constraints
-- **Max length:** 30 characters on Unix (`UnixSemLimits.NAME_MAX_CHARACTERS`), longer on Windows (`WindowsCreateSemaphoreWMacros.MAX_PATH`).
-- **Invalid characters:** Identifiers cannot contain the characters `\ / : * ? " < > |`.
-- **Platform prefixes:** Windows identifiers implicitly receive a `Global\` prefix. All identifiers internally strip any leading slashes or existing `Global\` / `Local\` prefixes before allocation.
+## 5. Configuration & Edge Cases
+- **Naming Rules**: The `name` provided to `NativeSemaphore.instantiate` must use valid characters. It must not contain restricted characters (`\`, `/`, `:`, `*`, `?`, `"`, `<`, `>`, `|`) and is automatically prefixed (`Global\` on Windows, `/` on Unix). Length must be under `30` characters for Unix (`UnixSemLimits.NAME_MAX_CHARACTERS`) and `260` characters for Windows (`WindowsCreateSemaphoreWMacros.MAX_PATH`). An `ArgumentError` is thrown otherwise.
+- **Reentrancy**: Semaphores are completely reentrant on a per-isolate basis. Locking an already locked semaphore by the same isolate merely increments an internal counter (`semaphore.counter.counts.isolate.get()`), avoiding deadlocks. Ensure you `unlock()` the same number of times you `lock()`.
+- **Verbose Logging**: Passing `verbose: true` to the instantiation method prints detailed internal FFI and lifecycle evaluations to the console, useful for debugging IPC issues.
 
 ## 6. Related Modules
-- `SemaphoreIdentity`: Tracks isolate and process information to securely assign reference UUIDs to callers.
-- `SemaphoreCounter`: Manages reference counts (via `SemaphoreCounts`, `SemaphoreCountUpdate`, and `SemaphoreCountDeletion`) for both process-level and isolate-level reentrant locking.
-- `UnixSemaphore` & `WindowsSemaphore`: Platform-specific concrete implementations of `NativeSemaphore`.
+- `SemaphoreIdentity`: Tracks the `isolate` and `process` UUIDs to manage reentrant locking.
+- `SemaphoreCounter` / `SemaphoreCounts`: Automatically tracks isolate-level and process-level lock counts internally.
+- `ffi/unix.dart` & `ffi/windows.dart`: Contains the low-level FFI bindings and OS-specific error codes (e.g., `UnixSemOpenError`, `WindowsCreateSemaphoreWError`).
