@@ -18,8 +18,8 @@
         "api_reference",
         "examples"
       ],
-      "hash": "",
-      "last_updated": null
+      "hash": "70b1456b32b05420969f8c5a2855d1dffd823b3859998664e9ede1c7ec0e35ca",
+      "last_updated": "2026-02-24T03:24:17.647763Z"
     },
     {
       "id": "unix",
@@ -35,8 +35,8 @@
       "generate": [
         "api_reference"
       ],
-      "hash": "",
-      "last_updated": null
+      "hash": "866f3dcec98ff88632d3689dda31ac3d8a65ddf50e526b5e66bfab4587226afc",
+      "last_updated": "2026-02-24T03:24:17.656413Z"
     },
     {
       "id": "windows",
@@ -52,8 +52,8 @@
       "generate": [
         "api_reference"
       ],
-      "hash": "",
-      "last_updated": null
+      "hash": "a36329dfb961a750c30044577fc3825ca989b5965094903dad75e3c0acbbf1be",
+      "last_updated": "2026-02-24T03:24:17.663328Z"
     },
     {
       "id": "ffi",
@@ -69,8 +69,8 @@
         "quickstart",
         "api_reference"
       ],
-      "hash": "",
-      "last_updated": null
+      "hash": "47401e9c7d6e6f62a06c5b1d6566d426ba7f1c90c476ce2ad022871e483bf251",
+      "last_updated": "2026-02-24T03:24:17.669790Z"
     },
     {
       "id": "utils",
@@ -86,8 +86,8 @@
         "quickstart",
         "api_reference"
       ],
-      "hash": "",
-      "last_updated": null
+      "hash": "c918d67d77f2a1e0deca4666c522b6f7231ad1cd08ae38e9e8dfe4b7bd40a842",
+      "last_updated": "2026-02-24T03:24:17.676215Z"
     },
     {
       "id": "top_level",
@@ -103,8 +103,8 @@
         "quickstart",
         "api_reference"
       ],
-      "hash": "",
-      "last_updated": null
+      "hash": "e1b0679bbe0eb72e5e51809c894d7dc409f2054ea7f9079bfa76b16c75ed17d4",
+      "last_updated": "2026-02-24T03:24:17.682969Z"
     }
   ],
   "templates": {
