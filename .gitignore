@@ -29,3 +29,6 @@ doc/api/
 # Internal Testing & Analysis
 ./_scripts
 bin/test/primary_semaphore
+
+# Claude AI session data
+.claude/
