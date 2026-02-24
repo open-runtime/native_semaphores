@@ -33,9 +33,7 @@
       ],
       "output_path": "docs/unix/",
       "generate": [
-        "quickstart",
-        "api_reference",
-        "examples"
+        "api_reference"
       ],
       "hash": "",
       "last_updated": null
@@ -52,16 +50,14 @@
       ],
       "output_path": "docs/windows/",
       "generate": [
-        "quickstart",
-        "api_reference",
-        "examples"
+        "api_reference"
       ],
       "hash": "",
       "last_updated": null
     },
     {
       "id": "ffi",
-      "name": "Ffi",
+      "name": "FFI Bindings",
       "source_paths": [
         "lib/src/ffi/"
       ],
@@ -86,6 +82,23 @@
         "lib/src/utils/"
       ],
       "output_path": "docs/utils/",
+      "generate": [
+        "quickstart",
+        "api_reference"
+      ],
+      "hash": "",
+      "last_updated": null
+    },
+    {
+      "id": "top_level",
+      "name": "Package Entry Points",
+      "source_paths": [
+        "lib/"
+      ],
+      "lib_paths": [
+        "lib/"
+      ],
+      "output_path": "docs/top_level/",
       "generate": [
         "quickstart",
         "api_reference"
