@@ -1,3 +1,9 @@
+## 1.0.1
+- Graduate to stable semver (from `1.0.0-beta.7`)
+- Fix: Add `Abi.linuxArm64` mapping for `mode_t` — resolves AOT compilation failure on linux-arm64 (PR #17)
+- CI: Update to runtime_ci_tooling v0.11.3 with auto-format job and enhanced autodoc coverage
+- Autodoc: Add comprehensive module documentation configuration
+
 ## 0.0.1
 - Initial release
 - See test/semaphore_test.dart for unified usage examples
