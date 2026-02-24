@@ -1,0 +1,28 @@
+{
+  "version": "1.0.3",
+  "previous_version": "v1.0.2",
+  "total_commits": 2,
+  "categories": {
+    "added": [],
+    "changed": [],
+    "deprecated": [],
+    "removed": [],
+    "fixed": [
+      {
+        "description": "Added shell-level org guard to triage.toml prompt to prevent upstream leakage, ensuring gh commands use --repo and only operate on open-runtime/pieces-app orgs",
+        "pr": null,
+        "commits": [
+          "534c8b750e73b5247e83832cc7fc46527136bd29"
+        ]
+      },
+      {
+        "description": "Added missing 32-bit ARM Linux (Abi.linuxArm) mapping for mode_t to prevent AOT compilation failures on 32-bit ARM Linux targets",
+        "pr": "#20",
+        "commits": [
+          "364348bb19d5b554300920e3a9ab739b4c8f5815"
+        ]
+      }
+    ],
+    "security": []
+  }
+}

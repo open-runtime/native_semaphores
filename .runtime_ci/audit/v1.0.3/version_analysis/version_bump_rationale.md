@@ -1,0 +1,10 @@
+- **Decision**: patch
+  - The changes consist of a bug fix and a script configuration update.
+- **Key Changes**:
+  - Added the missing `Abi.linuxArm` mapping for `mode_t` in `lib/src/ffi/unix.dart` to prevent AOT compilation failures.
+  - Added repository and organization allowlist checks in `.gemini/commands/triage.toml` to prevent upstream repository operations.
+- **Breaking Changes**: None
+- **New Features**: None
+- **References**:
+  - `fix: add Abi.linuxArm (32-bit) mapping for mode_t (#20)`
+  - `fix(triage): add --repo + org allowlist to triage.toml to prevent upstream leakage`

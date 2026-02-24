@@ -15,7 +15,7 @@ stepping on each other's toes. By leveraging native operating system semaphores,
 ## Platform Support
 The `runtime_native_semaphores` package supports the following platforms:
 - MacOS (x86_64, arm64)
-- Linux (x86_64, arm64)
+- Linux (x86_64, arm, arm64)
 - Windows (x86_64)
 
 --- 
@@ -25,11 +25,11 @@ To add `runtime_native_semaphores` to your Dart package, include it in your `pub
 
 ```yaml
 dependencies:
-  runtime_native_semaphores: ^1.0.2
+  runtime_native_semaphores: ^1.0.3
 ```
 
 ## Getting Started
-The `runtime_native_semaphores` package provides a unified API for working with named semaphores across different MacOS (x86_64, arm64), Linux (x86_64, arm64) and Windows platforms.
+The `runtime_native_semaphores` package provides a unified API for working with named semaphores across different MacOS (x86_64, arm64), Linux (x86_64, arm, arm64) and Windows platforms.
 The package exposes a `NativeSemaphore` class that can be used to create, open, lock, unlock, manage and dispose, named semaphores.
 
 ### Creating a Named Semaphore
@@ -138,7 +138,7 @@ Future<void> spawnIsolate(String name, int isolate) async {
 ## Native Implementation Details & References
 
 ### Unix Implementation
-The Unix variant of the `runtime_native_semaphores` package interfaces directly with Unix semaphore APIs via FFI, targeting MacOS (Intel & Apple Silicon) and Linux (x86_64 and Arm64). This implementation harnesses `sem_open` for semaphore creation with flags `O_CREAT` for ensuring creation, setting appropriate mode permissions, and initializing semaphore values. Semaphore locking and unlocking leverage `sem_wait` for blocking waits and `sem_trywait` for non-blocking attempts, respectively. `sem_post` is used to release the semaphore. Critical to resource management, `sem_close` and `sem_unlink` are invoked for closing and unlinking semaphores, mitigating resource leaks. This direct interaction with Unix's semaphore functions enables precise control over synchronization primitives, essential for high-performance, concurrent applications requiring robust inter-process communication. The implementation rigorously validates identifier lengths against `UnixSemLimits.NAME_MAX_CHARACTERS` to adhere to system constraints, ensuring reliable semaphore operations across supported Unix platforms.
+The Unix variant of the `runtime_native_semaphores` package interfaces directly with Unix semaphore APIs via FFI, targeting MacOS (Intel & Apple Silicon) and Linux (x86_64, Arm, and Arm64). This implementation harnesses `sem_open` for semaphore creation with flags `O_CREAT` for ensuring creation, setting appropriate mode permissions, and initializing semaphore values. Semaphore locking and unlocking leverage `sem_wait` for blocking waits and `sem_trywait` for non-blocking attempts, respectively. `sem_post` is used to release the semaphore. Critical to resource management, `sem_close` and `sem_unlink` are invoked for closing and unlinking semaphores, mitigating resource leaks. This direct interaction with Unix's semaphore functions enables precise control over synchronization primitives, essential for high-performance, concurrent applications requiring robust inter-process communication. The implementation rigorously validates identifier lengths against `UnixSemLimits.NAME_MAX_CHARACTERS` to adhere to system constraints, ensuring reliable semaphore operations across supported Unix platforms.
 The Unix implementation is based on the following [Open Group Base Specifications IEEE reference](https://pubs.opengroup.org/onlinepubs/009695399/basedefs/semaphore.h.html) and the FFI bindings can be found [here](https://github.com/open-runtime/native_semaphores/blob/main/lib/src/ffi/unix.dart).
 
 ### Windows Implementation

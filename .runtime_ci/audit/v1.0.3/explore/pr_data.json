@@ -1,0 +1,14 @@
+{
+  "pull_requests": [
+    {
+      "number": 20,
+      "title": "fix: add Abi.linuxArm (32-bit) mapping for mode_t",
+      "author": "tsavo-at-pieces",
+      "labels": [],
+      "summary": "Adds the missing Abi.linuxArm (32-bit) mapping for mode_t to prevent AOT compilation failures on 32-bit ARM Linux targets.",
+      "commits": [
+        "364348bb19d5b554300920e3a9ab739b4c8f5815"
+      ]
+    }
+  ]
+}

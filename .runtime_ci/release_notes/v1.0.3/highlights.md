@@ -1,0 +1,2 @@
+- Added the missing `Abi.linuxArm` mapping for `mode_t` to prevent AOT compilation failures on 32-bit ARM Linux targets.
+- Hardened the `triage.toml` prompt with organization allowlist checks to prevent upstream repository leakage in fork contexts.

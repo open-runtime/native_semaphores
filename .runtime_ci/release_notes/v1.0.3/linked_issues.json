@@ -1,0 +1,12 @@
+{
+  "version": "1.0.3",
+  "github_issues": [],
+  "sentry_issues": [],
+  "prs_referenced": [
+    {
+      "number": 20,
+      "title": "fix: add Abi.linuxArm (32-bit) mapping for mode_t",
+      "author": "tsavo-at-pieces"
+    }
+  ]
+}
