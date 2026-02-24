@@ -44,6 +44,7 @@ typedef sem_t = Int;
   Abi.linuxX64: Uint16(),
   Abi.linuxIA32: Uint16(),
   Abi.linuxArm64: Uint16(),
+  Abi.linuxArm: Uint16(),
 })
 final class mode_t extends AbiSpecificInteger {
   const mode_t();
