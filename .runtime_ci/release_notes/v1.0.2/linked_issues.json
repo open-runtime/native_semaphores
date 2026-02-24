@@ -1,0 +1,8 @@
+{
+  "version": "1.0.2",
+  "github_issues": [],
+  "sentry_issues": [],
+  "prs_referenced": [
+    {"number": 17, "title": "Fix: Add linux-arm64 ABI mapping for mode_t", "author": "al-the-bear"}
+  ]
+}

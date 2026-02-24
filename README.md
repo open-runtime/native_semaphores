@@ -25,7 +25,7 @@ To add `runtime_native_semaphores` to your Dart package, include it in your `pub
 
 ```yaml
 dependencies:
-  runtime_native_semaphores: ^1.0.0-beta.1
+  runtime_native_semaphores: ^1.0.2
 ```
 
 ## Getting Started

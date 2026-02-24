@@ -1,0 +1,9 @@
+- **Decision**: patch. The changes consist of a bug fix, documentation updates, and CI/CD maintenance tasks.
+- **Key Changes**:
+  - **Bug Fix**: Added `Abi.linuxArm64` mapping for `mode_t` to resolve an AOT compilation failure (`dart compile exe`) on Linux ARM64 (PR #17).
+  - **Documentation**: Added `top_level` module for `lib/runtime_native_semaphores.dart` and standardized `output_path` prefix to `docs/` for autodoc.
+  - **CI/CD**: Regenerated CI and Release workflows to use `runtime_ci_tooling` with auto-format job and enhanced autodoc coverage.
+  - **Dependencies**: Bumped `runtime_ci_tooling` dependency and synced runtime CI metadata.
+- **Breaking Changes**: None.
+- **New Features**: None.
+- **References**: PR #17 (Add `Abi.linuxArm64` mapping for `mode_t`)

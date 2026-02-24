@@ -1,0 +1,3 @@
+- Fixed an AOT (`dart compile exe`) compilation failure on linux-arm64 systems by mapping `Abi.linuxArm64` for `mode_t`.
+- Standardized autodoc documentation generation with a top-level module to ensure correct API reference paths.
+- Synced CI/CD metadata and bumped `runtime_ci_tooling` internal dependencies to resolve workflow failures.

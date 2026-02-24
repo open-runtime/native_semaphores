@@ -1,0 +1,12 @@
+{
+  "pull_requests": [
+    {
+      "number": 17,
+      "title": "Fix: Add linux-arm64 ABI mapping for mode_t",
+      "author": "al-the-bear",
+      "labels": [],
+      "summary": "Fixes AOT compilation failures on linux-arm64 by adding the missing Abi.linuxArm64 mapping for mode_t in the FFI bindings.",
+      "commits": ["4ab8a07", "b102f4b"]
+    }
+  ]
+}

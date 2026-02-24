@@ -1,0 +1,82 @@
+{
+  "command": "merged-audit",
+  "started_at": "2026-02-24T03:55:58.098929",
+  "merged_from": [
+    {
+      "artifact": "cicd-audit-explore",
+      "command": "explore",
+      "args": [],
+      "started_at": "2026-02-24T03:26:35.179365",
+      "pid": 2636,
+      "platform": "linux",
+      "dart_version": "3.9.2",
+      "repo_root": "/home/runner/work/native_semaphores/native_semaphores",
+      "run_dir": "/home/runner/work/native_semaphores/native_semaphores/.runtime_ci/runs/run_2026-02-24T03-26-35_2636",
+      "ci": true,
+      "completed_at": "2026-02-24T03:29:33.577336",
+      "duration_seconds": 178,
+      "exit_code": 0,
+      "artifacts": [
+        "explore/prompt.txt",
+        "explore/gemini_response.json",
+        "meta.json"
+      ]
+    },
+    {
+      "artifact": "cicd-audit-release-notes",
+      "command": "release-notes",
+      "args": [],
+      "started_at": "2026-02-24T03:53:39.032348",
+      "pid": 2658,
+      "platform": "linux",
+      "dart_version": "3.9.2",
+      "repo_root": "/home/runner/work/native_semaphores/native_semaphores",
+      "run_dir": "/home/runner/work/native_semaphores/native_semaphores/.runtime_ci/runs/run_2026-02-24T03-53-39_2658",
+      "ci": true,
+      "completed_at": "2026-02-24T03:55:36.078030",
+      "duration_seconds": 117,
+      "artifacts": [
+        "release-notes/prompt.txt",
+        "release-notes/release_notes.md",
+        "release-notes/gemini_response.json",
+        "meta.json"
+      ]
+    },
+    {
+      "artifact": "cicd-audit-compose",
+      "command": "compose",
+      "args": [],
+      "started_at": "2026-02-24T03:30:32.924428",
+      "pid": 2629,
+      "platform": "linux",
+      "dart_version": "3.9.2",
+      "repo_root": "/home/runner/work/native_semaphores/native_semaphores",
+      "run_dir": "/home/runner/work/native_semaphores/native_semaphores/.runtime_ci/runs/run_2026-02-24T03-30-32_2629",
+      "ci": true,
+      "completed_at": "2026-02-24T03:32:25.468259",
+      "duration_seconds": 112,
+      "artifacts": [
+        "compose/prompt.txt",
+        "compose/gemini_response.json",
+        "meta.json"
+      ]
+    },
+    {
+      "artifact": "cicd-audit-compose",
+      "command": "documentation",
+      "args": [],
+      "started_at": "2026-02-24T03:32:25.899914",
+      "pid": 4910,
+      "platform": "linux",
+      "dart_version": "3.9.2",
+      "repo_root": "/home/runner/work/native_semaphores/native_semaphores",
+      "run_dir": "/home/runner/work/native_semaphores/native_semaphores/.runtime_ci/runs/run_2026-02-24T03-32-25_4910",
+      "ci": true
+    }
+  ],
+  "artifact_count": 5,
+  "total_files": 17,
+  "ci": true,
+  "platform": "linux",
+  "dart_version": "3.9.2"
+}

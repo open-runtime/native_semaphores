@@ -1,0 +1,40 @@
+{
+  "version": "1.0.2",
+  "previous_version": "v1.0.0-beta.7",
+  "total_commits": 12,
+  "categories": {
+    "added": [],
+    "changed": [
+      {
+        "description": "Graduate to stable semver (bump to v1.0.1)",
+        "pr": null,
+        "commits": ["3ebea08"]
+      },
+      {
+        "description": "Sync runtime_ci templates, dependency metadata, and bump runtime_ci_tooling to ^0.12.0",
+        "pr": null,
+        "commits": ["1110466", "9c525f6", "ca37532", "baf6053", "309eb2d", "44cd9e8", "68fc0d2"]
+      }
+    ],
+    "deprecated": [],
+    "removed": [],
+    "fixed": [
+      {
+        "description": "Add Abi.linuxArm64 mapping for mode_t to fix AOT compilation on linux-arm64",
+        "pr": "#17",
+        "commits": ["b102f4b", "4ab8a07"]
+      },
+      {
+        "description": "Restore git ref for runtime_ci_tooling dependency",
+        "pr": null,
+        "commits": ["93d4664"]
+      },
+      {
+        "description": "Add top_level module and standardize autodoc output prefix",
+        "pr": null,
+        "commits": ["fc7f375"]
+      }
+    ],
+    "security": []
+  }
+}
