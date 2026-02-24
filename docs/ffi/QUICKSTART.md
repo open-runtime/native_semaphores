@@ -1,214 +1,175 @@
 # FFI Bindings Quickstart
 
 ## 1. Overview
-The FFI Bindings module provides direct, low-level Dart Foreign Function Interface (FFI) bindings to native operating system semaphore APIs. It enables access to POSIX semaphores (`sem_open`, `sem_wait`, `sem_trywait`, `sem_post`, `sem_close`, `sem_unlink`) for Unix/macOS, and Win32 semaphores (`CreateSemaphoreW`, `WaitForSingleObject`, `ReleaseSemaphore`, `CloseHandle`) for Windows. It also includes comprehensive error handling classes, system limit macros, and security attribute structures.
+The FFI Bindings module provides direct, low-level access to the underlying native semaphore APIs on both Unix (POSIX) and Windows operating systems. It exports raw FFI functions, macros, structures, and error classes that allow you to interact with semaphores without any higher-level abstractions.
 
 ## 2. Import
-Depending on your target platform, import the corresponding FFI bindings directly from the `src/ffi` directory:
-
 ```dart
-// For Unix (Linux/macOS) bindings
+// For Unix (POSIX) systems (macOS, Linux)
 import 'package:runtime_native_semaphores/src/ffi/unix.dart';
 
-// For Windows bindings
+// For Windows systems
 import 'package:runtime_native_semaphores/src/ffi/windows.dart';
-
-// You will also need dart:ffi and package:ffi for pointer/memory management
-import 'dart:ffi';
-import 'package:ffi/ffi.dart';
 ```
 
 ## 3. Setup
-These bindings are direct C-interop functions, so there are no classes to instantiate for setup. Instead, you interact with top-level native functions and use the provided macro classes to configure your calls.
-
-### Unix Configuration Utilities
-```dart
-// Check system limits
-int maxPath = UnixSemLimits.PATH_MAX;
-int maxValue = UnixSemLimits.SEM_VALUE_MAX;
-int nameMax = UnixSemLimits.NAME_MAX;
-
-// Define permissions (e.g., 0644 - Owner read/write, Group/Others read)
-int permissions = MODE_T_PERMISSIONS.RECOMMENDED;
-int customPermissions = MODE_T_PERMISSIONS.perm(
-  u: MODE_T_PERMISSIONS.rwx,
-  g: MODE_T_PERMISSIONS.rx,
-  o: 0,
-);
-```
-
-### Windows Configuration Utilities
-```dart
-// Windows specific limits and prefixes
-String prefix = WindowsCreateSemaphoreWMacros.LOCAL_NAME_PREFIX; // 'Local\'
-String globalPrefix = WindowsCreateSemaphoreWMacros.GLOBAL_NAME_PREFIX; // 'Global\'
-int maxPath = WindowsCreateSemaphoreWMacros.MAX_PATH;
-```
+To use these bindings, you do not need to instantiate a central class. Instead, you interact with the FFI functions and macro classes directly. Ensure you import `dart:ffi` and `package:ffi/ffi.dart` for memory management and string conversions.
 
 ## 4. Common Operations
 
-### Unix: Open or Create a Named Semaphore
-Use `sem_open` to create or open a POSIX semaphore.
+### Unix POSIX Semaphores
+The Unix FFI bindings expose standard POSIX semaphore functions like `sem_open`, `sem_wait`, `sem_trywait`, `sem_post`, `sem_close`, and `sem_unlink`. 
+
 ```dart
 import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 import 'package:runtime_native_semaphores/src/ffi/unix.dart';
 
-void main() {
-  final name = '/my_semaphore'.toNativeUtf8().cast<Char>();
+void unixSemaphoreExample() {
+  // 1. Define semaphore name
+  // The name must begin with a '/' and be less than UnixSemLimits.NAME_MAX_CHARACTERS
+  final nameString = '/my_unix_semaphore';
+  final name = nameString.toNativeUtf8().cast<Char>();
 
-  final Pointer<sem_t> sem = sem_open(
+  // 2. Create or Open the semaphore
+  // Using O_CREAT flag creates it if it doesn't exist.
+  // The mode parameter specifies the permissions (e.g., 0644).
+  final sem = sem_open(
     name,
-    UnixSemOpenMacros.O_CREAT, // Create if it doesn't exist
+    UnixSemOpenMacros.O_CREAT,
     MODE_T_PERMISSIONS.RECOMMENDED,
     UnixSemOpenMacros.VALUE_RECOMMENDED,
   );
 
-  if (sem == UnixSemOpenMacros.SEM_FAILED) {
-    final err = errno.value;
-    calloc.free(name);
-    throw UnixSemOpenError.fromErrno(err);
-  }
-  
-  // Use the semaphore...
-  calloc.free(name);
-}
-```
-
-### Unix: Wait, TryWait, Post, and Cleanup
-```dart
-import 'dart:ffi';
-import 'package:runtime_native_semaphores/src/ffi/unix.dart';
-
-void processCriticalSection(Pointer<sem_t> sem) {
-  // Try to decrement (lock) the semaphore without blocking
-  if (sem_trywait(sem) != 0) {
-    final err = errno.value;
-    if (err == UnixSemWaitOrTryWaitMacros.EAGAIN) {
-      print("Semaphore is already locked, would block.");
-    } else {
-      throw UnixSemOpenErrorUnixSemWaitOrTryWaitError.fromErrno(err);
-    }
+  // Check if creation failed using SEM_FAILED
+  if (sem.address == UnixSemOpenMacros.SEM_FAILED.address) {
+    // Read native errno to determine the error
+    throw UnixSemOpenError.fromErrno(errno.value);
   }
 
-  // Decrement (lock) the semaphore (blocks until available)
-  if (sem_wait(sem) != 0) {
+  // 3. Lock (wait)
+  // Decrements the semaphore. Blocks if value is zero.
+  final waitResult = sem_wait(sem);
+  if (waitResult != 0) {
     throw UnixSemOpenErrorUnixSemWaitOrTryWaitError.fromErrno(errno.value);
   }
+  
+  // Alternatively, use trywait to return an error immediately instead of blocking:
+  // final tryWaitResult = sem_trywait(sem);
+  // if (tryWaitResult != 0) {
+  //   throw UnixSemOpenErrorUnixSemWaitOrTryWaitError.fromErrno(errno.value);
+  // }
 
-  // ... critical section ...
-
-  // Increment (unlock) the semaphore
-  if (sem_post(sem) != 0) {
+  // 4. Unlock (post)
+  // Increments the semaphore.
+  final postResult = sem_post(sem);
+  if (postResult != 0) {
     throw UnixSemUnlockWithPostError.fromErrno(errno.value);
   }
-}
 
-void cleanup(Pointer<sem_t> sem, Pointer<Char> name) {
-  // Close the named semaphore
-  if (sem_close(sem) != 0) {
+  // 5. Close the semaphore
+  final closeResult = sem_close(sem);
+  if (closeResult != 0) {
     throw UnixSemCloseError.fromErrno(errno.value);
   }
-  
-  // Unlink (remove) the semaphore name
-  if (sem_unlink(name) != 0) {
+
+  // 6. Unlink (destroy) the semaphore
+  final unlinkResult = sem_unlink(name);
+  if (unlinkResult != 0) {
     throw UnixSemUnlinkError.fromErrno(errno.value);
   }
+
+  // Free allocated memory
+  malloc.free(name);
 }
 ```
 
-### Windows: Create a Named Semaphore
+### Windows Semaphores
+The Windows FFI bindings expose Win32 APIs like `CreateSemaphoreW`, `WaitForSingleObject`, `ReleaseSemaphore`, and `CloseHandle`.
+It also includes `SECURITY_ATTRIBUTES` for configuring inheritability and security descriptors.
+
 ```dart
 import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 import 'package:runtime_native_semaphores/src/ffi/windows.dart';
 
-void main() {
-  final semName = '${WindowsCreateSemaphoreWMacros.LOCAL_NAME_PREFIX}my_semaphore'.toNativeUtf16();
+void windowsSemaphoreExample() {
+  // 1. Define semaphore name (Local\ or Global\ prefix)
+  final nameString = '${WindowsCreateSemaphoreWMacros.LOCAL_NAME_PREFIX}my_win_sem';
+  final name = nameString.toNativeUtf16();
 
-  // Create optional SECURITY_ATTRIBUTES using calloc
+  // (Optional) Define SECURITY_ATTRIBUTES to customize inheritable handles.
+  // We use cascade notation (..field = value) for the struct builder pattern.
+  // Properties mapped in camelCase or exact name per Dart conventions.
   final securityAttributes = calloc<SECURITY_ATTRIBUTES>()
     ..ref.nLength = sizeOf<SECURITY_ATTRIBUTES>()
-    ..ref.bInheritHandle = 1
-    ..ref.lpSecurityDescriptor = nullptr;
+    ..ref.lpSecurityDescriptor = nullptr
+    ..ref.bInheritHandle = 0; // FALSE
 
-  final int handle = CreateSemaphoreW(
-    securityAttributes.address, // Security attributes pointer address (or 0 for NULL)
+  // 2. Create or Open the semaphore
+  final handle = CreateSemaphoreW(
+    securityAttributes.address, 
     WindowsCreateSemaphoreWMacros.INITIAL_VALUE_RECOMMENDED,
     WindowsCreateSemaphoreWMacros.MAXIMUM_VALUE_RECOMMENDED,
-    semName,
+    name,
   );
 
-  calloc.free(securityAttributes);
-  calloc.free(semName);
-
-  if (handle == 0) { // 0 indicates failure
-    // Note: Use GetLastError() (via kernel32 or custom FFI) in a real scenario to get error code
-    throw WindowsCreateSemaphoreWError.fromErrorCode(WindowsCreateSemaphoreWMacros.ERROR_ACCESS_DENIED); 
+  if (handle == 0) {
+    // Note: Use GetLastError() (if defined/available) in your actual code to map the real error.
+    throw WindowsCreateSemaphoreWError(
+      WindowsCreateSemaphoreWMacros.ERROR_INVALID_HANDLE,
+      'Failed to create Windows semaphore',
+      'ERROR_INVALID_HANDLE'
+    );
   }
-}
-```
 
-### Windows: Wait, Release, and Cleanup
-```dart
-import 'dart:ffi';
-import 'package:ffi/ffi.dart';
-import 'package:runtime_native_semaphores/src/ffi/windows.dart';
-
-void processCriticalSection(int handle) {
-  // Wait (lock)
+  // 3. Lock (wait)
   final waitResult = WaitForSingleObject(
-    handle, 
-    WindowsWaitForSingleObjectMacros.TIMEOUT_INFINITE
+    handle,
+    WindowsWaitForSingleObjectMacros.TIMEOUT_INFINITE,
   );
 
-  if (waitResult == WindowsWaitForSingleObjectMacros.WAIT_OBJECT_0) {
-    // ... critical section ...
-
-    // Release (unlock)
-    final previousCount = calloc<LONG>();
-    final bool success = ReleaseSemaphore(
-      handle, 
-      WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED, 
-      previousCount,
-    ) != 0;
-    
-    calloc.free(previousCount);
-
-    if (!success) {
-      throw WindowsReleaseSemaphoreError.fromErrorCode(WindowsReleaseSemaphoreMacros.ERROR_SEM_OVERFLOW);
-    }
+  if (waitResult == WindowsWaitForSingleObjectMacros.WAIT_FAILED) {
+    throw Exception('Wait failed');
   } else if (waitResult == WindowsWaitForSingleObjectMacros.WAIT_TIMEOUT) {
-    print("Wait timed out.");
+    throw Exception('Wait timeout elapsed');
   }
-}
 
-void cleanup(int handle) {
-  // Clean up
-  if (CloseHandle(handle) == 0) {
-    print("Failed to close handle.");
+  // 4. Unlock (release)
+  // Increase count by RELEASE_COUNT_RECOMMENDED
+  final releaseResult = ReleaseSemaphore(
+    handle,
+    WindowsReleaseSemaphoreMacros.RELEASE_COUNT_RECOMMENDED,
+    nullptr, // Not capturing previous count
+  );
+
+  if (releaseResult == 0) {
+    throw WindowsReleaseSemaphoreError(
+      WindowsReleaseSemaphoreMacros.ERROR_SEM_OVERFLOW,
+      'Release failed: the semaphore reached its maximum count',
+      'ERROR_SEM_OVERFLOW'
+    );
   }
+
+  // 5. Close handle
+  final closeResult = CloseHandle(handle);
+  if (closeResult == 0) {
+    throw Exception('Failed to close handle');
+  }
+
+  // Free allocated memory
+  malloc.free(securityAttributes);
+  malloc.free(name);
 }
 ```
 
-## 5. Structs and Configuration Details
-The module automatically handles underlying platform discrepancies (e.g., BSD vs GNU sizes on macOS vs Linux) using `Platform.isMacOS` checks built into the macro classes. 
+## 5. Configuration
+The API relies on system-specific configuration constants available via macros:
 
-### Unix Error Handling and Config
-- **Unix Permissions:** Use the `MODE_T_PERMISSIONS` class to set appropriate file access flags (e.g., `OWNER_READ_WRITE_GROUP_READ`).
-- **Error Handling:** Use custom error classes like `UnixSemError` (and subclasses `UnixSemOpenError`, `UnixSemCloseError`, `UnixSemUnlinkError`, etc.) to decode system errors safely. The `errno` getter fetches the current thread's error number.
-
-### Windows Structs
-- **SECURITY_ATTRIBUTES:** Used to define security descriptors and inheritance for Windows handles. It contains:
-  - `nLength`: Size of the struct.
-  - `lpSecurityDescriptor`: Pointer to a `SECURITY_DESCRIPTOR`.
-  - `bInheritHandle`: Boolean flag for handle inheritance.
-- **SECURITY_DESCRIPTOR** and **ACL**: Used to set fine-grained access control lists.
-
-- **Windows Namespaces:** When naming Windows semaphores, prefix the name with `WindowsCreateSemaphoreWMacros.GLOBAL_NAME_PREFIX` or `WindowsCreateSemaphoreWMacros.LOCAL_NAME_PREFIX` to assign it to the correct session namespace.
-- **Error Handling:** Use `WindowsCreateSemaphoreWError`, `WindowsReleaseSemaphoreError`, and related classes to decode Windows specific errors.
+- **Unix:** You can refer to `UnixSemLimits.PATH_MAX` for the maximum path length, and `UnixSemLimits.NAME_MAX_CHARACTERS` for name limitations. `MODE_T_PERMISSIONS` provides easy-to-use access masks like `MODE_T_PERMISSIONS.RECOMMENDED`.
+- **Windows:** Names are limited to `WindowsCreateSemaphoreWMacros.MAX_PATH` characters and should typically include `Global\` or `Local\` prefixes depending on your desired session namespace.
 
 ## 6. Related Modules
-- `dart:ffi`: Required for native types (`Int`, `Pointer`, `Char`, `Struct`).
-- `package:ffi`: Required for string allocations and pointer utilities (`toNativeUtf8()`, `toNativeUtf16()`, `calloc`).
-- High-level wrappers (`lib/src/unix_semaphore.dart` and `lib/src/windows_semaphore.dart`) in this package, which abstract away manual pointer and memory management for safer application code.
+- `package:runtime_native_semaphores/src/native_semaphore.dart` - Provides a cross-platform, high-level wrapper over these raw FFI bindings.
+- `package:runtime_native_semaphores/src/unix_semaphore.dart` - High-level object-oriented encapsulation for Unix POSIX semaphores.
+- `package:runtime_native_semaphores/src/windows_semaphore.dart` - High-level object-oriented encapsulation for Windows semaphores.

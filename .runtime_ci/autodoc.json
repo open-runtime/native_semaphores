@@ -18,8 +18,8 @@
         "api_reference",
         "examples"
       ],
-      "hash": "70b1456b32b05420969f8c5a2855d1dffd823b3859998664e9ede1c7ec0e35ca",
-      "last_updated": "2026-02-24T03:24:17.647763Z"
+      "hash": "92da57b652cfde81caf5d10042732b61738f2147c5c5169b190d747757b4e75b",
+      "last_updated": "2026-02-24T15:13:21.528328Z"
     },
     {
       "id": "unix",
@@ -35,8 +35,8 @@
       "generate": [
         "api_reference"
       ],
-      "hash": "866f3dcec98ff88632d3689dda31ac3d8a65ddf50e526b5e66bfab4587226afc",
-      "last_updated": "2026-02-24T03:24:17.656413Z"
+      "hash": "dd5acef34143040c5bea09a066d1fa8329a9b254b2f28653a721ca64ff867862",
+      "last_updated": "2026-02-24T15:13:21.535664Z"
     },
     {
       "id": "windows",
@@ -69,8 +69,8 @@
         "quickstart",
         "api_reference"
       ],
-      "hash": "47401e9c7d6e6f62a06c5b1d6566d426ba7f1c90c476ce2ad022871e483bf251",
-      "last_updated": "2026-02-24T03:24:17.669790Z"
+      "hash": "1580b0ca28034db2615ace98503dfc5f09cfa9e5eca2f76e1cb6bfe10088c437",
+      "last_updated": "2026-02-24T15:13:21.546474Z"
     },
     {
       "id": "utils",
@@ -103,8 +103,8 @@
         "quickstart",
         "api_reference"
       ],
-      "hash": "e1b0679bbe0eb72e5e51809c894d7dc409f2054ea7f9079bfa76b16c75ed17d4",
-      "last_updated": "2026-02-24T03:24:17.682969Z"
+      "hash": "663aea673294ff7bfc70111283d6d43b79958846dac8858e221380556e1b4fb5",
+      "last_updated": "2026-02-24T15:13:21.555730Z"
     }
   ],
   "templates": {
