@@ -1,0 +1,3 @@
+- **CI configuration**: Transitioned to using organization-managed runners for both Linux and Windows platforms.
+- **Improved compatibility**: Switched the git repository URL from SSH to HTTPS to ensure seamless continuous integration runs.
+- **Dependency bump**: Upgraded `runtime_ci_tooling` to `^0.13.0` for up-to-date platform support.

@@ -1,0 +1,14 @@
+- **Decision**: patch
+  The changes introduced since the last release are exclusively related to Continuous Integration (CI) configuration, GitHub actions runner setups, and internal development dependency updates. No public APIs, behavioral logic, or package source code were modified. Therefore, this warrants a `patch` release.
+- **Key Changes**:
+  - Updated CI matrix to use organization-managed runners (`runtime-*`) as defaults for Linux and Windows platforms.
+  - Switched the git repository URL from SSH to HTTPS in `pubspec.yaml` for `runtime_ci_tooling`.
+  - Bumped the `runtime_ci_tooling` development dependency from `^0.12.0` to `^0.13.0`.
+  - Adjusted how GitHub tokens are injected into Git configurations within `.github/workflows/ci.yaml` to improve reliability.
+  - Removed deprecated `runner_overrides` from `.runtime_ci/config.json`.
+- **Breaking Changes**:
+  - None
+- **New Features**:
+  - None
+- **References**:
+  - Commit: `feat(ci): use org-managed runners as CI platform defaults`
