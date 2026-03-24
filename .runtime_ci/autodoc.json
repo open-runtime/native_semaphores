@@ -13,14 +13,14 @@
       "lib_paths": [
         "lib/src/"
       ],
-      "output_path": "docs/core/",
+      "output_path": "docs/core",
       "generate": [
         "quickstart",
         "api_reference",
         "examples"
       ],
-      "hash": "92da57b652cfde81caf5d10042732b61738f2147c5c5169b190d747757b4e75b",
-      "last_updated": "2026-02-24T15:13:21.528328Z"
+      "hash": "196d3a1f0526f204f4cc8423ce067399669477b65b080314bf9a34638bad6dc2",
+      "last_updated": "2026-03-24T21:32:53.198633Z"
     },
     {
       "id": "unix",
@@ -32,12 +32,12 @@
       "lib_paths": [
         "lib/src/"
       ],
-      "output_path": "docs/unix/",
+      "output_path": "docs/unix",
       "generate": [
         "api_reference"
       ],
-      "hash": "dd5acef34143040c5bea09a066d1fa8329a9b254b2f28653a721ca64ff867862",
-      "last_updated": "2026-02-24T15:13:21.535664Z"
+      "hash": "8428362808ea245c17b8336086a915450fb6c701b0cda97ceec9253d17edb2dd",
+      "last_updated": "2026-03-24T21:32:53.198931Z"
     },
     {
       "id": "windows",
@@ -49,12 +49,12 @@
       "lib_paths": [
         "lib/src/"
       ],
-      "output_path": "docs/windows/",
+      "output_path": "docs/windows",
       "generate": [
         "api_reference"
       ],
-      "hash": "a36329dfb961a750c30044577fc3825ca989b5965094903dad75e3c0acbbf1be",
-      "last_updated": "2026-02-24T03:24:17.663328Z"
+      "hash": "6720ff5acf666de76e1fc9458e2d51e04256f21b94e68263164346f98e502900",
+      "last_updated": "2026-03-24T21:32:53.198937Z"
     },
     {
       "id": "ffi",
@@ -65,13 +65,13 @@
       "lib_paths": [
         "lib/src/ffi/"
       ],
-      "output_path": "docs/ffi/",
+      "output_path": "docs/ffi",
       "generate": [
         "quickstart",
         "api_reference"
       ],
-      "hash": "1580b0ca28034db2615ace98503dfc5f09cfa9e5eca2f76e1cb6bfe10088c437",
-      "last_updated": "2026-02-24T15:13:21.546474Z"
+      "hash": "eeb404f21277bedad81cf434c80ff4abe32d0598fb8d538a39cf7493cae1dbd0",
+      "last_updated": "2026-03-24T21:32:53.198943Z"
     },
     {
       "id": "utils",
@@ -82,13 +82,13 @@
       "lib_paths": [
         "lib/src/utils/"
       ],
-      "output_path": "docs/utils/",
+      "output_path": "docs/utils",
       "generate": [
         "quickstart",
         "api_reference"
       ],
-      "hash": "c918d67d77f2a1e0deca4666c522b6f7231ad1cd08ae38e9e8dfe4b7bd40a842",
-      "last_updated": "2026-02-24T03:24:17.676215Z"
+      "hash": "9773efeeb46b3827b6312f7f5369e5d9891760c6ebc5e25fc080667db495b156",
+      "last_updated": "2026-03-24T21:32:53.198948Z"
     },
     {
       "id": "top_level",
@@ -99,13 +99,13 @@
       "lib_paths": [
         "lib/"
       ],
-      "output_path": "docs/top_level/",
+      "output_path": "docs/top_level",
       "generate": [
         "quickstart",
         "api_reference"
       ],
-      "hash": "663aea673294ff7bfc70111283d6d43b79958846dac8858e221380556e1b4fb5",
-      "last_updated": "2026-02-24T15:13:21.555730Z"
+      "hash": "70ecd2a400ae64904e3771507b14c641637a68754fe4cedfe9d4e46a5ceccc22",
+      "last_updated": "2026-03-24T21:32:53.198953Z"
     }
   ],
   "templates": {
