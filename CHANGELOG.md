@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2026-03-25
+
+### Added
+- Enabled autodoc feature flag, re-scanned modules, and added an autodoc job to the release pipeline
+- Added file reading tools (read_file, glob, grep_search, list_directory) to Gemini settings and defined a strict markdown-only autodoc safety policy
+
+### Changed
+- Upgraded CI/CD templates and regenerated workflows from runtime_ci_tooling (v0.23.7 through v0.23.10), including a bump to setup-dart v1.7.2
+- Configured the autodoc pipeline to use gemini-3-flash-preview for documentation reviews
+- Aligned post-merge dependency versions across the workspace (#21)
+- Aligned Dart workspace resolution and updated pub dependency constraints following cross-repo merges
+- Auto-generated updated documentation and applied Dart line length formatting (120 characters) across the repository
+
 ## [1.0.5] - 2026-02-24
 
 ### Changed
@@ -107,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added cross process unit tests with dart AOT compiled binaries that all try to leverage the same named lock
 - FIX: Fixed a bug where the SemaphoreIdentity wasn't getting the Semaphore's address assigned to it
 
+[1.0.6]: https://github.com/open-runtime/native_semaphores/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/open-runtime/native_semaphores/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/open-runtime/native_semaphores/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/open-runtime/native_semaphores/compare/v1.0.2...v1.0.3

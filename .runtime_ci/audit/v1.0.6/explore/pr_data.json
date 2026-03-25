@@ -1,0 +1,15 @@
+{
+  "pull_requests": [
+    {
+      "number": 21,
+      "title": "chore(deps): align post-merge dependency versions",
+      "author": "tsavo-at-pieces",
+      "labels": [],
+      "summary": "Aligns dependency constraints and normalizes versions across the workspace after cross-repo merges to keep the repo in sync with workspace resolution expectations.",
+      "commits": [
+        "93af877",
+        "8a772cf"
+      ]
+    }
+  ]
+}

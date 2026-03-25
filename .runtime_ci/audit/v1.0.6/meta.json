@@ -1,0 +1,82 @@
+{
+  "command": "merged-audit",
+  "started_at": "2026-03-25T03:02:47.873495",
+  "merged_from": [
+    {
+      "artifact": "cicd-audit-release-notes",
+      "command": "release-notes",
+      "args": [],
+      "started_at": "2026-03-25T02:59:28.011117",
+      "pid": 2895,
+      "platform": "linux",
+      "dart_version": "3.9.2",
+      "repo_root": "/home/runner/work/native_semaphores/native_semaphores",
+      "run_dir": "/home/runner/work/native_semaphores/native_semaphores/.runtime_ci/runs/run_2026-03-25T02-59-28_2895",
+      "ci": true,
+      "completed_at": "2026-03-25T03:02:20.993381",
+      "duration_seconds": 172,
+      "artifacts": [
+        "meta.json",
+        "release-notes/release_notes.md",
+        "release-notes/gemini_response.json",
+        "release-notes/prompt.txt"
+      ]
+    },
+    {
+      "artifact": "cicd-audit-prepare-release-docs",
+      "command": "compose",
+      "args": [],
+      "started_at": "2026-03-25T02:45:20.781713",
+      "pid": 2811,
+      "platform": "linux",
+      "dart_version": "3.9.2",
+      "repo_root": "/home/runner/work/native_semaphores/native_semaphores",
+      "run_dir": "/home/runner/work/native_semaphores/native_semaphores/.runtime_ci/runs/run_2026-03-25T02-45-20_2811",
+      "ci": true,
+      "completed_at": "2026-03-25T02:46:52.724154",
+      "duration_seconds": 91,
+      "artifacts": [
+        "meta.json",
+        "compose/gemini_response.json",
+        "compose/prompt.txt"
+      ]
+    },
+    {
+      "artifact": "cicd-audit-prepare-release-docs",
+      "command": "documentation",
+      "args": [],
+      "started_at": "2026-03-25T02:46:53.078145",
+      "pid": 5238,
+      "platform": "linux",
+      "dart_version": "3.9.2",
+      "repo_root": "/home/runner/work/native_semaphores/native_semaphores",
+      "run_dir": "/home/runner/work/native_semaphores/native_semaphores/.runtime_ci/runs/run_2026-03-25T02-46-53_5238",
+      "ci": true
+    },
+    {
+      "artifact": "cicd-audit-explore",
+      "command": "explore",
+      "args": [],
+      "started_at": "2026-03-25T02:33:38.005604",
+      "pid": 2840,
+      "platform": "linux",
+      "dart_version": "3.9.2",
+      "repo_root": "/home/runner/work/native_semaphores/native_semaphores",
+      "run_dir": "/home/runner/work/native_semaphores/native_semaphores/.runtime_ci/runs/run_2026-03-25T02-33-38_2840",
+      "ci": true,
+      "completed_at": "2026-03-25T02:44:17.490429",
+      "duration_seconds": 639,
+      "exit_code": 0,
+      "artifacts": [
+        "meta.json",
+        "explore/gemini_response.json",
+        "explore/prompt.txt"
+      ]
+    }
+  ],
+  "artifact_count": 5,
+  "total_files": 18,
+  "ci": true,
+  "platform": "linux",
+  "dart_version": "3.9.2"
+}

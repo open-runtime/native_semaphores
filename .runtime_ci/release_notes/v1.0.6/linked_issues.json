@@ -1,0 +1,12 @@
+{
+  "version": "1.0.6",
+  "github_issues": [],
+  "sentry_issues": [],
+  "prs_referenced": [
+    {
+      "number": 21,
+      "title": "chore(deps): align post-merge dependency versions",
+      "author": "tsavo-at-pieces"
+    }
+  ]
+}

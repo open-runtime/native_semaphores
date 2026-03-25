@@ -1,0 +1,70 @@
+{
+  "version": "1.0.6",
+  "previous_version": "v1.0.5",
+  "total_commits": 13,
+  "categories": {
+    "added": [
+      {
+        "description": "Enabled autodoc feature flag, re-scanned modules, and added an autodoc job to the release pipeline",
+        "pr": null,
+        "commits": [
+          "2e8e6b9"
+        ]
+      },
+      {
+        "description": "Added file reading tools (read_file, glob, grep_search, list_directory) to Gemini settings and defined a strict markdown-only autodoc safety policy",
+        "pr": null,
+        "commits": [
+          "81415c6"
+        ]
+      }
+    ],
+    "changed": [
+      {
+        "description": "Upgraded CI/CD templates and regenerated workflows from runtime_ci_tooling (v0.23.7 through v0.23.10), including a bump to setup-dart v1.7.2",
+        "pr": null,
+        "commits": [
+          "c3fd662",
+          "ecf3f27",
+          "be4a53f",
+          "deea826",
+          "0e91e3f"
+        ]
+      },
+      {
+        "description": "Configured the autodoc pipeline to use gemini-3-flash-preview for documentation reviews",
+        "pr": null,
+        "commits": [
+          "7c5c388"
+        ]
+      },
+      {
+        "description": "Aligned post-merge dependency versions across the workspace",
+        "pr": "#21",
+        "commits": [
+          "93af877",
+          "8a772cf"
+        ]
+      },
+      {
+        "description": "Aligned Dart workspace resolution and updated pub dependency constraints following cross-repo merges",
+        "pr": null,
+        "commits": [
+          "67d5a17"
+        ]
+      },
+      {
+        "description": "Auto-generated updated documentation and applied Dart line length formatting (120 characters) across the repository",
+        "pr": null,
+        "commits": [
+          "cd52228",
+          "01771bc"
+        ]
+      }
+    ],
+    "deprecated": [],
+    "removed": [],
+    "fixed": [],
+    "security": []
+  }
+}
