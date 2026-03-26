@@ -1,0 +1,15 @@
+{
+  "pull_requests": [
+    {
+      "number": 23,
+      "title": "chore: remove runtime_ci_tooling dev_dependency",
+      "author": "tsavo-at-pieces",
+      "labels": [],
+      "summary": "Removes runtime_ci_tooling from dev_dependencies since it is activated globally in CI pipelines, preventing workspace resolution conflicts.",
+      "commits": [
+        "cf4efe4cf3117a584e7cc20d51f193dc26ae568d",
+        "229857127e3db4e24487f689f3a502776f52cf97"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "version": "1.0.7",
+  "previous_version": "v1.0.6",
+  "total_commits": 2,
+  "categories": {
+    "added": [],
+    "changed": [
+      {
+        "description": "Removed runtime_ci_tooling dev_dependency to prevent workspace resolution conflicts, deferring to global activation in CI instead.",
+        "pr": "#23",
+        "commits": [
+          "cf4efe4cf3117a584e7cc20d51f193dc26ae568d",
+          "229857127e3db4e24487f689f3a502776f52cf97"
+        ]
+      }
+    ],
+    "deprecated": [],
+    "removed": [],
+    "fixed": [],
+    "security": []
+  }
+}

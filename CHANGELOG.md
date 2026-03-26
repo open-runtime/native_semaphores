@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2026-03-26
+
+### Changed
+- Removed runtime_ci_tooling dev_dependency to prevent workspace resolution conflicts, deferring to global activation in CI instead (#23)
+
 ## [1.0.6] - 2026-03-25
 
 ### Added
@@ -120,6 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added cross process unit tests with dart AOT compiled binaries that all try to leverage the same named lock
 - FIX: Fixed a bug where the SemaphoreIdentity wasn't getting the Semaphore's address assigned to it
 
+[1.0.7]: https://github.com/open-runtime/native_semaphores/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/open-runtime/native_semaphores/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/open-runtime/native_semaphores/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/open-runtime/native_semaphores/compare/v1.0.3...v1.0.4
